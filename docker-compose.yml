@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - backend_data:/workspace
+      # Host mapping to save databases and uploads locally on the host
+      - ./backend/uploads:/workspace/uploads
+      - ./backend/reports:/workspace/reports
+      - ./backend/a3_analytics.db:/workspace/a3_analytics.db
+    environment:
+      - DATABASE_URL=sqlite:///./a3_analytics.db
+      # If running Ollama on host (standard for GPU acceleration on Windows/Mac):
+      # Use host.docker.internal to talk to host service.
+      # Ensure Ollama on host has OLLAMA_HOST=0.0.0.0 set to receive container calls.
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+      - OLLAMA_MODEL=qwen2.5:latest
+      - MOCK_AI=False
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: always
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000/api
+    depends_on:
+      - backend
+    restart: always
+
+volumes:
+  backend_data:
