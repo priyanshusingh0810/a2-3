@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
 import { 
   Database, Upload, MessageSquare, LineChart, FileText, LayoutDashboard, 
   Trash2, LogOut, Loader2, Sparkles, RefreshCw, Send, CheckCircle2, 
@@ -920,13 +921,22 @@ export default function Home() {
             </button>
           </form>
 
-          <div className="mt-8 border-t border-slate-700/50 pt-5 text-center">
+          <div className="mt-8 border-t border-slate-700/50 pt-5 text-center flex flex-col gap-4">
             <button
               onClick={() => setAuthMode(authMode === 'login' ? 'register' : 'login')}
               className="text-sm text-indigo-400 hover:text-indigo-300 font-medium transition"
             >
               {authMode === 'login' ? "Don't have an account? Sign Up" : 'Already have an account? Sign In'}
             </button>
+            <div className="flex justify-center pt-2">
+              <Link
+                href="/sign-in-demo"
+                className="inline-flex items-center justify-center gap-1.5 text-xs text-slate-400 hover:text-slate-200 font-medium transition select-none border border-slate-800 hover:border-slate-700/80 rounded-xl py-2 px-4 bg-slate-950/40 w-full max-w-[260px]"
+              >
+                <Shield size={13} className="text-purple-400" />
+                Try Interactive Auth Demo Kit
+              </Link>
+            </div>
           </div>
         </div>
       </div>
@@ -998,6 +1008,14 @@ export default function Home() {
               <FileText size={16} />
               Report Center
             </button>
+            <Link
+              href="/sign-in-demo"
+              target="_blank"
+              className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition text-slate-400 hover:bg-slate-800/50 hover:text-slate-200"
+            >
+              <Shield size={16} className="text-purple-400 animate-pulse" />
+              Interactive Auth Kit
+            </Link>
           </nav>
 
           {/* Uploaded Datasets List */}
