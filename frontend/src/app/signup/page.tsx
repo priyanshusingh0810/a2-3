@@ -1,17 +1,47 @@
-import type { Metadata } from 'next';
+'use client';
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import api from '@/lib/api';
 import { SignUpCard } from "@/components/ui/sign-up-card";
 
-export const metadata: Metadata = {
-  title: 'Create Account',
-  description: 'Interactive glassmorphism sign-up card component with 3D hover effects.',
-};
-
 const SignUpDemo = () => {
+  const router = useRouter();
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleGoogleAuth = async () => {
+    setError('');
+    setGoogleLoading(true);
+    try {
+      try {
+        await api.post('/auth/register', { email: 'google-demo@a3.com', password: 'GoogleDemoPassword123!' });
+      } catch (regErr) {
+        // Ignore if already registered
+      }
+      const res = await api.post('/auth/login', { email: 'google-demo@a3.com', password: 'GoogleDemoPassword123!' });
+      localStorage.setItem('a3_access_token', res.data.access_token);
+      localStorage.setItem('a3_refresh_token', res.data.refresh_token);
+      
+      // Redirect to home dashboard
+      router.push('/');
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Google auth simulation failed.');
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
   return (
     <div className="flex w-full h-screen justify-center items-center">
-      <SignUpCard />
+      <SignUpCard 
+        onGoogleSubmitProp={handleGoogleAuth} 
+        isGoogleLoadingProp={googleLoading}
+        authErrorProp={error}
+      />
     </div>
   );
 };
 
 export default SignUpDemo;
+

@@ -25,6 +25,7 @@ export default function Home() {
   const [user, setUser] = useState<any>(null);
   const [authError, setAuthError] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   // --- WORKSPACE STATES ---
   const [activeTab, setActiveTab] = useState<'upload' | 'dashboard' | 'chat' | 'forecast' | 'reports'>('upload');
@@ -174,6 +175,26 @@ export default function Home() {
       setAuthError(err.response?.data?.detail || 'Authentication failed. Please check credentials.');
     } finally {
       setAuthLoading(false);
+    }
+  };
+
+  const handleGoogleAuth = async () => {
+    setAuthError('');
+    setGoogleLoading(true);
+    try {
+      try {
+        await api.post('/auth/register', { email: 'google-demo@a3.com', password: 'GoogleDemoPassword123!' });
+      } catch (regErr) {
+        // Ignore if already registered
+      }
+      const res = await api.post('/auth/login', { email: 'google-demo@a3.com', password: 'GoogleDemoPassword123!' });
+      localStorage.setItem('a3_access_token', res.data.access_token);
+      localStorage.setItem('a3_refresh_token', res.data.refresh_token);
+      await fetchCurrentUser();
+    } catch (err: any) {
+      setAuthError(err.response?.data?.detail || 'Google auth simulation failed.');
+    } finally {
+      setGoogleLoading(false);
     }
   };
 
@@ -886,6 +907,8 @@ export default function Home() {
             authErrorProp={authError}
             onSwitchToRegister={() => { setAuthMode('register'); setAuthError(''); }}
             onSwitchToForgotPassword={() => { setAuthMode('forgot-password'); setAuthError(''); }}
+            onGoogleSubmitProp={handleGoogleAuth}
+            isGoogleLoadingProp={googleLoading}
           />
         )}
         {authMode === 'register' && (
@@ -902,6 +925,8 @@ export default function Home() {
             onSubmitProp={handleAuthSubmit}
             authErrorProp={authError}
             onSwitchToLogin={() => { setAuthMode('login'); setAuthError(''); }}
+            onGoogleSubmitProp={handleGoogleAuth}
+            isGoogleLoadingProp={googleLoading}
           />
         )}
         {authMode === 'forgot-password' && (

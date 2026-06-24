@@ -35,6 +35,8 @@ interface SignUpCardProps {
   onSubmitProp?: (e: React.FormEvent) => void;
   authErrorProp?: string;
   onSwitchToLogin?: () => void;
+  onGoogleSubmitProp?: () => void;
+  isGoogleLoadingProp?: boolean;
 }
 
 export function SignUpCard({
@@ -50,6 +52,8 @@ export function SignUpCard({
   onSubmitProp,
   authErrorProp,
   onSwitchToLogin,
+  onGoogleSubmitProp,
+  isGoogleLoadingProp,
 }: SignUpCardProps = {}) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -578,16 +582,24 @@ export function SignUpCard({
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   type="button"
+                  onClick={onGoogleSubmitProp}
+                  disabled={isLoading || isGoogleLoadingProp}
                   className="w-full relative group/google"
                 >
                   <div className="absolute inset-0 bg-white/5 rounded-lg blur opacity-0 group-hover/google:opacity-70 transition-opacity duration-300" />
                   
                   <div className="relative overflow-hidden bg-white/5 text-white font-medium h-10 rounded-lg border border-white/10 hover:border-white/20 transition-all duration-300 flex items-center justify-center gap-2">
-                    <div className="w-4 h-4 flex items-center justify-center text-white/80 group-hover/google:text-white transition-colors duration-300 font-bold text-xs">G</div>
-                    
-                    <span className="text-white/80 group-hover/google:text-white transition-colors text-xs">
-                      Sign up with Google
-                    </span>
+                    {isGoogleLoadingProp ? (
+                      <div className="w-4 h-4 border-2 border-white/70 border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <>
+                        <div className="w-4 h-4 flex items-center justify-center text-white/80 group-hover/google:text-white transition-colors duration-300 font-bold text-xs">G</div>
+                        
+                        <span className="text-white/80 group-hover/google:text-white transition-colors text-xs">
+                          Sign up with Google
+                        </span>
+                      </>
+                    )}
                     
                     <motion.div 
                       className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/5 to-white/0"
