@@ -9,7 +9,7 @@ interface PreviewGridProps {
 export const PreviewGrid: React.FC<PreviewGridProps> = ({ columns, rows, columnsMeta }) => {
   if (!columns || columns.length === 0) {
     return (
-      <div className="flex h-32 items-center justify-center rounded-xl bg-black/40 border border-white/[0.06]">
+      <div className="flex h-32 items-center justify-center rounded-2xl bg-slate-800/30 border border-slate-700/50">
         <div className="text-gray-500 text-sm">No rows or columns to display.</div>
       </div>
     );
@@ -24,11 +24,11 @@ export const PreviewGrid: React.FC<PreviewGridProps> = ({ columns, rows, columns
   };
 
   return (
-    <div className="w-full overflow-hidden rounded-xl border border-white/[0.06] bg-black/50 backdrop-blur-xl">
+    <div className="w-full overflow-hidden rounded-2xl border border-slate-700/50 bg-slate-800/30">
       <div className="overflow-x-auto overflow-y-auto max-h-[400px]">
         <table className="w-full text-left text-sm border-collapse">
           <thead>
-            <tr className="border-b border-white/[0.06] bg-black/80 sticky top-0 z-10">
+            <tr className="border-b border-slate-700/50 bg-slate-900 sticky top-0 z-10">
               <th className="p-3 w-12 text-gray-500 font-medium">#</th>
               {columns.map((col) => {
                 const type = columnsMeta?.[col]?.data_type || typeof rows[0]?.[col] || 'string';
@@ -49,7 +49,7 @@ export const PreviewGrid: React.FC<PreviewGridProps> = ({ columns, rows, columns
             {rows.map((row, idx) => (
               <tr 
                 key={idx} 
-                className="border-b border-white/[0.04] hover:bg-white/[0.03] transition-colors"
+                className="border-b border-slate-700/30 hover:bg-slate-800/40 transition-colors"
               >
                 <td className="p-3 text-gray-600 font-mono text-xs">{idx + 1}</td>
                 {columns.map((col) => {
