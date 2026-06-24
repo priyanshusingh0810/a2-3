@@ -389,7 +389,7 @@ export default function Home() {
         {/* KPI Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {kpiWidgets.map((kpi: any) => (
-            <div key={kpi.id} className="glass-panel p-5 rounded-xl border border-gray-800 flex items-center justify-between">
+            <div key={kpi.id} className="glass-panel p-5 rounded-xl border border-white/[0.06] flex items-center justify-between">
               <div>
                 <p className="text-gray-400 text-xs uppercase font-medium">{kpi.title}</p>
                 <h3 className="text-2xl font-bold mt-1 text-white">{kpi.config.value}</h3>
@@ -401,7 +401,7 @@ export default function Home() {
             </div>
           ))}
           {/* Business Domain & File Type cards */}
-          <div className="glass-panel p-5 rounded-xl border border-gray-800 flex items-center justify-between">
+          <div className="glass-panel p-5 rounded-xl border border-white/[0.06] flex items-center justify-between">
             <div>
               <p className="text-gray-400 text-xs uppercase font-medium">Domain Vertical</p>
               <h3 className="text-lg font-semibold mt-1 text-white truncate max-w-[170px]">
@@ -413,7 +413,7 @@ export default function Home() {
               <Sparkles size={22} />
             </div>
           </div>
-          <div className="glass-panel p-5 rounded-xl border border-gray-800 flex items-center justify-between">
+          <div className="glass-panel p-5 rounded-xl border border-white/[0.06] flex items-center justify-between">
             <div>
               <p className="text-gray-400 text-xs uppercase font-medium">File Format</p>
               <h3 className="text-xl font-bold mt-1 text-white uppercase">{selectedDataset?.file_type}</h3>
@@ -427,8 +427,8 @@ export default function Home() {
 
         {/* Actionable Recommendations Panel */}
         {analysisJob?.quality_report && (
-          <div className="glass-panel p-6 rounded-xl border border-gray-800">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-800 pb-4 mb-4">
+          <div className="glass-panel p-6 rounded-xl border border-white/[0.06]">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white/[0.06] pb-4 mb-4">
               <div>
                 <h3 className="text-lg font-semibold flex items-center gap-2 text-white">
                   <AlertTriangle className="text-amber-500" size={20} />
@@ -482,7 +482,7 @@ export default function Home() {
                 <p className="text-xs text-gray-500 font-medium">DETECTOR LOGS</p>
                 {analysisJob.quality_report.issues?.length > 0 ? (
                   analysisJob.quality_report.issues.map((iss: any, idx: number) => (
-                    <div key={idx} className="flex items-start gap-2 text-xs bg-gray-950/40 p-2 border border-gray-800/60 rounded">
+                    <div key={idx} className="flex items-start gap-2 text-xs bg-black/40 p-2 border border-white/[0.04] rounded">
                       <span className={`px-1 py-0.5 rounded text-[9px] uppercase font-bold shrink-0 ${
                         iss.severity === 'high' ? 'bg-red-500/15 text-red-400 border border-red-500/25' : 
                         (iss.severity === 'medium' ? 'bg-amber-500/15 text-amber-400 border border-amber-500/25' : 'bg-blue-500/15 text-blue-400 border border-blue-500/25')
@@ -515,7 +515,7 @@ export default function Home() {
         {/* Charts Grid */}
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
           {chartWidgets.map((widget: any) => (
-            <div key={widget.id} className="glass-panel p-5 rounded-xl border border-gray-800 flex flex-col justify-between">
+            <div key={widget.id} className="glass-panel p-5 rounded-xl border border-white/[0.06] flex flex-col justify-between">
               <div className="mb-4">
                 <h4 className="text-md font-semibold text-white">{widget.title}</h4>
                 {/* Find the explanation description from the visualization agent result */}
@@ -540,7 +540,7 @@ export default function Home() {
     return (
       <div className="space-y-6">
         {/* Domain and Summary Header */}
-        <div className="glass-panel p-6 rounded-xl border border-gray-800 bg-gradient-to-r from-gray-900/60 to-indigo-950/20">
+        <div className="glass-panel p-6 rounded-xl border border-white/[0.06] bg-gradient-to-r from-black/60 to-indigo-950/15">
           <div className="flex items-center gap-2 mb-2">
             <span className="bg-indigo-500/20 text-indigo-400 text-xs px-2.5 py-1 rounded-full font-semibold border border-indigo-500/30 uppercase tracking-wider">
               {selectedDataset.business_domain || 'General Analytics'}
@@ -554,7 +554,7 @@ export default function Home() {
         </div>
 
         {/* Columns Definition List */}
-        <div className="glass-panel p-6 rounded-xl border border-gray-800">
+        <div className="glass-panel p-6 rounded-xl border border-white/[0.06]">
           <h3 className="text-md font-semibold text-white mb-4 flex items-center gap-1.5">
             <Database size={18} className="text-indigo-400" />
             Column Schema & Business Dictionary
@@ -562,11 +562,11 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {selectedDataset.columns_metadata && 
               Object.entries(selectedDataset.columns_metadata).map(([name, meta]: [string, any]) => (
-                <div key={name} className="bg-gray-950/40 p-4 border border-gray-800/80 rounded-xl flex flex-col justify-between">
+                <div key={name} className="bg-black/40 p-4 border border-white/[0.06] rounded-xl flex flex-col justify-between">
                   <div>
-                    <div className="flex items-center justify-between gap-2 border-b border-gray-800 pb-1.5 mb-2">
+                    <div className="flex items-center justify-between gap-2 border-b border-white/[0.06] pb-1.5 mb-2">
                       <span className="font-mono text-xs font-semibold text-gray-200 truncate">{name}</span>
-                      <span className="text-[10px] px-1.5 py-0.5 rounded font-mono uppercase bg-gray-800 text-gray-400">
+                      <span className="text-[10px] px-1.5 py-0.5 rounded font-mono uppercase bg-white/[0.05] text-gray-400">
                         {meta.data_type}
                       </span>
                     </div>
@@ -609,9 +609,9 @@ export default function Home() {
     return (
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-[calc(100vh-160px)]">
         {/* Left conversations list */}
-        <div className="lg:col-span-1 glass-panel rounded-xl border border-gray-800 p-4 flex flex-col justify-between">
+        <div className="lg:col-span-1 glass-panel rounded-xl border border-white/[0.06] p-4 flex flex-col justify-between">
           <div className="space-y-4">
-            <div className="flex items-center justify-between border-b border-gray-800 pb-3">
+            <div className="flex items-center justify-between border-b border-white/[0.06] pb-3">
               <h4 className="text-sm font-semibold text-white">Conversations</h4>
               <button 
                 onClick={() => {
@@ -632,7 +632,7 @@ export default function Home() {
                     className={`w-full text-left p-2.5 rounded-lg text-xs truncate transition flex items-center gap-2 ${
                       activeConversationId === conv.id 
                         ? 'bg-indigo-600 text-white font-medium shadow-lg' 
-                        : 'text-gray-400 hover:bg-gray-800/40 hover:text-gray-200'
+                        : 'text-gray-500 hover:bg-white/[0.04] hover:text-gray-200'
                     }`}
                   >
                     <MessageSquare size={14} />
@@ -644,14 +644,14 @@ export default function Home() {
               )}
             </div>
           </div>
-          <div className="bg-gray-950/40 p-3 rounded-lg border border-gray-800/60 text-xs text-gray-500 flex items-start gap-1.5">
+          <div className="bg-black/40 p-3 rounded-lg border border-white/[0.04] text-xs text-gray-500 flex items-start gap-1.5">
             <HelpCircle className="text-indigo-400 shrink-0 mt-0.5" size={14} />
             <span>AI executes pandas scripts locally on your data. Data stays completely on-device.</span>
           </div>
         </div>
 
         {/* Right main conversation thread */}
-        <div className="lg:col-span-3 glass-panel rounded-xl border border-gray-800 flex flex-col justify-between overflow-hidden">
+        <div className="lg:col-span-3 glass-panel rounded-xl border border-white/[0.06] flex flex-col justify-between overflow-hidden">
           {/* Thread messages window */}
           <div className="flex-grow p-6 overflow-y-auto space-y-4 max-h-[calc(100vh-280px)]">
             {chatMessages.length === 0 ? (
@@ -666,13 +666,13 @@ export default function Home() {
                 <div className="grid grid-cols-2 gap-2 mt-6 w-full">
                   <button 
                     onClick={() => handleChatSubmit(undefined, "Show Sales distribution by Region")} 
-                    className="p-2.5 bg-gray-900/60 hover:bg-gray-800/80 border border-gray-800 hover:border-gray-700 rounded-lg text-left text-xs text-gray-300 transition"
+                    className="p-2.5 bg-black/40 hover:bg-white/[0.06] border border-white/[0.06] hover:border-white/[0.1] rounded-lg text-left text-xs text-gray-300 transition"
                   >
                     "Show Sales by Region"
                   </button>
                   <button 
                     onClick={() => handleChatSubmit(undefined, "What are the top 5 product categories?")} 
-                    className="p-2.5 bg-gray-900/60 hover:bg-gray-800/80 border border-gray-800 hover:border-gray-700 rounded-lg text-left text-xs text-gray-300 transition"
+                    className="p-2.5 bg-black/40 hover:bg-white/[0.06] border border-white/[0.06] hover:border-white/[0.1] rounded-lg text-left text-xs text-gray-300 transition"
                   >
                     "What are the top 5 product categories?"
                   </button>
@@ -699,12 +699,12 @@ export default function Home() {
                   <div className={`p-4 rounded-2xl text-xs leading-relaxed ${
                     msg.role === 'user' 
                       ? 'bg-indigo-600 text-white rounded-br-none' 
-                      : 'bg-gray-900 border border-gray-800 text-gray-200 rounded-bl-none'
+                      : 'bg-black/50 border border-white/[0.06] text-gray-200 rounded-bl-none'
                   }`}>
                     {msg.content}
                   </div>
                   {msg.chart && (
-                    <div className="w-[320px] sm:w-[450px] md:w-[600px] glass-panel p-4 rounded-xl border border-gray-800 mt-2">
+                    <div className="w-[320px] sm:w-[450px] md:w-[600px] glass-panel p-4 rounded-xl border border-white/[0.06] mt-2">
                       <ChartRenderer plotlyJson={msg.chart} />
                     </div>
                   )}
@@ -712,7 +712,7 @@ export default function Home() {
               ))
             )}
             {chatLoading && (
-              <div className="flex items-center gap-2 text-xs text-gray-500 bg-gray-900/40 py-2.5 px-4 rounded-xl border border-gray-800 w-max animate-pulse">
+              <div className="flex items-center gap-2 text-xs text-gray-500 bg-black/40 py-2.5 px-4 rounded-xl border border-white/[0.04] w-max animate-pulse">
                 <Loader2 className="animate-spin text-indigo-400" size={14} />
                 <span>AI Agent is writing script and analyzing tables...</span>
               </div>
@@ -721,13 +721,13 @@ export default function Home() {
           </div>
 
           {/* Bottom input form */}
-          <form onSubmit={handleChatSubmit} className="p-4 bg-gray-950/80 border-t border-gray-800 flex gap-2">
+          <form onSubmit={handleChatSubmit} className="p-4 bg-black/70 border-t border-white/[0.06] flex gap-2">
             <input
               type="text"
               value={chatInput}
               onChange={e => setChatInput(e.target.value)}
               placeholder="Ask A3 a dataset question (e.g., 'What is the sum of profit for each category?')"
-              className="flex-grow bg-gray-900/60 border border-gray-800 focus:border-indigo-500 rounded-xl px-4 py-3 text-xs text-gray-200 focus:outline-none transition font-medium"
+              className="flex-grow bg-black/50 border border-white/[0.08] focus:border-indigo-500/60 rounded-xl px-4 py-3 text-xs text-gray-200 focus:outline-none transition font-medium placeholder:text-gray-600"
             />
             <button
               type="submit"
@@ -748,7 +748,7 @@ export default function Home() {
     const hasForecast = analysisJob?.insights?.forecast_chart !== undefined;
     
     return (
-      <div className="glass-panel p-6 rounded-xl border border-gray-800 space-y-6">
+      <div className="glass-panel p-6 rounded-xl border border-white/[0.06] space-y-6">
         <div>
           <h3 className="text-lg font-semibold flex items-center gap-1.5 text-white">
             <LineChart className="text-teal-400" size={20} />
@@ -761,7 +761,7 @@ export default function Home() {
 
         {hasForecast ? (
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-            <div className="xl:col-span-2 glass-panel p-4 rounded-xl border border-gray-800">
+            <div className="xl:col-span-2 glass-panel p-4 rounded-xl border border-white/[0.06]">
               <ChartRenderer plotlyJson={analysisJob.insights.forecast_chart} />
             </div>
             <div className="xl:col-span-1 space-y-4 flex flex-col justify-center">
@@ -773,7 +773,7 @@ export default function Home() {
                   "{analysisJob.insights.forecast_commentary || 'Trend is stable according to models.'}"
                 </p>
               </div>
-              <div className="bg-gray-950/40 p-4 border border-gray-800 rounded-xl space-y-2 text-xs text-gray-400">
+              <div className="bg-black/40 p-4 border border-white/[0.06] rounded-xl space-y-2 text-xs text-gray-400">
                 <p className="text-white font-medium">Model Specifications:</p>
                 <p>• Model Type: Polynomial Ridge Regression (2nd degree)</p>
                 <p>• Seasonality: Autoregressive Month/Day periodicity</p>
@@ -800,8 +800,8 @@ export default function Home() {
   // --- RENDERING REPORTS PANEL ---
   const renderReports = () => {
     return (
-      <div className="glass-panel p-6 rounded-xl border border-gray-800 space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-800 pb-4">
+      <div className="glass-panel p-6 rounded-xl border border-white/[0.06] space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/[0.06] pb-4">
           <div>
             <h3 className="text-lg font-semibold flex items-center gap-1.5 text-white">
               <FileText className="text-purple-400" size={20} />
@@ -826,7 +826,7 @@ export default function Home() {
           {reports.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {reports.map((rep) => (
-                <div key={rep.id} className="bg-gray-950/40 border border-gray-800/80 hover:border-indigo-500/30 p-4 rounded-xl transition flex items-center justify-between">
+                <div key={rep.id} className="bg-black/40 border border-white/[0.06] hover:border-indigo-500/30 p-4 rounded-xl transition flex items-center justify-between">
                   <div className="space-y-1">
                     <h4 className="text-xs font-semibold text-gray-200 truncate max-w-[200px] sm:max-w-[300px]">{rep.title}</h4>
                     <p className="text-[10px] text-gray-500 flex items-center gap-1">
@@ -844,7 +844,7 @@ export default function Home() {
               ))}
             </div>
           ) : (
-            <div className="text-center py-12 bg-gray-950/10 rounded-xl border border-gray-800/60 border-dashed text-xs text-gray-600">
+            <div className="text-center py-12 bg-black/20 rounded-xl border border-white/[0.04] border-dashed text-xs text-gray-600">
               No reports generated. Click 'Generate New Report' to build one.
             </div>
           )}
@@ -857,10 +857,10 @@ export default function Home() {
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center grid-bg p-6">
-        <div className="w-full max-w-md glass-panel p-8 rounded-2xl border border-gray-800 shadow-2xl relative">
+        <div className="w-full max-w-md glass-panel p-8 rounded-2xl border border-white/[0.06] shadow-2xl shadow-black/50 relative">
           {/* Accent glow lights */}
-          <div className="absolute -top-10 -left-10 w-24 h-24 bg-indigo-500/10 blur-2xl rounded-full" />
-          <div className="absolute -bottom-10 -right-10 w-24 h-24 bg-purple-500/10 blur-2xl rounded-full" />
+          <div className="absolute -top-14 -left-14 w-32 h-32 bg-indigo-500/10 blur-3xl rounded-full glow-pulse" />
+          <div className="absolute -bottom-14 -right-14 w-32 h-32 bg-violet-500/8 blur-3xl rounded-full glow-pulse" />
 
           <div className="flex items-center gap-2 mb-6 justify-center">
             <div className="p-2 bg-indigo-600 rounded-lg text-white">
@@ -877,7 +877,7 @@ export default function Home() {
           </p>
 
           {authError && (
-            <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-xs p-3 rounded-lg mb-4 text-center">
+            <div className="bg-red-500/10 border border-red-500/15 text-red-400 text-xs p-3 rounded-lg mb-4 text-center">
               {authError}
             </div>
           )}
@@ -891,7 +891,7 @@ export default function Home() {
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 placeholder="you@domain.com"
-                className="w-full bg-gray-950/80 border border-gray-800 focus:border-indigo-500 rounded-xl px-4 py-2.5 text-xs text-gray-200 focus:outline-none transition"
+                className="w-full bg-black/60 border border-white/[0.08] focus:border-indigo-500/60 rounded-xl px-4 py-2.5 text-xs text-gray-200 focus:outline-none transition placeholder:text-gray-600"
               />
             </div>
             <div>
@@ -902,7 +902,7 @@ export default function Home() {
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full bg-gray-950/80 border border-gray-800 focus:border-indigo-500 rounded-xl px-4 py-2.5 text-xs text-gray-200 focus:outline-none transition"
+                className="w-full bg-black/60 border border-white/[0.08] focus:border-indigo-500/60 rounded-xl px-4 py-2.5 text-xs text-gray-200 focus:outline-none transition placeholder:text-gray-600"
               />
             </div>
             <button
@@ -915,7 +915,7 @@ export default function Home() {
             </button>
           </form>
 
-          <div className="mt-6 border-t border-gray-800 pt-4 text-center">
+          <div className="mt-6 border-t border-white/[0.06] pt-4 text-center">
             <button
               onClick={() => setAuthMode(authMode === 'login' ? 'register' : 'login')}
               className="text-xs text-indigo-400 hover:text-indigo-300 font-medium transition"
@@ -932,7 +932,7 @@ export default function Home() {
   return (
     <div className="min-h-screen flex grid-bg">
       {/* SIDEBAR CONTAINER */}
-      <aside className="w-64 border-r border-gray-800/80 bg-gray-950/60 backdrop-blur-xl flex flex-col justify-between shrink-0 h-screen sticky top-0">
+      <aside className="w-64 border-r border-white/[0.06] bg-black/70 backdrop-blur-2xl flex flex-col justify-between shrink-0 h-screen sticky top-0">
         <div className="p-4 flex flex-col gap-6 overflow-hidden">
           {/* Logo */}
           <div className="flex items-center gap-2 px-2">
@@ -947,7 +947,7 @@ export default function Home() {
             <button
               onClick={() => setActiveTab('upload')}
               className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition ${
-                activeTab === 'upload' ? 'bg-indigo-600/10 text-indigo-400 border border-indigo-500/20' : 'text-gray-400 hover:bg-gray-800/20 hover:text-gray-200'
+                activeTab === 'upload' ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20' : 'text-gray-500 hover:bg-white/[0.03] hover:text-gray-200'
               }`}
             >
               <Upload size={15} />
@@ -957,7 +957,7 @@ export default function Home() {
               onClick={() => setActiveTab('dashboard')}
               disabled={!selectedDatasetId || analysisJob?.status !== 'completed'}
               className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition disabled:opacity-40 disabled:cursor-not-allowed ${
-                activeTab === 'dashboard' ? 'bg-indigo-600/10 text-indigo-400 border border-indigo-500/20' : 'text-gray-400 hover:bg-gray-800/20 hover:text-gray-200'
+                activeTab === 'dashboard' ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20' : 'text-gray-500 hover:bg-white/[0.03] hover:text-gray-200'
               }`}
             >
               <LayoutDashboard size={15} />
@@ -967,7 +967,7 @@ export default function Home() {
               onClick={() => setActiveTab('chat')}
               disabled={!selectedDatasetId || analysisJob?.status !== 'completed'}
               className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition disabled:opacity-40 disabled:cursor-not-allowed ${
-                activeTab === 'chat' ? 'bg-indigo-600/10 text-indigo-400 border border-indigo-500/20' : 'text-gray-400 hover:bg-gray-800/20 hover:text-gray-200'
+                activeTab === 'chat' ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20' : 'text-gray-500 hover:bg-white/[0.03] hover:text-gray-200'
               }`}
             >
               <MessageSquare size={15} />
@@ -977,7 +977,7 @@ export default function Home() {
               onClick={() => setActiveTab('forecast')}
               disabled={!selectedDatasetId || analysisJob?.status !== 'completed'}
               className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition disabled:opacity-40 disabled:cursor-not-allowed ${
-                activeTab === 'forecast' ? 'bg-indigo-600/10 text-indigo-400 border border-indigo-500/20' : 'text-gray-400 hover:bg-gray-800/20 hover:text-gray-200'
+                activeTab === 'forecast' ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20' : 'text-gray-500 hover:bg-white/[0.03] hover:text-gray-200'
               }`}
             >
               <LineChart size={15} />
@@ -987,7 +987,7 @@ export default function Home() {
               onClick={() => setActiveTab('reports')}
               disabled={!selectedDatasetId || analysisJob?.status !== 'completed'}
               className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition disabled:opacity-40 disabled:cursor-not-allowed ${
-                activeTab === 'reports' ? 'bg-indigo-600/10 text-indigo-400 border border-indigo-500/20' : 'text-gray-400 hover:bg-gray-800/20 hover:text-gray-200'
+                activeTab === 'reports' ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20' : 'text-gray-500 hover:bg-white/[0.03] hover:text-gray-200'
               }`}
             >
               <FileText size={15} />
@@ -1004,8 +1004,8 @@ export default function Home() {
                   key={ds.id}
                   className={`group flex items-center justify-between p-2 rounded-lg text-xs transition cursor-pointer ${
                     selectedDatasetId === ds.id 
-                      ? 'bg-gray-900 border border-gray-800 text-white font-medium' 
-                      : 'text-gray-400 hover:bg-gray-900/40 hover:text-gray-200'
+                      ? 'bg-white/[0.04] border border-white/[0.08] text-white font-medium' 
+                      : 'text-gray-500 hover:bg-white/[0.03] hover:text-gray-300'
                   }`}
                   onClick={() => setSelectedDatasetId(ds.id)}
                 >
@@ -1029,7 +1029,7 @@ export default function Home() {
         </div>
 
         {/* User Account Info Bottom */}
-        <div className="p-4 border-t border-gray-800 bg-gray-950/80 flex items-center justify-between">
+        <div className="p-4 border-t border-white/[0.06] bg-black/60 flex items-center justify-between">
           <div className="min-w-0">
             <p className="text-xs font-semibold text-gray-200 truncate">{user?.email}</p>
             <span className="text-[9px] bg-indigo-500/15 border border-indigo-500/20 text-indigo-400 font-mono py-0.5 px-1.5 rounded uppercase font-bold">
@@ -1049,7 +1049,7 @@ export default function Home() {
       {/* MAIN CONTENT WORKSPACE CONTAINER */}
       <main className="flex-grow p-8 overflow-y-auto max-h-screen">
         {/* Workspace Tab Header */}
-        <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-800/60 pb-5 mb-6">
+        <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/[0.06] pb-5 mb-6">
           <div>
             <h1 className="text-xl font-bold text-white uppercase tracking-wide">
               {activeTab === 'upload' ? 'Datasets Library' : 
@@ -1068,7 +1068,7 @@ export default function Home() {
           {/* Quick upload input header */}
           <div className="flex items-center gap-3">
             {uploadProgress ? (
-              <div className="flex items-center gap-1.5 text-xs text-gray-400 bg-gray-900 border border-gray-800 px-3 py-1.5 rounded-lg">
+              <div className="flex items-center gap-1.5 text-xs text-gray-400 bg-black/60 border border-white/[0.06] px-3 py-1.5 rounded-lg">
                 <Loader2 className="animate-spin text-indigo-400" size={14} />
                 <span>Streaming file...</span>
               </div>
@@ -1099,7 +1099,7 @@ export default function Home() {
           <div>
             {/* Show warning if analysis job is running */}
             {selectedDatasetId && analysisJob && (analysisJob.status === 'pending' || analysisJob.status === 'running') && (
-              <div className="bg-indigo-600/10 border border-indigo-500/20 p-5 rounded-xl text-center mb-6 flex flex-col items-center justify-center gap-2">
+              <div className="bg-indigo-600/10 border border-indigo-500/15 p-5 rounded-xl text-center mb-6 flex flex-col items-center justify-center gap-2">
                 <Loader2 className="animate-spin text-indigo-400" size={24} />
                 <h3 className="text-sm font-semibold text-white">Multi-Agent Profiling In Progress</h3>
                 <p className="text-xs text-gray-400 max-w-md">

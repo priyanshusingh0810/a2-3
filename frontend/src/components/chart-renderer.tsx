@@ -38,20 +38,20 @@ export const ChartRenderer: React.FC<ChartRendererProps> = ({ plotlyJson }) => {
     autosize: true,
     margin: plotlyJson.layout?.margin || { l: 40, r: 20, t: 40, b: 40 },
     paper_bgcolor: 'rgba(0,0,0,0)',
-    plot_bgcolor: 'rgba(17,24,39,0.3)',
+    plot_bgcolor: 'rgba(4,4,8,0.4)',
     font: {
       color: '#9ca3af',
       family: 'Inter, system-ui, sans-serif',
       ...plotlyJson.layout?.font
     },
     xaxis: {
-      gridcolor: '#1f2937',
-      zerolinecolor: '#374151',
+      gridcolor: 'rgba(255,255,255,0.04)',
+      zerolinecolor: 'rgba(255,255,255,0.08)',
       ...plotlyJson.layout?.xaxis
     },
     yaxis: {
-      gridcolor: '#1f2937',
-      zerolinecolor: '#374151',
+      gridcolor: 'rgba(255,255,255,0.04)',
+      zerolinecolor: 'rgba(255,255,255,0.08)',
       ...plotlyJson.layout?.yaxis
     }
   };
