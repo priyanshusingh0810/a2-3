@@ -154,7 +154,7 @@ export function ForgotPasswordCard({
                   transition={{ type: "spring", duration: 0.8 }}
                   className="mx-auto w-10 h-10 rounded-full border border-white/10 flex items-center justify-center relative overflow-hidden"
                 >
-                  <span className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-b from-white to-white/70">S</span>
+                  <span className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-b from-white to-white/70">A</span>
                 </motion.div>
 
                 <motion.h1

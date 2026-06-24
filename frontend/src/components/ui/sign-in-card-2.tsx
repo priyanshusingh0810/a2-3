@@ -366,7 +366,7 @@ export function Component({
                   >
                     {/* Logo placeholder - would be an SVG in practice */}
                     {/* <!-- SVG_LOGO --> */}
-                    <span className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-b from-white to-white/70">S</span>
+                    <span className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-b from-white to-white/70">A</span>
                     
                     {/* Inner lighting effect */}
                     <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-50" />
@@ -387,7 +387,7 @@ export function Component({
                     transition={{ delay: 0.3 }}
                     className="text-white/60 text-xs"
                   >
-                    Sign in to continue to StyleMe
+                    Sign in to continue to A3 Agent
                   </motion.p>
                 </div>
 
