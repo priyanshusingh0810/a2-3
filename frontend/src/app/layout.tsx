@@ -1,6 +1,7 @@
 import './globals.css';
 import React from 'react';
 import type { Metadata, Viewport } from 'next';
+import Script from 'next/script';
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -36,8 +37,10 @@ export default function RootLayout({
       </head>
       <body className="antialiased">
         {children}
+        <Script src="https://accounts.google.com/gsi/client" strategy="afterInteractive" />
       </body>
     </html>
   );
 }
+
 
