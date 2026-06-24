@@ -22,11 +22,29 @@ function Input({ className, type, ...props }: React.ComponentProps<"input">) {
   )
 }
 
-export function ForgotPasswordCard() {
-  const [email, setEmail] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+interface ForgotPasswordCardProps {
+  emailProp?: string;
+  setEmailProp?: (val: string) => void;
+  isLoadingProp?: boolean;
+  onSubmitProp?: (e: React.FormEvent) => void;
+  onSwitchToLogin?: () => void;
+}
+
+export function ForgotPasswordCard({
+  emailProp,
+  setEmailProp,
+  isLoadingProp,
+  onSubmitProp,
+  onSwitchToLogin,
+}: ForgotPasswordCardProps = {}) {
+  const [localEmail, setLocalEmail] = useState("");
+  const [localIsLoading, setLocalIsLoading] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [focusedInput, setFocusedInput] = useState<string | null>(null);
+
+  const email = emailProp !== undefined ? emailProp : localEmail;
+  const setEmail = setEmailProp || setLocalEmail;
+  const isLoading = isLoadingProp !== undefined ? isLoadingProp : localIsLoading;
 
   // For 3D card effect
   const mouseX = useMotionValue(0);
@@ -47,11 +65,15 @@ export function ForgotPasswordCard() {
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
-    setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      setIsSubmitted(true);
-    }, 2000);
+    if (onSubmitProp) {
+      onSubmitProp(event);
+    } else {
+      setLocalIsLoading(true);
+      setTimeout(() => {
+        setLocalIsLoading(false);
+        setIsSubmitted(true);
+      }, 2000);
+    }
   };
 
   return (
@@ -156,13 +178,24 @@ export function ForgotPasswordCard() {
                     <div className="text-white/80 text-sm">
                       We've sent a password reset link to <strong className="text-white">{email}</strong>.
                     </div>
-                    <Link 
-                      href="/sign-in-demo"
-                      className="inline-flex items-center justify-center gap-2 text-xs text-white bg-white/10 hover:bg-white/20 border border-white/10 h-10 px-4 rounded-lg transition-colors w-full"
-                    >
-                      <ArrowLeft className="w-4 h-4" />
-                      Back to Sign In
-                    </Link>
+                    {onSwitchToLogin ? (
+                      <button 
+                        type="button"
+                        onClick={onSwitchToLogin}
+                        className="inline-flex items-center justify-center gap-2 text-xs text-white bg-white/10 hover:bg-white/20 border border-white/10 h-10 px-4 rounded-lg transition-colors w-full"
+                      >
+                        <ArrowLeft className="w-4 h-4" />
+                        Back to Sign In
+                      </button>
+                    ) : (
+                      <Link 
+                        href="/sign-in-demo"
+                        className="inline-flex items-center justify-center gap-2 text-xs text-white bg-white/10 hover:bg-white/20 border border-white/10 h-10 px-4 rounded-lg transition-colors w-full"
+                      >
+                        <ArrowLeft className="w-4 h-4" />
+                        Back to Sign In
+                      </Link>
+                    )}
                   </motion.div>
                 ) : (
                   <form onSubmit={handleSubmit} className="space-y-4">
@@ -223,13 +256,24 @@ export function ForgotPasswordCard() {
                     </motion.button>
 
                     <div className="text-center pt-2">
-                      <Link 
-                        href="/sign-in-demo"
-                        className="inline-flex items-center justify-center gap-1 text-xs text-white/60 hover:text-white transition-colors duration-200"
-                      >
-                        <ArrowLeft className="w-3 h-3" />
-                        Back to Sign In
-                      </Link>
+                      {onSwitchToLogin ? (
+                        <button 
+                          type="button"
+                          onClick={onSwitchToLogin}
+                          className="inline-flex items-center justify-center gap-1 text-xs text-white/60 hover:text-white transition-colors duration-200"
+                        >
+                          <ArrowLeft className="w-3 h-3" />
+                          Back to Sign In
+                        </button>
+                      ) : (
+                        <Link 
+                          href="/sign-in-demo"
+                          className="inline-flex items-center justify-center gap-1 text-xs text-white/60 hover:text-white transition-colors duration-200"
+                        >
+                          <ArrowLeft className="w-3 h-3" />
+                          Back to Sign In
+                        </Link>
+                      )}
                     </div>
                   </form>
                 )}

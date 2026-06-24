@@ -22,16 +22,54 @@ function Input({ className, type, ...props }: React.ComponentProps<"input">) {
   )
 }
 
-export function SignUpCard() {
+interface SignUpCardProps {
+  nameProp?: string;
+  setNameProp?: (val: string) => void;
+  emailProp?: string;
+  setEmailProp?: (val: string) => void;
+  passwordProp?: string;
+  setPasswordProp?: (val: string) => void;
+  confirmPasswordProp?: string;
+  setConfirmPasswordProp?: (val: string) => void;
+  isLoadingProp?: boolean;
+  onSubmitProp?: (e: React.FormEvent) => void;
+  authErrorProp?: string;
+  onSwitchToLogin?: () => void;
+}
+
+export function SignUpCard({
+  nameProp,
+  setNameProp,
+  emailProp,
+  setEmailProp,
+  passwordProp,
+  setPasswordProp,
+  confirmPasswordProp,
+  setConfirmPasswordProp,
+  isLoadingProp,
+  onSubmitProp,
+  authErrorProp,
+  onSwitchToLogin,
+}: SignUpCardProps = {}) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [localName, setLocalName] = useState("");
+  const [localEmail, setLocalEmail] = useState("");
+  const [localPassword, setLocalPassword] = useState("");
+  const [localConfirmPassword, setLocalConfirmPassword] = useState("");
+  const [localIsLoading, setLocalIsLoading] = useState(false);
   const [focusedInput, setFocusedInput] = useState<string | null>(null);
   const [acceptTerms, setAcceptTerms] = useState(false);
+
+  const name = nameProp !== undefined ? nameProp : localName;
+  const setName = setNameProp || setLocalName;
+  const email = emailProp !== undefined ? emailProp : localEmail;
+  const setEmail = setEmailProp || setLocalEmail;
+  const password = passwordProp !== undefined ? passwordProp : localPassword;
+  const setPassword = setPasswordProp || setLocalPassword;
+  const confirmPassword = confirmPasswordProp !== undefined ? confirmPasswordProp : localConfirmPassword;
+  const setConfirmPassword = setConfirmPasswordProp || setLocalConfirmPassword;
+  const isLoading = isLoadingProp !== undefined ? isLoadingProp : localIsLoading;
 
   // For 3D card effect
   const mouseX = useMotionValue(0);
@@ -52,8 +90,12 @@ export function SignUpCard() {
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
-    setIsLoading(true);
-    setTimeout(() => setIsLoading(false), 2000);
+    if (onSubmitProp) {
+      onSubmitProp(event);
+    } else {
+      setLocalIsLoading(true);
+      setTimeout(() => setLocalIsLoading(false), 2000);
+    }
   };
 
   return (
@@ -265,6 +307,11 @@ export function SignUpCard() {
               </div>
 
               {/* Signup form */}
+              {authErrorProp && (
+                <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-xs p-3 rounded-lg text-center mb-4">
+                  {authErrorProp}
+                </div>
+              )}
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-3">
                   {/* Full Name input */}
@@ -559,15 +606,25 @@ export function SignUpCard() {
                   transition={{ delay: 0.5 }}
                 >
                   Already have an account?{' '}
-                  <Link 
-                    href="/sign-in-demo" 
-                    className="relative inline-block group/signup"
-                  >
-                    <span className="relative z-10 text-white group-hover/signup:text-white/70 transition-colors duration-300 font-medium">
+                  {onSwitchToLogin ? (
+                    <button 
+                      type="button"
+                      onClick={onSwitchToLogin}
+                      className="relative inline-block group/signup font-medium text-white hover:text-white/70"
+                    >
                       Sign in
-                    </span>
-                    <span className="absolute bottom-0 left-0 w-0 h-[1px] bg-white group-hover/signup:w-full transition-all duration-300" />
-                  </Link>
+                    </button>
+                  ) : (
+                    <Link 
+                      href="/sign-in-demo" 
+                      className="relative inline-block group/signup"
+                    >
+                      <span className="relative z-10 text-white group-hover/signup:text-white/70 transition-colors duration-300 font-medium">
+                        Sign in
+                      </span>
+                      <span className="absolute bottom-0 left-0 w-0 h-[1px] bg-white group-hover/signup:w-full transition-all duration-300" />
+                    </Link>
+                  )}
                 </motion.p>
               </form>
             </div>

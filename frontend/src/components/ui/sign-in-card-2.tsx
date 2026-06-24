@@ -22,14 +22,42 @@ function Input({ className, type, ...props }: React.ComponentProps<"input">) {
   )
 }
 
-export function Component() {
+interface SignInCardProps {
+  emailProp?: string;
+  setEmailProp?: (val: string) => void;
+  passwordProp?: string;
+  setPasswordProp?: (val: string) => void;
+  isLoadingProp?: boolean;
+  onSubmitProp?: (e: React.FormEvent) => void;
+  authErrorProp?: string;
+  onSwitchToRegister?: () => void;
+  onSwitchToForgotPassword?: () => void;
+}
+
+export function Component({
+  emailProp,
+  setEmailProp,
+  passwordProp,
+  setPasswordProp,
+  isLoadingProp,
+  onSubmitProp,
+  authErrorProp,
+  onSwitchToRegister,
+  onSwitchToForgotPassword,
+}: SignInCardProps = {}) {
   const [showPassword, setShowPassword] = useState(false);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [focusedInput, setFocusedInput] = useState(null);
+  const [localEmail, setLocalEmail] = useState("");
+  const [localPassword, setLocalPassword] = useState("");
+  const [localIsLoading, setLocalIsLoading] = useState(false);
+  const [focusedInput, setFocusedInput] = useState<string | null>(null);
   const [rememberMe, setRememberMe] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+
+  const email = emailProp !== undefined ? emailProp : localEmail;
+  const setEmail = setEmailProp || setLocalEmail;
+  const password = passwordProp !== undefined ? passwordProp : localPassword;
+  const setPassword = setPasswordProp || setLocalPassword;
+  const isLoading = isLoadingProp !== undefined ? isLoadingProp : localIsLoading;
 
   // For 3D card effect - increased rotation range for more pronounced 3D effect
   const mouseX = useMotionValue(0);
@@ -49,10 +77,14 @@ export function Component() {
     mouseY.set(0);
   };
 
-  const handleSubmit = (event: React.MouseEvent) => {
+  const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
-    setIsLoading(true);
-    setTimeout(() => setIsLoading(false), 2000);
+    if (onSubmitProp) {
+      onSubmitProp(event);
+    } else {
+      setLocalIsLoading(true);
+      setTimeout(() => setLocalIsLoading(false), 2000);
+    }
   };
 
   return (
@@ -360,7 +392,12 @@ export function Component() {
                 </div>
 
                 {/* Login form */}
-                <form onSubmit={(e) => { e.preventDefault(); setIsLoading(true); setTimeout(() => setIsLoading(false), 2000); }} className="space-y-4">
+                {authErrorProp && (
+                  <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-xs p-3 rounded-lg text-center mb-4">
+                    {authErrorProp}
+                  </div>
+                )}
+                <form onSubmit={handleSubmit} className="space-y-4">
                   <motion.div className="space-y-3">
                     {/* Email input */}
                     <motion.div 
@@ -482,9 +519,19 @@ export function Component() {
                     </div>
                     
                     <div className="text-xs relative group/link">
-                      <Link href="/forgot-password" className="text-white/60 hover:text-white transition-colors duration-200">
-                        Forgot password?
-                      </Link>
+                      {onSwitchToForgotPassword ? (
+                        <button 
+                          type="button"
+                          onClick={onSwitchToForgotPassword} 
+                          className="text-white/60 hover:text-white transition-colors duration-200"
+                        >
+                          Forgot password?
+                        </button>
+                      ) : (
+                        <Link href="/forgot-password" className="text-white/60 hover:text-white transition-colors duration-200">
+                          Forgot password?
+                        </Link>
+                      )}
                     </div>
                   </div>
 
@@ -597,15 +644,25 @@ export function Component() {
                   transition={{ delay: 0.5 }}
                 >
                   Don't have an account?{' '}
-                  <Link 
-                    href="/signup" 
-                    className="relative inline-block group/signup"
-                  >
-                    <span className="relative z-10 text-white group-hover/signup:text-white/70 transition-colors duration-300 font-medium">
+                  {onSwitchToRegister ? (
+                    <button 
+                      type="button"
+                      onClick={onSwitchToRegister}
+                      className="relative inline-block group/signup font-medium text-white hover:text-white/70"
+                    >
                       Sign up
-                    </span>
-                    <span className="absolute bottom-0 left-0 w-0 h-[1px] bg-white group-hover/signup:w-full transition-all duration-300" />
-                  </Link>
+                    </button>
+                  ) : (
+                    <Link 
+                      href="/signup" 
+                      className="relative inline-block group/signup"
+                    >
+                      <span className="relative z-10 text-white group-hover/signup:text-white/70 transition-colors duration-300 font-medium">
+                        Sign up
+                      </span>
+                      <span className="absolute bottom-0 left-0 w-0 h-[1px] bg-white group-hover/signup:w-full transition-all duration-300" />
+                    </Link>
+                  )}
                 </motion.p>
               </form>
             </div>

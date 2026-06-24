@@ -6,22 +6,22 @@
   color-scheme: dark;
 
   /* Surface layers — clean, no blur */
-  --surface-base: #0f172a;       /* slate-900 */
-  --surface-raised: #1e293b;     /* slate-800 */
-  --surface-overlay: #334155;    /* slate-700 */
-  --surface-card: rgba(30, 41, 59, 0.5);
+  --surface-base: #020205;       /* pure ultra-dark black */
+  --surface-raised: #0a0a0f;     /* dark card surface */
+  --surface-overlay: #151520;    /* raised panel surface */
+  --surface-card: rgba(10, 10, 15, 0.5);
 
   /* Borders */
-  --border-subtle: rgba(51, 65, 85, 0.6);   /* slate-700/60 */
-  --border-default: rgba(51, 65, 85, 0.9);   /* slate-700/90 */
+  --border-subtle: rgba(255, 255, 255, 0.05);
+  --border-default: rgba(255, 255, 255, 0.09);
 
   /* Accent */
-  --accent: #6366f1;             /* indigo-500 */
-  --accent-hover: #818cf8;       /* indigo-400 */
-  --accent-muted: rgba(99, 102, 241, 0.12);
+  --accent: #a855f7;             /* purple-500 */
+  --accent-hover: #c084fc;       /* purple-400 */
+  --accent-muted: rgba(168, 85, 247, 0.12);
 
   /* Text */
-  --text-primary: #f1f5f9;       /* slate-100 */
+  --text-primary: #f8fafc;       /* slate-50 */
   --text-secondary: #94a3b8;     /* slate-400 */
   --text-muted: #64748b;         /* slate-500 */
 }
@@ -33,14 +33,14 @@ body {
   overflow-x: hidden;
 }
 
-/* Soft ambient background with wide grid */
+/* Soft ambient background with wide grid and purple theme */
 .grid-bg {
   background-color: var(--surface-base);
   background-image:
-    radial-gradient(ellipse at 20% 0%, rgba(99, 102, 241, 0.06) 0px, transparent 60%),
-    radial-gradient(ellipse at 80% 100%, rgba(139, 92, 246, 0.04) 0px, transparent 60%),
-    linear-gradient(rgba(148, 163, 184, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(148, 163, 184, 0.03) 1px, transparent 1px);
+    radial-gradient(ellipse at 50% 0%, rgba(168, 85, 247, 0.18) 0%, transparent 60%),
+    radial-gradient(ellipse at 50% 100%, rgba(147, 51, 234, 0.12) 0%, transparent 65%),
+    linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
   background-size: 100% 100%, 100% 100%, 40px 40px, 40px 40px;
 }
 

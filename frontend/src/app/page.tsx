@@ -10,13 +10,18 @@ import {
 import api from '@/lib/api';
 import PreviewGrid from '@/components/preview-grid';
 import ChartRenderer from '@/components/chart-renderer';
+import { Component as SignInCard } from '@/components/ui/sign-in-card-2';
+import { SignUpCard } from '@/components/ui/sign-up-card';
+import { ForgotPasswordCard } from '@/components/ui/forgot-password-card';
 
 export default function Home() {
   // --- AUTHENTICATION STATE ---
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
+  const [authMode, setAuthMode] = useState<'login' | 'register' | 'forgot-password'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [user, setUser] = useState<any>(null);
   const [authError, setAuthError] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
@@ -152,9 +157,13 @@ export default function Home() {
         localStorage.setItem('a3_access_token', res.data.access_token);
         localStorage.setItem('a3_refresh_token', res.data.refresh_token);
         await fetchCurrentUser();
-      } else {
+      } else if (authMode === 'register') {
+        if (password !== confirmPassword) {
+          setAuthError("Passwords do not match");
+          setAuthLoading(false);
+          return;
+        }
         await api.post('/auth/register', { email, password });
-        setAuthMode('login');
         // Auto sign in
         const res = await api.post('/auth/login', { email, password });
         localStorage.setItem('a3_access_token', res.data.access_token);
@@ -865,80 +874,44 @@ export default function Home() {
   // --- MAIN AUTH SCREEN RENDERING ---
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen flex items-center justify-center grid-bg p-6">
-        <div className="w-full max-w-lg glass-panel p-10 rounded-2xl relative">
-
-          <div className="flex items-center gap-2.5 mb-8 justify-center">
-            <div className="p-2.5 bg-indigo-600 rounded-xl text-white">
-              <Sparkles size={22} />
-            </div>
-            <span className="section-heading text-2xl text-white">A3 <span className="text-indigo-400 font-medium">Analytics</span></span>
-          </div>
-
-          <h3 className="section-heading text-xl text-center text-white mb-1.5">
-            {authMode === 'login' ? 'Welcome Back' : 'Create Your Account'}
-          </h3>
-          <p className="text-sm text-slate-400 text-center mb-8 leading-relaxed max-w-sm mx-auto">
-            Autonomous local AI Data Analyst. Zero API costs, absolute data privacy on your machine.
-          </p>
-
-          {authError && (
-            <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm p-3.5 rounded-xl mb-5 text-center">
-              {authError}
-            </div>
-          )}
-
-          <form onSubmit={handleAuthSubmit} className="space-y-5">
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">Email Address</label>
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                placeholder="you@domain.com"
-                className="input-clean"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">Password</label>
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="input-clean"
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={authLoading}
-              className="w-full btn-primary justify-center py-3 text-sm"
-            >
-              {authLoading && <Loader2 className="animate-spin" size={16} />}
-              {authMode === 'login' ? 'Sign In' : 'Register Account'}
-            </button>
-          </form>
-
-          <div className="mt-8 border-t border-slate-700/50 pt-5 text-center flex flex-col gap-4">
-            <button
-              onClick={() => setAuthMode(authMode === 'login' ? 'register' : 'login')}
-              className="text-sm text-indigo-400 hover:text-indigo-300 font-medium transition"
-            >
-              {authMode === 'login' ? "Don't have an account? Sign Up" : 'Already have an account? Sign In'}
-            </button>
-            <div className="flex justify-center pt-2">
-              <Link
-                href="/sign-in-demo"
-                className="inline-flex items-center justify-center gap-1.5 text-xs text-slate-400 hover:text-slate-200 font-medium transition select-none border border-slate-800 hover:border-slate-700/80 rounded-xl py-2 px-4 bg-slate-950/40 w-full max-w-[260px]"
-              >
-                <Shield size={13} className="text-purple-400" />
-                Try Interactive Auth Demo Kit
-              </Link>
-            </div>
-          </div>
-        </div>
+      <div className="min-h-screen w-screen relative overflow-hidden flex items-center justify-center">
+        {authMode === 'login' && (
+          <SignInCard
+            emailProp={email}
+            setEmailProp={setEmail}
+            passwordProp={password}
+            setPasswordProp={setPassword}
+            isLoadingProp={authLoading}
+            onSubmitProp={handleAuthSubmit}
+            authErrorProp={authError}
+            onSwitchToRegister={() => { setAuthMode('register'); setAuthError(''); }}
+            onSwitchToForgotPassword={() => { setAuthMode('forgot-password'); setAuthError(''); }}
+          />
+        )}
+        {authMode === 'register' && (
+          <SignUpCard
+            nameProp={name}
+            setNameProp={setName}
+            emailProp={email}
+            setEmailProp={setEmail}
+            passwordProp={password}
+            setPasswordProp={setPassword}
+            confirmPasswordProp={confirmPassword}
+            setConfirmPasswordProp={setConfirmPassword}
+            isLoadingProp={authLoading}
+            onSubmitProp={handleAuthSubmit}
+            authErrorProp={authError}
+            onSwitchToLogin={() => { setAuthMode('login'); setAuthError(''); }}
+          />
+        )}
+        {authMode === 'forgot-password' && (
+          <ForgotPasswordCard
+            emailProp={email}
+            setEmailProp={setEmail}
+            isLoadingProp={authLoading}
+            onSwitchToLogin={() => { setAuthMode('login'); setAuthError(''); }}
+          />
+        )}
       </div>
     );
   }
