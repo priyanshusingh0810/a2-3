@@ -26,9 +26,18 @@ def get_current_user(
         payload = security.decode_token(token)
         user_id_str: str = payload.get("sub")
         token_type: str = payload.get("type")
+        jti: str = payload.get("jti")
         
         if user_id_str is None or token_type != "access":
             raise credentials_exception
+
+        # Check if token has been revoked (logout)
+        if jti and security.is_token_revoked(jti, db):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token has been revoked",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
             
         token_payload = TokenPayload(sub=user_id_str, role=payload.get("role"))
     except JWTError:

@@ -167,7 +167,12 @@ export default function Home() {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await api.post('/auth/logout');
+    } catch (err) {
+      // Continue with local logout even if server call fails
+    }
     localStorage.removeItem('a3_access_token');
     localStorage.removeItem('a3_refresh_token');
     setIsAuthenticated(false);

@@ -124,3 +124,43 @@ def refresh_token(req: schemas.TokenRefreshRequest, db: Session = Depends(get_db
 def get_me(current_user: models.User = Depends(deps.get_current_user)):
     """Returns the authenticated user details."""
     return current_user
+
+@router.post("/logout", status_code=status.HTTP_200_OK)
+def logout(
+    current_user: models.User = Depends(deps.get_current_user),
+    token: str = Depends(deps.oauth2_scheme),
+    db: Session = Depends(get_db)
+):
+    """Logs out the user by revoking the current access token."""
+    try:
+        payload = security.decode_token(token)
+        jti = payload.get("jti")
+        exp = payload.get("exp")
+        
+        if jti:
+            # Convert exp timestamp to datetime
+            expires_at = datetime.datetime.utcfromtimestamp(exp) if exp else datetime.datetime.utcnow() + datetime.timedelta(hours=1)
+            
+            # Add token to blocklist
+            blocked_token = models.TokenBlocklist(
+                jti=jti,
+                user_id=current_user.id,
+                expires_at=expires_at
+            )
+            db.add(blocked_token)
+        
+        # Audit log
+        audit_log = models.AuditLog(
+            user_id=current_user.id,
+            action="USER_LOGOUT",
+            target_type="user",
+            target_id=str(current_user.id)
+        )
+        db.add(audit_log)
+        db.commit()
+        
+    except Exception:
+        # Even if blocklist fails, still return success to let client clear state
+        db.rollback()
+    
+    return {"detail": "Successfully logged out"}

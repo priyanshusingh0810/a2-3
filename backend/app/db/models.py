@@ -109,3 +109,14 @@ class AuditLog(Base):
     timestamp = Column(DateTime, default=datetime.datetime.utcnow)
 
     user = relationship("User", back_populates="audit_logs")
+
+
+class TokenBlocklist(Base):
+    """Stores revoked JWT token identifiers (jti) to enforce server-side logout."""
+    __tablename__ = "token_blocklist"
+
+    id = Column(Integer, primary_key=True, index=True)
+    jti = Column(String, unique=True, index=True, nullable=False)  # JWT ID claim
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    revoked_at = Column(DateTime, default=datetime.datetime.utcnow)
+    expires_at = Column(DateTime, nullable=False, index=True)  # for periodic cleanup

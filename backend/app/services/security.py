@@ -1,4 +1,5 @@
 import datetime
+import uuid
 import bcrypt
 from jose import jwt
 from app.config import settings
@@ -25,7 +26,7 @@ def create_access_token(data: dict, expires_delta: datetime.timedelta = None) ->
         expire = datetime.datetime.utcnow() + expires_delta
     else:
         expire = datetime.datetime.utcnow() + datetime.timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    to_encode.update({"exp": expire, "type": "access"})
+    to_encode.update({"exp": expire, "type": "access", "jti": str(uuid.uuid4())})
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
     return encoded_jwt
 
@@ -35,10 +36,16 @@ def create_refresh_token(data: dict, expires_delta: datetime.timedelta = None) -
         expire = datetime.datetime.utcnow() + expires_delta
     else:
         expire = datetime.datetime.utcnow() + datetime.timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
-    to_encode.update({"exp": expire, "type": "refresh"})
+    to_encode.update({"exp": expire, "type": "refresh", "jti": str(uuid.uuid4())})
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
     return encoded_jwt
 
 def decode_token(token: str) -> dict:
     """Decodes a JWT token and returns the payload, raises error if expired/invalid."""
     return jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+
+def is_token_revoked(jti: str, db) -> bool:
+    """Checks if a token's jti has been added to the blocklist."""
+    from app.db.models import TokenBlocklist
+    return db.query(TokenBlocklist).filter(TokenBlocklist.jti == jti).first() is not None
+
