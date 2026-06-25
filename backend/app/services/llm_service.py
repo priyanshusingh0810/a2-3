@@ -29,6 +29,14 @@ class LLMService:
         # Override to mock if configured
         if settings.MOCK_AI:
             logger.info("MOCK_AI is enabled. Falling back to heuristic mock response.")
+            is_code_request = False
+            if system_prompt and "python" in system_prompt.lower():
+                is_code_request = True
+            elif any("code" in m["content"].lower() or "python" in m["content"].lower() for m in messages):
+                is_code_request = True
+                
+            if is_code_request and not json_mode:
+                return cls._get_mock_code_response(messages)
             return cls._get_mock_response(messages, json_mode)
 
         # Build list of messages, incorporating system prompt if provided
@@ -65,6 +73,166 @@ class LLMService:
 
         # Fallback if connection fails
         return cls._get_mock_response(messages, json_mode)
+
+    @classmethod
+    def _get_mock_code_response(cls, messages: List[Dict[str, str]]) -> str:
+        """Generates a dynamic Python script that runs in the sandbox on the actual dataframe."""
+        import re
+        user_msg = next((m["content"] for m in reversed(messages) if m["role"] == "user"), "")
+        
+        # Try to extract the user's question from the prompt template
+        question = "general query"
+        match = re.search(r'answer this question:\s*"(.*?)"', user_msg)
+        if match:
+            question = match.group(1)
+        else:
+            match_simple = re.search(r'question:\s*"(.*?)"', user_msg)
+            if match_simple:
+                question = match_simple.group(1)
+                
+        safe_question = question.replace('"', '\\"').replace('\n', ' ')
+        
+        code = f"""```python
+# Dynamic Mock AI code generator
+import pandas as pd
+import numpy as np
+
+query = "{safe_question}".lower()
+
+def find_col(keywords):
+    for col in df.columns:
+        col_lower = str(col).lower()
+        if any(kw in col_lower for kw in keywords):
+            return col
+    return None
+
+col_project = find_col(["project", "name", "title", "task", "job", "line"])
+col_assignee = find_col(["assigned", "assignee", "who", "owner", "person", "member", "individual", "resource", "lead", "staff"])
+col_status = find_col(["status", "stage", "progress", "percent", "complete", "state", "productivity"])
+col_sales = find_col(["sales", "revenue", "amount", "value", "price", "cost", "profit"])
+col_region = find_col(["region", "country", "territory", "zone", "location", "area"])
+
+# 1. Assignment / Owner query
+if col_assignee and ("assign" in query or "who" in query or "individual" in query or "person" in query or "whom" in query):
+    counts = df[col_assignee].value_counts()
+    total_individuals = len(counts)
+    
+    items_desc = []
+    for person, cnt in counts.head(5).items():
+        items_desc.append(f"{{person}} ({{cnt}} projects)")
+        
+    ans = f"Sales projects are assigned to {{total_individuals}} individuals. The primary assignees and their project counts are: " + ", ".join(items_desc) + "."
+    if len(counts) > 5:
+        ans += f" Other assignees include: " + ", ".join(list(map(str, counts.index[5:10]))) + "."
+        
+    chart_data = {{
+        "data": [{{
+            "x": list(map(str, counts.index[:10])),
+            "y": list(map(int, counts.values[:10])),
+            "type": "bar",
+            "marker": {{"color": "#6366f1"}}
+        }}],
+        "layout": {{
+            "title": "Projects count by Assignee",
+            "paper_bgcolor": "rgba(0,0,0,0)",
+            "plot_bgcolor": "rgba(17,24,39,0.5)",
+            "font": {{"color": "#f3f4f6"}}
+        }}
+    }}
+    result_text = ans
+    result_chart = chart_data
+
+# 2. Progress / Status query
+elif col_status and ("progress" in query or "status" in query or "complete" in query or "productivity" in query):
+    is_numeric_status = pd.api.types.is_numeric_dtype(df[col_status])
+    if is_numeric_status:
+        avg_pct = df[col_status].mean()
+        ans = f"The overall average progress/productivity level of the projects is {{avg_pct:.2f}}."
+        
+        chart_data = {{
+            "data": [{{
+                "x": df[col_status].dropna().tolist(),
+                "type": "histogram",
+                "marker": {{"color": "#6366f1"}}
+            }}],
+            "layout": {{
+                "title": f"Distribution of Project Progress ({{col_status}})",
+                "paper_bgcolor": "rgba(0,0,0,0)",
+                "plot_bgcolor": "rgba(17,24,39,0.5)",
+                "font": {{"color": "#f3f4f6"}}
+            }}
+        }}
+    else:
+        counts = df[col_status].value_counts()
+        total_projects = len(df)
+        pcts = (counts / total_projects) * 100
+        
+        items_desc = []
+        for status_val, cnt in counts.items():
+            items_desc.append(f"{{status_val}}: {{cnt}} projects ({{pcts[status_val]:.1f}}%)")
+            
+        ans = f"Overall progress and status of projects: " + "; ".join(items_desc) + "."
+        
+        chart_data = {{
+            "data": [{{
+                "labels": list(map(str, counts.index)),
+                "values": list(map(int, counts.values)),
+                "type": "pie",
+                "hole": 0.4,
+                "marker": {{"colors": ["#6366f1", "#10b981", "#f59e0b", "#ef4444"]}}
+            }}],
+            "layout": {{
+                "title": "Project Status Breakdown",
+                "paper_bgcolor": "rgba(0,0,0,0)",
+                "plot_bgcolor": "rgba(17,24,39,0.5)",
+                "font": {{"color": "#f3f4f6"}}
+            }}
+        }}
+        
+    result_text = ans
+    result_chart = chart_data
+
+# 3. Sales / Region query
+elif col_sales and col_region:
+    grouped = df.groupby(col_region)[col_sales].sum().reset_index()
+    top_grouped = grouped.sort_values(by=col_sales, ascending=False)
+    
+    ans = f"Analyzing {{col_sales}} grouped by {{col_region}}: the top area is '{{top_grouped.iloc[0][col_region]}}' with a total of {{top_grouped.iloc[0][col_sales]:,.2f}}."
+    
+    chart_data = {{
+        "data": [{{
+            "x": list(map(str, top_grouped[col_region])),
+            "y": list(map(float, top_grouped[col_sales])),
+            "type": "bar",
+            "marker": {{"color": "#6366f1"}}
+        }}],
+        "layout": {{
+            "title": f"{{col_sales}} by {{col_region}}",
+            "paper_bgcolor": "rgba(0,0,0,0)",
+            "plot_bgcolor": "rgba(17,24,39,0.5)",
+            "font": {{"color": "#f3f4f6"}}
+        }}
+    }}
+    result_text = ans
+    result_chart = chart_data
+
+# 4. Fallback / general aggregate
+else:
+    total_cols = len(df.columns)
+    total_rows = len(df)
+    cols_str = ", ".join(list(df.columns)[:5])
+    num_cols = [c for c in df.columns if pd.api.types.is_numeric_dtype(df[c])]
+    if num_cols:
+        col = num_cols[0]
+        mean_val = df[col].mean()
+        ans = f"The dataset contains {{total_rows}} records and {{total_cols}} columns (including {{cols_str}}). The variable '{{col}}' has an average value of {{mean_val:,.2f}}."
+    else:
+        ans = f"The dataset contains {{total_rows}} records and {{total_cols}} columns. The columns are: {{', '.join(list(df.columns))}}."
+    result_text = ans
+    result_chart = None
+```"""
+        return code
+
 
     @classmethod
     def _get_mock_response(cls, messages: List[Dict[str, str]], json_mode: bool) -> str:
