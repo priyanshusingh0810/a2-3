@@ -40,6 +40,17 @@ try:
             if not has_report_col:
                 logger.info("Adding column file_content to reports table...")
                 conn.execute(text("ALTER TABLE reports ADD COLUMN file_content BYTEA;"))
+
+            # Check for users.llm_provider
+            has_provider_col = conn.execute(text(
+                "SELECT EXISTS (SELECT 1 FROM information_schema.columns "
+                "WHERE table_name='users' AND column_name='llm_provider');"
+            )).scalar()
+            if not has_provider_col:
+                logger.info("Adding LLM columns to users table...")
+                conn.execute(text("ALTER TABLE users ADD COLUMN llm_provider VARCHAR(50) DEFAULT 'default';"))
+                conn.execute(text("ALTER TABLE users ADD COLUMN llm_model VARCHAR(100);"))
+                conn.execute(text("ALTER TABLE users ADD COLUMN llm_api_key VARCHAR(255);"))
         else:
             # SQLite
             res_datasets = conn.execute(text("PRAGMA table_info(datasets);")).fetchall()
@@ -53,8 +64,16 @@ try:
             if "file_content" not in cols_reports:
                 logger.info("Adding column file_content to reports table...")
                 conn.execute(text("ALTER TABLE reports ADD COLUMN file_content BLOB;"))
+
+            res_users = conn.execute(text("PRAGMA table_info(users);")).fetchall()
+            cols_users = [r[1] for r in res_users]
+            if "llm_provider" not in cols_users:
+                logger.info("Adding LLM columns to users table...")
+                conn.execute(text("ALTER TABLE users ADD COLUMN llm_provider TEXT DEFAULT 'default';"))
+                conn.execute(text("ALTER TABLE users ADD COLUMN llm_model TEXT;"))
+                conn.execute(text("ALTER TABLE users ADD COLUMN llm_api_key TEXT;"))
 except Exception as e:
-    logger.error(f"Error checking/adding file_content column to DB: {e}")
+    logger.error(f"Error checking/adding columns to DB: {e}")
 
 app = FastAPI(
     title=settings.PROJECT_NAME,

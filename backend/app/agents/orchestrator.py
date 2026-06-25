@@ -27,6 +27,14 @@ class AgentOrchestrator:
             logger.error(f"Job {job_id} or Dataset {dataset_id} not found in database.")
             return
 
+        from app.services.llm_service import user_llm_config
+        owner = dataset.owner
+        token = user_llm_config.set({
+            "llm_provider": owner.llm_provider if owner else "default",
+            "llm_model": owner.llm_model if owner else None,
+            "llm_api_key": owner.llm_api_key if owner else None
+        })
+
         try:
             # Update status to running
             job.status = "running"
@@ -178,3 +186,5 @@ class AgentOrchestrator:
             job.status = "failed"
             job.error_message = str(e)
             db.commit()
+        finally:
+            user_llm_config.reset(token)

@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from typing import Optional
 from pydantic_settings import BaseSettings
 
 # Define base paths
@@ -34,6 +35,10 @@ class Settings(BaseSettings):
     OLLAMA_BASE_URL: str = "http://localhost:11434"
     OLLAMA_MODEL: str = "qwen2.5:latest"  # Default model, fallback to llama3 if not present
     MOCK_AI: bool = False  # Set to True to bypass LLM and use heuristic summaries
+    
+    # Custom LLM / Cloud Settings
+    GEMINI_API_KEY: Optional[str] = None
+    LLM_PROVIDER: str = "default"
     
     class Config:
         case_sensitive = True

@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { 
   Database, Upload, MessageSquare, LineChart, FileText, LayoutDashboard, 
   Trash2, LogOut, Loader2, Sparkles, RefreshCw, Send, CheckCircle2, 
-  AlertTriangle, Shield, Check, Calendar, TrendingUp, HelpCircle, Download
+  AlertTriangle, Shield, Check, Calendar, TrendingUp, HelpCircle, Download,
+  Settings
 } from 'lucide-react';
 import api from '@/lib/api';
 import PreviewGrid from '@/components/preview-grid';
@@ -28,7 +29,7 @@ export default function Home() {
   const [googleLoading, setGoogleLoading] = useState(false);
 
   // --- WORKSPACE STATES ---
-  const [activeTab, setActiveTab] = useState<'upload' | 'dashboard' | 'chat' | 'forecast' | 'reports'>('upload');
+  const [activeTab, setActiveTab] = useState<'upload' | 'dashboard' | 'chat' | 'forecast' | 'reports' | 'settings'>('upload');
   const [datasets, setDatasets] = useState<any[]>([]);
   const [selectedDatasetId, setSelectedDatasetId] = useState<string | null>(null);
   const [selectedDataset, setSelectedDataset] = useState<any>(null);
@@ -62,6 +63,35 @@ export default function Home() {
 
   // --- REPORT GENERATION STATES ---
   const [reportGenerating, setReportGenerating] = useState(false);
+
+  // --- LLM CONFIG/SETTINGS STATES ---
+  const [llmProvider, setLlmProvider] = useState<'default' | 'gemini' | 'openai' | 'ollama' | 'mock'>('default');
+  const [llmModel, setLlmModel] = useState('');
+  const [llmApiKey, setLlmApiKey] = useState('');
+  const [settingsLoading, setSettingsLoading] = useState(false);
+  const [settingsMessage, setSettingsMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+
+  const handleSaveSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSettingsLoading(true);
+    setSettingsMessage(null);
+    try {
+      const res = await api.put('/auth/llm-settings', {
+        llm_provider: llmProvider,
+        llm_model: llmModel || null,
+        llm_api_key: llmApiKey || null
+      });
+      setUser(res.data);
+      setLlmProvider(res.data.llm_provider || 'default');
+      setLlmModel(res.data.llm_model || '');
+      setLlmApiKey(res.data.llm_api_key || '');
+      setSettingsMessage({ type: 'success', text: 'LLM Settings updated successfully!' });
+    } catch (err: any) {
+      setSettingsMessage({ type: 'error', text: err.response?.data?.detail || 'Failed to update LLM settings.' });
+    } finally {
+      setSettingsLoading(false);
+    }
+  };
 
   // --- POLLING FOR ANALYSIS JOB ---
   const pollTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -142,6 +172,11 @@ export default function Home() {
       const res = await api.get('/auth/me');
       setUser(res.data);
       setIsAuthenticated(true);
+      if (res.data) {
+        setLlmProvider(res.data.llm_provider || 'default');
+        setLlmModel(res.data.llm_model || '');
+        setLlmApiKey(res.data.llm_api_key || '');
+      }
     } catch (err) {
       localStorage.removeItem('a3_access_token');
       localStorage.removeItem('a3_refresh_token');
@@ -946,6 +981,100 @@ export default function Home() {
     );
   };
 
+  // --- RENDERING SETTINGS PANEL ---
+  const renderSettings = () => {
+    return (
+      <div className="glass-panel p-8 rounded-2xl max-w-2xl mx-auto space-y-6">
+        <div>
+          <h3 className="section-heading text-xl flex items-center gap-2.5 text-white">
+            <Settings className="text-indigo-400" size={22} />
+            AI LLM Model Settings
+          </h3>
+          <p className="section-subtext text-xs md:text-sm mt-1 text-slate-400">
+            Configure system-wide default model configurations or provide custom keys for external LLM providers.
+          </p>
+        </div>
+
+        <form onSubmit={handleSaveSettings} className="space-y-5">
+          {settingsMessage && (
+            <div className={`p-4 rounded-xl text-xs flex items-center gap-2.5 ${
+              settingsMessage.type === 'success' 
+                ? 'bg-teal-500/10 border border-teal-500/20 text-teal-400' 
+                : 'bg-red-500/10 border border-red-500/20 text-red-400'
+            }`}>
+              {settingsMessage.type === 'success' ? <CheckCircle2 size={16} /> : <AlertTriangle size={16} />}
+              <span>{settingsMessage.text}</span>
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <label className="text-xs font-semibold text-slate-300 block">LLM Provider</label>
+            <select
+              value={llmProvider}
+              onChange={e => {
+                const prov = e.target.value as any;
+                setLlmProvider(prov);
+                if (prov === 'default') setLlmModel('');
+                else if (prov === 'gemini') setLlmModel('gemini-2.5-flash');
+                else if (prov === 'openai') setLlmModel('gpt-4o-mini');
+                else if (prov === 'ollama') setLlmModel('qwen2.5:latest');
+                else if (prov === 'mock') setLlmModel('');
+              }}
+              className="w-full bg-slate-950 border border-slate-700/60 focus:border-indigo-500 focus:outline-none rounded-xl p-3 text-xs text-white font-sans"
+            >
+              <option value="default">System Default (Gemini/Ollama/Mock)</option>
+              <option value="gemini">Google Gemini API</option>
+              <option value="openai">OpenAI API</option>
+              <option value="ollama">Local Ollama</option>
+              <option value="mock">Local Heuristic Mock</option>
+            </select>
+          </div>
+
+          {llmProvider !== 'default' && llmProvider !== 'mock' && (
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-slate-300 block">Model Name</label>
+              <input
+                type="text"
+                value={llmModel}
+                onChange={e => setLlmModel(e.target.value)}
+                placeholder={
+                  llmProvider === 'gemini' ? 'e.g., gemini-2.5-flash, gemini-1.5-pro' :
+                  llmProvider === 'openai' ? 'e.g., gpt-4o-mini, gpt-4o' :
+                  llmProvider === 'ollama' ? 'e.g., qwen2.5:latest, llama3' : 'Model name'
+                }
+                className="w-full bg-slate-950 border border-slate-700/60 focus:border-indigo-500 focus:outline-none rounded-xl p-3 text-xs text-white placeholder:text-slate-500 font-sans"
+              />
+            </div>
+          )}
+
+          {llmProvider !== 'default' && llmProvider !== 'ollama' && llmProvider !== 'mock' && (
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-slate-300 block">Custom API Key</label>
+              <input
+                type="password"
+                value={llmApiKey}
+                onChange={e => setLlmApiKey(e.target.value)}
+                placeholder="Enter API key (leave unchanged to keep current key, or empty to clear)"
+                className="w-full bg-slate-950 border border-slate-700/60 focus:border-indigo-500 focus:outline-none rounded-xl p-3 text-xs text-white placeholder:text-slate-500 font-sans"
+              />
+            </div>
+          )}
+
+          <div className="pt-2">
+            <button
+              type="submit"
+              disabled={settingsLoading}
+              className="btn-primary w-full py-3 select-none flex items-center justify-center gap-2 font-semibold shadow-md disabled:opacity-50"
+            >
+              {settingsLoading ? <Loader2 className="animate-spin" size={14} /> : null}
+              Save Configuration Settings
+            </button>
+          </div>
+        </form>
+      </div>
+    );
+  };
+
   // --- MAIN AUTH SCREEN RENDERING ---
   if (!isAuthenticated) {
     return (
@@ -1060,6 +1189,15 @@ export default function Home() {
               <FileText size={16} />
               Report Center
             </button>
+            <button
+              onClick={() => setActiveTab('settings')}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition ${
+                activeTab === 'settings' ? 'bg-indigo-500/12 text-indigo-400 border border-indigo-500/20' : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
+              }`}
+            >
+              <Settings size={16} />
+              AI Settings
+            </button>
             <Link
               href="/sign-in-demo"
               target="_blank"
@@ -1130,13 +1268,15 @@ export default function Home() {
               {activeTab === 'upload' ? 'Datasets Library' : 
                activeTab === 'dashboard' ? 'Insight Dashboard' : 
                activeTab === 'chat' ? 'Conversational Chat' : 
-               activeTab === 'forecast' ? 'Predictive Forecast' : 'Document Center'}
+               activeTab === 'forecast' ? 'Predictive Forecast' : 
+               activeTab === 'settings' ? 'AI Model Settings' : 'Document Center'}
             </h1>
             <p className="section-subtext text-xs md:text-sm mt-1">
               {activeTab === 'upload' ? 'Upload files and preview row properties.' : 
                activeTab === 'dashboard' ? 'Overview of mathematical statistics and charts.' : 
                activeTab === 'chat' ? 'Retrieve data parameters via local AI code sandbox.' : 
-               activeTab === 'forecast' ? 'Seasonal trend predictions and regression models.' : 'Generate or download executive reports.'}
+               activeTab === 'forecast' ? 'Seasonal trend predictions and regression models.' : 
+               activeTab === 'settings' ? 'Configure model routing, default provider, and custom API keys.' : 'Generate or download executive reports.'}
             </p>
           </div>
 
@@ -1189,6 +1329,7 @@ export default function Home() {
             {activeTab === 'chat' && renderChatPlayground()}
             {activeTab === 'forecast' && renderForecasting()}
             {activeTab === 'reports' && renderReports()}
+            {activeTab === 'settings' && renderSettings()}
           </div>
         )}
       </main>

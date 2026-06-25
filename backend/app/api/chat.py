@@ -55,7 +55,16 @@ async def query_dataset(
 
     # 4. Trigger Query Agent
     logger.info(f"Running query: '{req.question}' on dataset {dataset_id}")
-    answer, chart = await QueryAgent.run_query(df, dataset.columns_metadata or {}, req.question)
+    from app.services.llm_service import user_llm_config
+    token = user_llm_config.set({
+        "llm_provider": current_user.llm_provider,
+        "llm_model": current_user.llm_model,
+        "llm_api_key": current_user.llm_api_key
+    })
+    try:
+        answer, chart = await QueryAgent.run_query(df, dataset.columns_metadata or {}, req.question)
+    finally:
+        user_llm_config.reset(token)
 
     # 5. Append messages to history
     user_msg = {

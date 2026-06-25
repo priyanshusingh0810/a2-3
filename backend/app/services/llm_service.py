@@ -2,9 +2,13 @@ import json
 import logging
 import httpx
 from typing import List, Dict, Any, Optional
+from contextvars import ContextVar
 from app.config import settings
 
 logger = logging.getLogger("a3.llm_service")
+
+# Context variable to hold user-specific LLM configuration
+user_llm_config: ContextVar[Optional[dict]] = ContextVar("user_llm_config", default=None)
 
 class LLMService:
     @staticmethod
@@ -24,55 +28,225 @@ class LLMService:
         json_mode: bool = False,
         system_prompt: Optional[str] = None
     ) -> str:
-        """Calls the LLM provider (Ollama) or falls back to Mock engine."""
+        """Calls the LLM provider (Context-aware or fallback) or Mock engine."""
         
-        # Override to mock if configured
-        if settings.MOCK_AI:
-            logger.info("MOCK_AI is enabled. Falling back to heuristic mock response.")
-            is_code_request = False
-            if system_prompt and "python" in system_prompt.lower():
-                is_code_request = True
-            elif any("code" in m["content"].lower() or "python" in m["content"].lower() for m in messages):
-                is_code_request = True
-                
-            if is_code_request and not json_mode:
-                return cls._get_mock_code_response(messages)
-            return cls._get_mock_response(messages, json_mode)
+        # Retrieve user-specific config from ContextVar
+        config = user_llm_config.get()
+        
+        if config:
+            provider = config.get("llm_provider") or "default"
+            model = config.get("llm_model")
+            api_key = config.get("llm_api_key")
+        else:
+            provider = settings.LLM_PROVIDER or "default"
+            model = None
+            api_key = settings.GEMINI_API_KEY
 
-        # Build list of messages, incorporating system prompt if provided
+        # Handle system-wide default configuration
+        if provider == "default":
+            if settings.GEMINI_API_KEY:
+                provider = "gemini"
+                api_key = settings.GEMINI_API_KEY
+                model = model or "gemini-2.5-flash"
+            else:
+                if settings.MOCK_AI:
+                    provider = "mock"
+                else:
+                    provider = "ollama"
+
+        # Ensure we have defaults for models if not specified
+        if provider == "gemini":
+            model = model or "gemini-2.5-flash"
+        elif provider == "openai":
+            model = model or "gpt-4o-mini"
+        elif provider == "ollama":
+            model = model or settings.OLLAMA_MODEL
+
+        logger.info(f"Routing LLM request to provider: '{provider}', model: '{model}'")
+
+        if provider == "mock":
+            return cls._get_mock_fallback(messages, json_mode, system_prompt)
+
+        # Call the selected provider
+        try:
+            if provider == "gemini":
+                if not api_key:
+                    raise ValueError("Gemini API key is not configured.")
+                return await cls._call_gemini(messages, model, api_key, json_mode, system_prompt)
+            
+            elif provider == "openai":
+                if not api_key:
+                    raise ValueError("OpenAI API key is not configured.")
+                return await cls._call_openai(messages, model, api_key, json_mode, system_prompt)
+            
+            elif provider == "ollama":
+                return await cls._call_ollama(messages, model, json_mode, system_prompt)
+                
+            else:
+                logger.warning(f"Unknown LLM provider '{provider}', falling back to mock.")
+                return cls._get_mock_fallback(messages, json_mode, system_prompt)
+                
+        except Exception as e:
+            logger.error(f"Error calling LLM provider '{provider}': {e}. Falling back to mock.")
+            return cls._get_mock_fallback(messages, json_mode, system_prompt)
+
+    @classmethod
+    def _get_mock_fallback(
+        cls,
+        messages: List[Dict[str, str]],
+        json_mode: bool,
+        system_prompt: Optional[str]
+    ) -> str:
+        is_code_request = False
+        if system_prompt and "python" in system_prompt.lower():
+            is_code_request = True
+        elif any("code" in m["content"].lower() or "python" in m["content"].lower() for m in messages):
+            is_code_request = True
+            
+        if is_code_request and not json_mode:
+            return cls._get_mock_code_response(messages)
+        return cls._get_mock_response(messages, json_mode)
+
+    @classmethod
+    async def _call_gemini(
+        cls,
+        messages: List[Dict[str, str]],
+        model: str,
+        api_key: str,
+        json_mode: bool,
+        system_prompt: Optional[str]
+    ) -> str:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
+        
+        contents = []
+        system_instruction_parts = []
+
+        if system_prompt:
+            system_instruction_parts.append({"text": system_prompt})
+
+        for msg in messages:
+            role = msg.get("role")
+            content = msg.get("content", "")
+            if role == "system":
+                system_instruction_parts.append({"text": content})
+            elif role == "user":
+                contents.append({
+                    "role": "user",
+                    "parts": [{"text": content}]
+                })
+            elif role in ("assistant", "model"):
+                contents.append({
+                    "role": "model",
+                    "parts": [{"text": content}]
+                })
+
+        payload = {
+            "contents": contents,
+            "generationConfig": {
+                "temperature": 0.2
+            }
+        }
+        if system_instruction_parts:
+            payload["systemInstruction"] = {
+                "parts": system_instruction_parts
+            }
+        if json_mode:
+            payload["generationConfig"]["responseMimeType"] = "application/json"
+
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            response = await client.post(url, json=payload)
+            if response.status_code == 200:
+                data = response.json()
+                try:
+                    return data["candidates"][0]["content"]["parts"][0]["text"]
+                except (KeyError, IndexError) as e:
+                    logger.error(f"Failed to parse Gemini response data: {data}. Error: {e}")
+                    raise ValueError("Invalid response format from Gemini API")
+            else:
+                logger.error(f"Gemini API error: Status {response.status_code}, Body: {response.text}")
+                raise ValueError(f"Gemini API returned status code {response.status_code}: {response.text}")
+
+    @classmethod
+    async def _call_openai(
+        cls,
+        messages: List[Dict[str, str]],
+        model: str,
+        api_key: str,
+        json_mode: bool,
+        system_prompt: Optional[str]
+    ) -> str:
+        url = "https://api.openai.com/v1/chat/completions"
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {api_key}"
+        }
+        
+        formatted_messages = []
+        if system_prompt:
+            formatted_messages.append({"role": "system", "content": system_prompt})
+        
+        for msg in messages:
+            role = msg.get("role")
+            content = msg.get("content", "")
+            if role == "model":
+                role = "assistant"
+            formatted_messages.append({"role": role, "content": content})
+            
+        payload = {
+            "model": model,
+            "messages": formatted_messages,
+            "temperature": 0.2
+        }
+        if json_mode:
+            payload["response_format"] = {"type": "json_object"}
+            
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            response = await client.post(url, headers=headers, json=payload)
+            if response.status_code == 200:
+                data = response.json()
+                try:
+                    return data["choices"][0]["message"]["content"]
+                except (KeyError, IndexError) as e:
+                    logger.error(f"Failed to parse OpenAI response data: {data}. Error: {e}")
+                    raise ValueError("Invalid response format from OpenAI API")
+            else:
+                logger.error(f"OpenAI API error: Status {response.status_code}, Body: {response.text}")
+                raise ValueError(f"OpenAI API returned status code {response.status_code}: {response.text}")
+
+    @classmethod
+    async def _call_ollama(
+        cls,
+        messages: List[Dict[str, str]],
+        model: str,
+        json_mode: bool,
+        system_prompt: Optional[str]
+    ) -> str:
         formatted_messages = []
         if system_prompt:
             formatted_messages.append({"role": "system", "content": system_prompt})
         formatted_messages.extend(messages)
 
-        # Attempt to call local Ollama
-        try:
-            payload = {
-                "model": settings.OLLAMA_MODEL,
-                "messages": formatted_messages,
-                "stream": False,
-                "options": {
-                    "temperature": 0.2
-                }
+        payload = {
+            "model": model,
+            "messages": formatted_messages,
+            "stream": False,
+            "options": {
+                "temperature": 0.2
             }
-            if json_mode:
-                payload["format"] = "json"
-                
-            async with httpx.AsyncClient(timeout=120.0) as client:
-                response = await client.post(
-                    f"{settings.OLLAMA_BASE_URL}/api/chat",
-                    json=payload
-                )
-                if response.status_code == 200:
-                    data = response.json()
-                    return data["message"]["content"]
-                else:
-                    logger.warning(f"Ollama returned status code {response.status_code}. Using mock fallback.")
-        except Exception as e:
-            logger.warning(f"Failed to communicate with Ollama at {settings.OLLAMA_BASE_URL}: {e}. Using mock fallback.")
-
-        # Fallback if connection fails
-        return cls._get_mock_response(messages, json_mode)
+        }
+        if json_mode:
+            payload["format"] = "json"
+            
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            response = await client.post(
+                f"{settings.OLLAMA_BASE_URL}/api/chat",
+                json=payload
+            )
+            if response.status_code == 200:
+                data = response.json()
+                return data["message"]["content"]
+            else:
+                raise ValueError(f"Ollama returned status code {response.status_code}")
 
     @classmethod
     def _get_mock_code_response(cls, messages: List[Dict[str, str]]) -> str:

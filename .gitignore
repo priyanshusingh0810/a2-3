@@ -1,5 +1,12 @@
 node_modules/
 .next/
 .env
+.env.local
 dist/
 build/
+__pycache__/
+*.pyc
+*.db
+.venv/
+.venv*/
+*.tsbuildinfo

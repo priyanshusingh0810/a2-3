@@ -11,6 +11,9 @@ class User(Base):
     hashed_password = Column(String, nullable=False)
     role = Column(String, default="user") # 'user' or 'admin'
     is_active = Column(Boolean, default=True)
+    llm_provider = Column(String, default="default")
+    llm_model = Column(String, nullable=True)
+    llm_api_key = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
     datasets = relationship("Dataset", back_populates="owner", cascade="all, delete-orphan")

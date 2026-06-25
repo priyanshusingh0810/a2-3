@@ -1,4 +1,5 @@
 import datetime
+from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
@@ -120,10 +121,75 @@ def refresh_token(req: schemas.TokenRefreshRequest, db: Session = Depends(get_db
         "token_type": "bearer"
     }
 
+def mask_api_key(key: Optional[str]) -> Optional[str]:
+    if not key:
+        return None
+    if len(key) <= 8:
+        return "********"
+    return f"{key[:4]}...{key[-4:]}"
+
 @router.get("/me", response_model=schemas.UserResponse)
 def get_me(current_user: models.User = Depends(deps.get_current_user)):
     """Returns the authenticated user details."""
-    return current_user
+    return schemas.UserResponse(
+        id=current_user.id,
+        email=current_user.email,
+        role=current_user.role,
+        is_active=current_user.is_active,
+        llm_provider=current_user.llm_provider,
+        llm_model=current_user.llm_model,
+        llm_api_key=mask_api_key(current_user.llm_api_key),
+        created_at=current_user.created_at
+    )
+
+@router.put("/llm-settings", response_model=schemas.UserResponse)
+def update_llm_settings(
+    settings_in: schemas.LLMSettingsUpdate,
+    current_user: models.User = Depends(deps.get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Updates the user's custom LLM settings."""
+    current_user.llm_provider = settings_in.llm_provider
+    current_user.llm_model = settings_in.llm_model
+    
+    if settings_in.llm_api_key is not None:
+        val = settings_in.llm_api_key.strip()
+        if val == "":
+            current_user.llm_api_key = None
+        elif "*" in val or "..." in val:
+            # Masked key received, keep the existing one
+            pass
+        else:
+            current_user.llm_api_key = val
+            
+    db.add(current_user)
+    db.commit()
+    db.refresh(current_user)
+    
+    # Write audit log
+    audit_log = models.AuditLog(
+        user_id=current_user.id,
+        action="UPDATE_LLM_SETTINGS",
+        target_type="user",
+        target_id=str(current_user.id),
+        details={
+            "llm_provider": current_user.llm_provider,
+            "llm_model": current_user.llm_model
+        }
+    )
+    db.add(audit_log)
+    db.commit()
+    
+    return schemas.UserResponse(
+        id=current_user.id,
+        email=current_user.email,
+        role=current_user.role,
+        is_active=current_user.is_active,
+        llm_provider=current_user.llm_provider,
+        llm_model=current_user.llm_model,
+        llm_api_key=mask_api_key(current_user.llm_api_key),
+        created_at=current_user.created_at
+    )
 
 @router.post("/logout", status_code=status.HTTP_200_OK)
 def logout(
