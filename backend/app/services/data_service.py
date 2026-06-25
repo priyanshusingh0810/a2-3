@@ -30,27 +30,65 @@ class DataService:
         if ext == "csv":
             # For massive CSV files, load up to limit if requested
             if limit:
-                return pd.read_csv(file_path, nrows=limit)
-            return pd.read_csv(file_path)
+                df = pd.read_csv(file_path, nrows=limit)
+            else:
+                df = pd.read_csv(file_path)
         elif ext in ["xlsx", "xls"]:
             if limit:
-                return pd.read_excel(file_path, nrows=limit)
-            return pd.read_excel(file_path)
+                df = pd.read_excel(file_path, nrows=limit)
+            else:
+                df = pd.read_excel(file_path)
         elif ext == "json":
             # JSON reading might need orientation handling
             try:
                 if limit:
                     # Reading in chunks or loads to handle limit
                     df = pd.read_json(file_path)
-                    return df.head(limit)
-                return pd.read_json(file_path)
+                    df = df.head(limit)
+                else:
+                    df = pd.read_json(file_path)
             except ValueError:
                 # Try reading line-delimited JSON
                 if limit:
-                    return pd.read_json(file_path, lines=True, nrows=limit)
-                return pd.read_json(file_path, lines=True)
+                    df = pd.read_json(file_path, lines=True, nrows=limit)
+                else:
+                    df = pd.read_json(file_path, lines=True)
         else:
             raise ValueError(f"Unsupported file type: {file_type}")
+
+        # Post-processing: Auto-detect and promote row-level headers if loaded as Unnamed
+        if len(df) > 0 and len(df.columns) > 0:
+            unnamed_check_count = min(3, len(df.columns))
+            is_unnamed = True
+            for col in list(df.columns)[:unnamed_check_count]:
+                if not str(col).startswith("Unnamed:"):
+                    is_unnamed = False
+                    break
+            
+            if is_unnamed:
+                idx_to_promote = -1
+                for idx in range(min(5, len(df))):
+                    row_vals = df.iloc[idx].tolist()
+                    has_strings = False
+                    for val in row_vals:
+                        if isinstance(val, str) and not str(val).startswith("Unnamed:") and str(val).strip() != "":
+                            has_strings = True
+                            break
+                    if has_strings:
+                        idx_to_promote = idx
+                        break
+                
+                if idx_to_promote != -1:
+                    new_cols = []
+                    for i, val in enumerate(df.iloc[idx_to_promote].tolist()):
+                        if pd.isna(val) or val is None or str(val).strip() == "":
+                            new_cols.append(f"Column_{i}")
+                        else:
+                            new_cols.append(str(val).strip())
+                    df.columns = new_cols
+                    df = df.iloc[idx_to_promote + 1:].reset_index(drop=True)
+
+        return df
 
     @classmethod
     def get_preview(cls, file_path: str, file_type: str, limit: int = 50) -> Tuple[List[str], List[Dict[str, Any]], int]:
