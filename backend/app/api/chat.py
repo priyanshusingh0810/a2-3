@@ -48,6 +48,7 @@ async def query_dataset(
 
     # 3. Load dataset into memory
     try:
+        DataService.ensure_local_file(dataset.file_path, dataset.file_content)
         df = DataService.load_df(dataset.file_path, dataset.file_type)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to load dataset: {e}")

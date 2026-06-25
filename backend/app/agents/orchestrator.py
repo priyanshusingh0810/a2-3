@@ -33,6 +33,7 @@ class AgentOrchestrator:
             db.commit()
             
             # 2. Load dataset
+            DataService.ensure_local_file(dataset.file_path, dataset.file_content)
             df = DataService.load_df(dataset.file_path, dataset.file_type)
             
             # Create a preview

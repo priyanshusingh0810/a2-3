@@ -1,5 +1,5 @@
 import datetime
-from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Boolean, JSON, Text
+from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Boolean, JSON, Text, LargeBinary
 from sqlalchemy.orm import relationship
 from app.db.session import Base
 
@@ -32,6 +32,7 @@ class Dataset(Base):
     summary = Column(Text, nullable=True)
     columns_metadata = Column(JSON, nullable=True) # dict of column_name -> properties
     owner_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    file_content = Column(LargeBinary, nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
     owner = relationship("User", back_populates="datasets")
@@ -92,6 +93,7 @@ class Report(Base):
     title = Column(String, nullable=False)
     file_path = Column(String, nullable=False)
     format = Column(String, nullable=False) # 'pdf', 'pptx'
+    file_content = Column(LargeBinary, nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
     dataset = relationship("Dataset", back_populates="reports")

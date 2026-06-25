@@ -5,6 +5,22 @@ from typing import Dict, List, Any, Tuple, Optional
 
 class DataService:
     @staticmethod
+    def ensure_local_file(file_path: str, content: Optional[bytes]) -> None:
+        """Ensures that a file exists on the local container disk. If not, it recreates it from the database content."""
+        if not file_path or content is None:
+            return
+        if not os.path.exists(file_path):
+            try:
+                os.makedirs(os.path.dirname(file_path), exist_ok=True)
+                with open(file_path, "wb") as f:
+                    f.write(content)
+            except Exception as e:
+                import logging
+                logging.getLogger("a3.services.data_service").warning(
+                    f"Could not reconstruct local file {file_path}: {e}"
+                )
+
+    @staticmethod
     def load_df(file_path: str, file_type: str, limit: Optional[int] = None) -> pd.DataFrame:
         """Loads a file path into a pandas DataFrame."""
         if not os.path.exists(file_path):

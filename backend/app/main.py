@@ -18,6 +18,44 @@ logger.info("Initializing database schema...")
 Base.metadata.create_all(bind=engine)
 logger.info("Database tables created successfully.")
 
+# Programmatically check and add column if not exists
+from sqlalchemy import text
+try:
+    with engine.begin() as conn:
+        if engine.dialect.name == "postgresql":
+            # Check for datasets
+            has_dataset_col = conn.execute(text(
+                "SELECT EXISTS (SELECT 1 FROM information_schema.columns "
+                "WHERE table_name='datasets' AND column_name='file_content');"
+            )).scalar()
+            if not has_dataset_col:
+                logger.info("Adding column file_content to datasets table...")
+                conn.execute(text("ALTER TABLE datasets ADD COLUMN file_content BYTEA;"))
+            
+            # Check for reports
+            has_report_col = conn.execute(text(
+                "SELECT EXISTS (SELECT 1 FROM information_schema.columns "
+                "WHERE table_name='reports' AND column_name='file_content');"
+            )).scalar()
+            if not has_report_col:
+                logger.info("Adding column file_content to reports table...")
+                conn.execute(text("ALTER TABLE reports ADD COLUMN file_content BYTEA;"))
+        else:
+            # SQLite
+            res_datasets = conn.execute(text("PRAGMA table_info(datasets);")).fetchall()
+            cols_datasets = [r[1] for r in res_datasets]
+            if "file_content" not in cols_datasets:
+                logger.info("Adding column file_content to datasets table...")
+                conn.execute(text("ALTER TABLE datasets ADD COLUMN file_content BLOB;"))
+                
+            res_reports = conn.execute(text("PRAGMA table_info(reports);")).fetchall()
+            cols_reports = [r[1] for r in res_reports]
+            if "file_content" not in cols_reports:
+                logger.info("Adding column file_content to reports table...")
+                conn.execute(text("ALTER TABLE reports ADD COLUMN file_content BLOB;"))
+except Exception as e:
+    logger.error(f"Error checking/adding file_content column to DB: {e}")
+
 app = FastAPI(
     title=settings.PROJECT_NAME,
     description="A3 - Autonomous AI Data Analyst Platform",

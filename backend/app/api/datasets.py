@@ -50,6 +50,14 @@ async def upload_dataset(
         logger.error(f"Failed to write file stream: {e}")
         raise HTTPException(status_code=500, detail="Failed to save uploaded file.")
 
+    # Read file content for persistent storage in DB
+    try:
+        with open(file_path, "rb") as f:
+            file_content = f.read()
+    except Exception as e:
+        logger.error(f"Failed to read file for storage: {e}")
+        raise HTTPException(status_code=500, detail="Failed to process uploaded file.")
+
     # 2. Get quick initial counts
     try:
         df_sample = DataService.load_df(file_path, ext, limit=10)
@@ -70,6 +78,7 @@ async def upload_dataset(
         name=filename,
         file_path=file_path,
         file_type=ext,
+        file_content=file_content,
         row_count=row_count,
         column_count=col_count,
         file_size=file_size,
@@ -142,6 +151,7 @@ def get_dataset_preview(
         raise HTTPException(status_code=404, detail="Dataset not found")
         
     try:
+        DataService.ensure_local_file(dataset.file_path, dataset.file_content)
         cols, rows, total = DataService.get_preview(dataset.file_path, dataset.file_type, limit=limit)
         return {
             "columns": cols,
@@ -188,6 +198,7 @@ def clean_dataset(
         user_upload_dir = os.path.join(settings.UPLOAD_FOLDER, str(current_user.id))
         cleaned_file_path = os.path.join(user_upload_dir, save_filename)
 
+        DataService.ensure_local_file(dataset.file_path, dataset.file_content)
         new_rows, new_cols = DataService.clean_dataset(
             file_path=dataset.file_path,
             file_type=dataset.file_type,
@@ -195,12 +206,16 @@ def clean_dataset(
             output_path=cleaned_file_path
         )
 
+        with open(cleaned_file_path, "rb") as f:
+            cleaned_content = f.read()
+
         # Create new dataset entry
         cleaned_dataset = models.Dataset(
             id=cleaned_id,
             name=cleaned_filename,
             file_path=cleaned_file_path,
             file_type=dataset.file_type,
+            file_content=cleaned_content,
             row_count=new_rows,
             column_count=new_cols,
             file_size=os.path.getsize(cleaned_file_path),

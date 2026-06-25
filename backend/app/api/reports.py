@@ -71,12 +71,21 @@ def generate_report(
         logger.error(f"Report generation failed: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to compile PDF: {e}")
 
+    # Read compiled PDF file content
+    try:
+        with open(report_path, "rb") as f:
+            report_content = f.read()
+    except Exception as e:
+        logger.error(f"Failed to read report PDF file: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve compiled PDF report.")
+
     # 5. Save Report record
     report = models.Report(
         id=report_id,
         dataset_id=dataset_id,
         title=f"Executive Insights Report - {dataset.name}",
         file_path=report_path,
+        file_content=report_content,
         format="pdf"
     )
     db.add(report)
@@ -131,6 +140,9 @@ def download_report(
     ).first()
     if not dataset:
         raise HTTPException(status_code=403, detail="Access denied")
+
+    from app.services.data_service import DataService
+    DataService.ensure_local_file(report.file_path, report.file_content)
 
     if not os.path.exists(report.file_path):
         raise HTTPException(status_code=404, detail="PDF file not found on disk")
