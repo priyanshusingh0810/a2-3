@@ -99,18 +99,65 @@ import numpy as np
 
 query = "{safe_question}".lower()
 
-def find_col(keywords):
-    for col in df.columns:
-        col_lower = str(col).lower()
-        if any(kw in col_lower for kw in keywords):
-            return col
-    return None
+col_project = None
+for col in df.columns:
+    col_lower = str(col).lower()
+    found = False
+    for kw in ["project", "name", "title", "task", "job", "line"]:
+        if kw in col_lower:
+            found = True
+            break
+    if found:
+        col_project = col
+        break
 
-col_project = find_col(["project", "name", "title", "task", "job", "line"])
-col_assignee = find_col(["assigned", "assignee", "who", "owner", "person", "member", "individual", "resource", "lead", "staff"])
-col_status = find_col(["status", "stage", "progress", "percent", "complete", "state", "productivity"])
-col_sales = find_col(["sales", "revenue", "amount", "value", "price", "cost", "profit"])
-col_region = find_col(["region", "country", "territory", "zone", "location", "area"])
+col_assignee = None
+for col in df.columns:
+    col_lower = str(col).lower()
+    found = False
+    for kw in ["assigned", "assignee", "who", "owner", "person", "member", "individual", "resource", "lead", "staff"]:
+        if kw in col_lower:
+            found = True
+            break
+    if found:
+        col_assignee = col
+        break
+
+col_status = None
+for col in df.columns:
+    col_lower = str(col).lower()
+    found = False
+    for kw in ["status", "stage", "progress", "percent", "complete", "state", "productivity"]:
+        if kw in col_lower:
+            found = True
+            break
+    if found:
+        col_status = col
+        break
+
+col_sales = None
+for col in df.columns:
+    col_lower = str(col).lower()
+    found = False
+    for kw in ["sales", "revenue", "amount", "value", "price", "cost", "profit"]:
+        if kw in col_lower:
+            found = True
+            break
+    if found:
+        col_sales = col
+        break
+
+col_region = None
+for col in df.columns:
+    col_lower = str(col).lower()
+    found = False
+    for kw in ["region", "country", "territory", "zone", "location", "area"]:
+        if kw in col_lower:
+            found = True
+            break
+    if found:
+        col_region = col
+        break
 
 # 1. Assignment / Owner query
 if col_assignee and ("assign" in query or "who" in query or "individual" in query or "person" in query or "whom" in query):
@@ -221,7 +268,10 @@ else:
     total_cols = len(df.columns)
     total_rows = len(df)
     cols_str = ", ".join(list(df.columns)[:5])
-    num_cols = [c for c in df.columns if pd.api.types.is_numeric_dtype(df[c])]
+    num_cols = []
+    for c in df.columns:
+        if pd.api.types.is_numeric_dtype(df[c]):
+            num_cols.append(c)
     if num_cols:
         col = num_cols[0]
         mean_val = df[col].mean()
