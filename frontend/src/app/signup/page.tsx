@@ -16,13 +16,7 @@ const SignUpDemo = () => {
       setError('');
       setGoogleLoading(true);
       try {
-        const demoEmail = 'demo_google_user@gmail.com';
-        const demoPassword = 'GoogleOAuth_demo_google_user@gmail.com_demo_client_id';
-        try {
-          await api.post('/auth/register', { email: demoEmail, password: demoPassword });
-        } catch (regErr) {}
-        
-        const res = await api.post('/auth/login', { email: demoEmail, password: demoPassword });
+        const res = await api.post('/auth/google', { access_token: 'mock_token_for_testing' });
         localStorage.setItem('a3_access_token', res.data.access_token);
         localStorage.setItem('a3_refresh_token', res.data.refresh_token);
         router.push('/');
@@ -49,32 +43,8 @@ const SignUpDemo = () => {
         callback: async (tokenResponse: any) => {
           if (tokenResponse && tokenResponse.access_token) {
             try {
-              // Fetch user profile from google userinfo endpoint
-              const userInfoRes = await fetch(
-                `https://www.googleapis.com/oauth2/v3/userinfo?access_token=${tokenResponse.access_token}`
-              );
-              if (!userInfoRes.ok) {
-                throw new Error('Failed to fetch user info from Google.');
-              }
-              const googleUser = await userInfoRes.json();
-              const { email } = googleUser;
-
-              if (!email) {
-                throw new Error('No email address returned from Google account.');
-              }
-
-              // Use a secure, deterministic password schema to register this email with our backend
-              const googleUserPassword = `GoogleOAuth_${email}_${clientId}`;
-
-              try {
-                // Try registering user first
-                await api.post('/auth/register', { email, password: googleUserPassword });
-              } catch (regErr) {
-                // Ignore if already registered
-              }
-
-              // Log in
-              const res = await api.post('/auth/login', { email, password: googleUserPassword });
+              // Send access token to backend
+              const res = await api.post('/auth/google', { access_token: tokenResponse.access_token });
               localStorage.setItem('a3_access_token', res.data.access_token);
               localStorage.setItem('a3_refresh_token', res.data.refresh_token);
               

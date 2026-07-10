@@ -219,13 +219,7 @@ export default function Home() {
       setAuthError('');
       setGoogleLoading(true);
       try {
-        const demoEmail = 'demo_google_user@gmail.com';
-        const demoPassword = 'GoogleOAuth_demo_google_user@gmail.com_demo_client_id';
-        try {
-          await api.post('/auth/register', { email: demoEmail, password: demoPassword });
-        } catch (regErr) {}
-        
-        const res = await api.post('/auth/login', { email: demoEmail, password: demoPassword });
+        const res = await api.post('/auth/google', { access_token: 'mock_token_for_testing' });
         localStorage.setItem('a3_access_token', res.data.access_token);
         localStorage.setItem('a3_refresh_token', res.data.refresh_token);
         await fetchCurrentUser();
@@ -252,32 +246,8 @@ export default function Home() {
         callback: async (tokenResponse: any) => {
           if (tokenResponse && tokenResponse.access_token) {
             try {
-              // Fetch user profile from google userinfo endpoint
-              const userInfoRes = await fetch(
-                `https://www.googleapis.com/oauth2/v3/userinfo?access_token=${tokenResponse.access_token}`
-              );
-              if (!userInfoRes.ok) {
-                throw new Error('Failed to fetch user info from Google.');
-              }
-              const googleUser = await userInfoRes.json();
-              const { email } = googleUser;
-
-              if (!email) {
-                throw new Error('No email address returned from Google account.');
-              }
-
-              // Use a secure, deterministic password schema to register this email with our backend
-              const googleUserPassword = `GoogleOAuth_${email}_${clientId}`;
-
-              try {
-                // Try registering user first
-                await api.post('/auth/register', { email, password: googleUserPassword });
-              } catch (regErr) {
-                // Ignore if already registered
-              }
-
-              // Log in
-              const res = await api.post('/auth/login', { email, password: googleUserPassword });
+              // Send the access token to our backend for validation and sign in
+              const res = await api.post('/auth/google', { access_token: tokenResponse.access_token });
               localStorage.setItem('a3_access_token', res.data.access_token);
               localStorage.setItem('a3_refresh_token', res.data.refresh_token);
               await fetchCurrentUser();
@@ -1260,7 +1230,7 @@ export default function Home() {
 
         {/* User Account Info Bottom */}
         <div className="p-4 border-t border-slate-700/50 bg-slate-900 flex items-center justify-between">
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1 pr-2">
             <p className="text-sm font-medium text-slate-200 truncate">{user?.email}</p>
             <span className="text-xs bg-indigo-500/12 border border-indigo-500/20 text-indigo-400 font-mono py-0.5 px-2 rounded-md uppercase font-semibold">
               {user?.role}

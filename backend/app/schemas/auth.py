@@ -40,3 +40,7 @@ class TokenPayload(BaseModel):
 
 class TokenRefreshRequest(BaseModel):
     refresh_token: str
+
+class GoogleLoginRequest(BaseModel):
+    access_token: str
+

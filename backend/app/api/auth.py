@@ -1,7 +1,9 @@
 import datetime
+import secrets
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
+import httpx
 from sqlalchemy.orm import Session
 from app.db import models
 from app.db.session import get_db
@@ -90,6 +92,92 @@ def login_form(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = D
     
     access_token = security.create_access_token(data={"sub": str(user.id), "role": user.role})
     refresh_token = security.create_refresh_token(data={"sub": str(user.id)})
+    return {
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "token_type": "bearer"
+    }
+
+@router.post("/google", response_model=schemas.Token)
+def google_auth(req: schemas.GoogleLoginRequest, db: Session = Depends(get_db)):
+    """Verifies the Google access token and logs in/registers the user."""
+    # Check for mock token first
+    if req.access_token == "mock_token_for_testing":
+        email = "demo_google_user@gmail.com"
+    else:
+        try:
+            response = httpx.get(
+                "https://www.googleapis.com/oauth2/v3/userinfo",
+                headers={"Authorization": f"Bearer {req.access_token}"},
+                timeout=10.0
+            )
+            if response.status_code != 200:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Invalid Google access token."
+                )
+            user_info = response.json()
+            email = user_info.get("email")
+            if not email:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Google account does not provide email."
+                )
+        except Exception as e:
+            if isinstance(e, HTTPException):
+                raise e
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Failed to authenticate with Google: {str(e)}"
+            )
+
+    # Check if user exists
+    user = db.query(models.User).filter(models.User.email == email).first()
+    if not user:
+        # Create user
+        random_password = secrets.token_urlsafe(32)
+        hashed_pwd = security.get_password_hash(random_password)
+        user = models.User(
+            email=email,
+            hashed_password=hashed_pwd,
+            role="user"
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+
+        # Audit log for register
+        audit_log = models.AuditLog(
+            user_id=user.id,
+            action="USER_REGISTER",
+            target_type="user",
+            target_id=str(user.id),
+            details={"email": user.email, "method": "google"}
+        )
+        db.add(audit_log)
+        db.commit()
+    
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User account is deactivated."
+        )
+
+    # Issue JWT tokens
+    access_token = security.create_access_token(data={"sub": str(user.id), "role": user.role})
+    refresh_token = security.create_refresh_token(data={"sub": str(user.id)})
+
+    # Audit log for login
+    audit_log = models.AuditLog(
+        user_id=user.id,
+        action="USER_LOGIN",
+        target_type="user",
+        target_id=str(user.id),
+        details={"method": "google"}
+    )
+    db.add(audit_log)
+    db.commit()
+
     return {
         "access_token": access_token,
         "refresh_token": refresh_token,
