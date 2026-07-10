@@ -101,35 +101,31 @@ def login_form(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = D
 @router.post("/google", response_model=schemas.Token)
 def google_auth(req: schemas.GoogleLoginRequest, db: Session = Depends(get_db)):
     """Verifies the Google access token and logs in/registers the user."""
-    # Check for mock token first
-    if req.access_token == "mock_token_for_testing":
-        email = "demo_google_user@gmail.com"
-    else:
-        try:
-            response = httpx.get(
-                "https://www.googleapis.com/oauth2/v3/userinfo",
-                headers={"Authorization": f"Bearer {req.access_token}"},
-                timeout=10.0
-            )
-            if response.status_code != 200:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Invalid Google access token."
-                )
-            user_info = response.json()
-            email = user_info.get("email")
-            if not email:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Google account does not provide email."
-                )
-        except Exception as e:
-            if isinstance(e, HTTPException):
-                raise e
+    try:
+        response = httpx.get(
+            "https://www.googleapis.com/oauth2/v3/userinfo",
+            headers={"Authorization": f"Bearer {req.access_token}"},
+            timeout=10.0
+        )
+        if response.status_code != 200:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Failed to authenticate with Google: {str(e)}"
+                detail="Invalid Google access token."
             )
+        user_info = response.json()
+        email = user_info.get("email")
+        if not email:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Google account does not provide email."
+            )
+    except Exception as e:
+        if isinstance(e, HTTPException):
+            raise e
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Failed to authenticate with Google: {str(e)}"
+        )
 
     # Check if user exists
     user = db.query(models.User).filter(models.User.email == email).first()

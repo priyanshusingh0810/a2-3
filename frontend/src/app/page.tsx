@@ -216,18 +216,7 @@ export default function Home() {
   const handleGoogleAuth = async () => {
     const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
     if (!clientId || clientId === 'YOUR_GOOGLE_CLIENT_ID_HERE') {
-      setAuthError('');
-      setGoogleLoading(true);
-      try {
-        const res = await api.post('/auth/google', { access_token: 'mock_token_for_testing' });
-        localStorage.setItem('a3_access_token', res.data.access_token);
-        localStorage.setItem('a3_refresh_token', res.data.refresh_token);
-        await fetchCurrentUser();
-      } catch (err: any) {
-        setAuthError(err.response?.data?.detail || 'Failed to simulate Google Sign-In.');
-      } finally {
-        setGoogleLoading(false);
-      }
+      setAuthError('Google Client ID is not configured. Please set NEXT_PUBLIC_GOOGLE_CLIENT_ID in your environment variables.');
       return;
     }
 
