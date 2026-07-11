@@ -2,200 +2,276 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─────────────────────────────────────────────
+   FORMULA BOT EXACT DESIGN SYSTEM
+   Light: warm off-white #f0ede8 + terracotta #d4663a
+   Dark:  near-black #0f0f0f
+──────────────────────────────────────────────── */
 @layer base {
   :root {
-    --background: #ffffff;
-    --foreground: #111827;
-    --card: #ffffff;
-    --card-foreground: #111827;
-    --popover: #ffffff;
-    --popover-foreground: #111827;
-    --primary: #4f46e5; /* Indigo 600 */
-    --primary-foreground: #ffffff;
-    --secondary: #f3f4f6; /* Gray 100 */
-    --secondary-foreground: #1f2937; /* Gray 800 */
-    --muted: #f9fafb; /* Gray 50 */
-    --muted-foreground: #6b7280; /* Gray 500 */
-    --accent: #f3f4f6;
-    --accent-foreground: #111827;
-    --destructive: #ef4444;
-    --destructive-foreground: #f8fafc;
-    --border: #e5e7eb; /* Gray 200 */
-    --input: #e5e7eb;
-    --ring: #4f46e5;
-    --radius: 0.75rem;
+    /* Formulabot Light Palette */
+    --background:          #f0ede8;   /* warm parchment */
+    --foreground:          #0f0f0f;   /* near-black */
+    --card:                #ffffff;   /* pure white cards */
+    --card-foreground:     #0f0f0f;
+    --popover:             #ffffff;
+    --popover-foreground:  #0f0f0f;
+    --primary:             #d4663a;   /* terracotta / formulabot orange */
+    --primary-foreground:  #ffffff;
+    --secondary:           #f5f2ee;   /* slightly lighter parchment */
+    --secondary-foreground:#0f0f0f;
+    --muted:               #e8e4de;   /* muted parchment */
+    --muted-foreground:    #6b6b6b;   /* medium gray */
+    --accent:              #d4663a;
+    --accent-foreground:   #ffffff;
+    --destructive:         #ef4444;
+    --destructive-foreground: #fff;
+    --border:              #dbd7d0;   /* warm gray border */
+    --input:               #dbd7d0;
+    --ring:                #d4663a;
+    --radius:              0.75rem;
+    --nav-bg:              rgba(15, 15, 15, 0.95); /* dark floating nav */
   }
 
   .dark {
-    --background: #030712; /* Gray 950 */
-    --foreground: #f9fafb;
-    --card: #111827; /* Gray 900 */
-    --card-foreground: #f9fafb;
-    --popover: #111827;
-    --popover-foreground: #f9fafb;
-    --primary: #6366f1; /* Indigo 500 */
-    --primary-foreground: #ffffff;
-    --secondary: #1f2937;
-    --secondary-foreground: #f9fafb;
-    --muted: #1f2937;
-    --muted-foreground: #9ca3af;
-    --accent: #1f2937;
-    --accent-foreground: #f9fafb;
-    --destructive: #7f1d1d;
-    --destructive-foreground: #f8fafc;
-    --border: #1f2937;
-    --input: #1f2937;
-    --ring: #6366f1;
+    --background:          #0f0f0f;
+    --foreground:          #f5f2ee;
+    --card:                #1a1a1a;
+    --card-foreground:     #f5f2ee;
+    --popover:             #1a1a1a;
+    --popover-foreground:  #f5f2ee;
+    --primary:             #e07348;  /* slightly lighter terracotta in dark */
+    --primary-foreground:  #ffffff;
+    --secondary:           #252525;
+    --secondary-foreground:#f5f2ee;
+    --muted:               #1f1f1f;
+    --muted-foreground:    #9a9a9a;
+    --accent:              #e07348;
+    --accent-foreground:   #ffffff;
+    --destructive:         #7f1d1d;
+    --destructive-foreground: #fff;
+    --border:              #2d2d2d;
+    --input:               #2d2d2d;
+    --ring:                #e07348;
+    --nav-bg:              rgba(15, 15, 15, 0.98);
   }
 }
 
 @layer base {
   body {
     @apply bg-background text-foreground antialiased;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
 
-/* Premium White Background Pattern (Faint Grid) */
+/* ─── BACKGROUND: Parchment with faint grid (exact formulabot) ─── */
 .grid-bg {
   background-color: var(--background);
-  background-image: 
-    linear-gradient(to right, rgba(0, 0, 0, 0.03) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(0, 0, 0, 0.03) 1px, transparent 1px);
-  background-size: 40px 40px;
+  background-image:
+    linear-gradient(to right, rgba(0,0,0,0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0,0,0,0.04) 1px, transparent 1px);
+  background-size: 48px 48px;
 }
 .dark .grid-bg {
-  background-image: 
-    linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-image:
+    linear-gradient(to right, rgba(255,255,255,0.03) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255,255,255,0.03) 1px, transparent 1px);
 }
 
-/* Button variants */
-.btn-primary {
-  @apply bg-primary text-primary-foreground rounded-full px-6 py-2.5 font-semibold transition-all hover:opacity-90 shadow-sm active:scale-[0.98];
-}
-.btn-secondary {
-  @apply bg-secondary text-secondary-foreground border rounded-full px-6 py-2.5 font-semibold transition-all hover:opacity-80 shadow-sm active:scale-[0.98];
-}
-.btn-ghost {
-  @apply bg-transparent text-foreground rounded-full px-4 py-2 font-medium transition-colors hover:bg-muted active:scale-[0.98];
+/* ─── NAVBAR: Dark floating pill (exact formulabot) ─── */
+.fb-nav {
+  background: var(--nav-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 1rem;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.2), 0 0 0 1px rgba(255,255,255,0.06);
 }
 
-/* Glass Panels / Cards */
+/* ─── SIDEBAR: White card sidebar ─── */
+.fb-sidebar {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(8px);
+  border-right: 1px solid var(--border);
+}
+.dark .fb-sidebar {
+  background: rgba(26, 26, 26, 0.90);
+  border-right: 1px solid var(--border);
+}
+
+/* ─── CARDS / PANELS ─── */
 @keyframes slideUpFade {
-  from { opacity: 0; transform: translateY(15px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 .glass-panel {
-  @apply bg-card border rounded-2xl shadow-sm transition-all;
-  animation: slideUpFade 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  animation: slideUpFade 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.glass-panel:hover {
+  box-shadow: 0 4px 20px rgba(0,0,0,0.10);
+  transform: translateY(-1px);
+  transition: box-shadow 0.25s ease, transform 0.25s ease;
 }
 .glass-panel-hover {
-  @apply hover:shadow-md hover:border-primary hover:-translate-y-0.5 transition-all duration-300;
+  transition: all 0.25s ease;
+  cursor: pointer;
 }
 
-/* Clean UI Headings */
-.section-heading {
-  @apply font-semibold tracking-tight text-foreground;
-  font-family: 'Inter', sans-serif;
-  letter-spacing: -0.01em;
-}
-
-.section-subtext {
-  color: var(--text-secondary);
-  line-height: 1.5;
-}
-
-/* Primary CTA button */
+/* ─── BUTTONS ─── */
+/* Primary: terracotta pill */
 .btn-primary {
-  background: var(--accent);
-  color: white;
-  font-weight: 500;
-  padding: 0.75rem 1.5rem;
-  border-radius: 9999px; /* pill shape */
-  font-size: 0.9rem;
+  background: var(--primary);
+  color: #ffffff;
+  font-weight: 600;
+  padding: 0.65rem 1.4rem;
+  border-radius: 9999px;
+  font-size: 0.875rem;
   transition: all 0.2s ease;
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
+  border: none;
+  cursor: pointer;
 }
-
 .btn-primary:hover {
-  background: var(--accent-hover);
-  transform: scale(1.02);
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(212, 102, 58, 0.4);
 }
-
+.btn-primary:active {
+  transform: scale(0.98);
+}
 .btn-primary:disabled {
   opacity: 0.5;
   pointer-events: none;
-  transform: none;
 }
 
-/* Ghost / secondary button */
+/* Ghost: transparent with border */
 .btn-ghost {
-  color: var(--text-primary);
+  background: transparent;
+  color: var(--foreground);
+  font-weight: 500;
+  padding: 0.65rem 1.2rem;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+  border: 1px solid var(--border);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+.btn-ghost:hover {
+  background: var(--muted);
+}
+
+/* Dark pill button (for nav CTAs) */
+.btn-dark {
+  background: rgba(255,255,255,0.12);
+  color: #ffffff;
   font-weight: 500;
   padding: 0.5rem 1rem;
-  border-radius: 9999px;
-  font-size: 0.9rem;
-  transition: all 0.2s ease;
-  border: 1px solid transparent;
-  background: var(--surface-raised);
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  transition: opacity 0.15s ease;
+}
+.btn-dark:hover { opacity: 0.8; }
+
+/* White pill (Try Free in nav) */
+.btn-light {
+  background: #ffffff;
+  color: #0f0f0f;
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  transition: opacity 0.15s ease;
+}
+.btn-light:hover { opacity: 0.88; }
+
+/* ─── TYPOGRAPHY ─── */
+.section-heading {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--foreground);
+  line-height: 1.15;
+}
+.section-subtext {
+  color: var(--muted-foreground);
+  line-height: 1.6;
 }
 
-.btn-ghost:hover {
-  background: #e5e5ea;
+/* ─── NAV LINKS ─── */
+.nav-link {
+  color: rgba(255,255,255,0.7);
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: opacity 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.nav-link:hover { opacity: 0.7; }
+
+/* ─── SIDEBAR NAV ITEMS ─── */
+.sidebar-item {
+  @apply w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all;
+  color: var(--muted-foreground);
+}
+.sidebar-item:hover {
+  background: var(--muted);
+  color: var(--foreground);
+}
+.sidebar-item.active {
+  background: rgba(212, 102, 58, 0.12);
+  color: var(--primary);
+  border: 1px solid rgba(212, 102, 58, 0.20);
+}
+.dark .sidebar-item.active {
+  background: rgba(224, 115, 72, 0.15);
+  color: var(--primary);
+  border-color: rgba(224, 115, 72, 0.25);
 }
 
-/* Custom Scrollbars */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
+/* ─── SCROLLBAR ─── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.15);
+  background: rgba(0,0,0,0.15);
   border-radius: 9999px;
 }
+::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.28); }
+.dark ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); }
 
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.3);
-}
-
-/* Selection */
+/* ─── SELECTION ─── */
 ::selection {
-  background: rgba(0, 113, 227, 0.2);
-  color: #1d1d1f;
+  background: rgba(212, 102, 58, 0.25);
+  color: var(--foreground);
 }
 
-/* Smooth transitions for interactive elements */
-input, button, a {
-  transition: all 0.2s ease;
-}
-
-/* Clean input styling */
+/* ─── INPUT ─── */
 .input-clean {
-  background: var(--surface-raised);
-  border: 1px solid var(--border-subtle);
-  border-radius: 1rem;
-  padding: 0.75rem 1rem;
-  font-size: 0.9rem;
-  color: var(--text-primary);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  padding: 0.65rem 0.9rem;
+  font-size: 0.875rem;
+  color: var(--foreground);
   outline: none;
   width: 100%;
+  transition: border-color 0.2s;
 }
-
-.input-clean::placeholder {
-  color: var(--text-secondary);
-}
-
+.input-clean::placeholder { color: var(--muted-foreground); }
 .input-clean:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 4px var(--accent-muted);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(212, 102, 58, 0.15);
 }
 
+/* ─── TRANSITIONS ─── */
+input, button, a { transition: all 0.2s ease; }
