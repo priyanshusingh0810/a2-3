@@ -1,10 +1,66 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from 'react';
+import { Loader2 } from 'lucide-react';
 
-export default function Component() {
+interface ModernLoginSignupProps {
+  emailProp?: string;
+  setEmailProp?: (val: string) => void;
+  passwordProp?: string;
+  setPasswordProp?: (val: string) => void;
+  nameProp?: string;
+  setNameProp?: (val: string) => void;
+  confirmPasswordProp?: string;
+  setConfirmPasswordProp?: (val: string) => void;
+  isLoadingProp?: boolean;
+  onSubmitProp?: (e: React.FormEvent) => void;
+  authErrorProp?: string;
+  onGoogleSubmitProp?: () => void;
+  isGoogleLoadingProp?: boolean;
+  isLogin?: boolean;
+  setIsLogin?: (val: boolean) => void;
+}
+
+export default function Component({
+  emailProp,
+  setEmailProp,
+  passwordProp,
+  setPasswordProp,
+  nameProp,
+  setNameProp,
+  confirmPasswordProp,
+  setConfirmPasswordProp,
+  isLoadingProp,
+  onSubmitProp,
+  authErrorProp,
+  onGoogleSubmitProp,
+  isGoogleLoadingProp,
+  isLogin: controlledIsLogin,
+  setIsLogin: controlledSetIsLogin,
+}: ModernLoginSignupProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [isLogin, setIsLogin] = useState(true);
+  
+  // Local state fallbacks if props are not provided
+  const [localIsLogin, localSetIsLogin] = useState(true);
+  const [localEmail, localSetEmail] = useState('');
+  const [localPassword, localSetPassword] = useState('');
+  const [localName, localSetName] = useState('');
+  const [localConfirmPassword, localSetConfirmPassword] = useState('');
+
+  const isLogin = controlledIsLogin !== undefined ? controlledIsLogin : localIsLogin;
+  const setIsLogin = controlledSetIsLogin !== undefined ? controlledSetIsLogin : localSetIsLogin;
+
+  const email = emailProp !== undefined ? emailProp : localEmail;
+  const setEmail = setEmailProp || localSetEmail;
+
+  const password = passwordProp !== undefined ? passwordProp : localPassword;
+  const setPassword = setPasswordProp || localSetPassword;
+
+  const name = nameProp !== undefined ? nameProp : localName;
+  const setName = setNameProp || localSetName;
+
+  const confirmPassword = confirmPasswordProp !== undefined ? confirmPasswordProp : localConfirmPassword;
+  const setConfirmPassword = setConfirmPasswordProp || localSetConfirmPassword;
 
   useEffect(() => {
     let active = true;
@@ -230,14 +286,27 @@ export default function Component() {
             <h1 style={{fontSize:"1.35rem",fontWeight:600,marginBottom:"0.25rem",letterSpacing:"-0.025em"}}>Sign in to Account</h1>
             <p style={{fontSize:"0.85rem",color:"#888",marginBottom:"0.85rem",lineHeight:1.5}}>Sign in to your Account.</p>
 
-            <form onSubmit={e=>e.preventDefault()} style={{width:"100%",display:"flex",flexDirection:"column",gap:"0.65rem"}}>
-              <input style={input} type="email" placeholder="name@work-email.com" required/>
-              <button type="submit" style={{width:"100%",padding:"0.65rem",borderRadius:6,border:"none",background:"#ededed",color:"#000",fontWeight:500,fontSize:"0.875rem",cursor:"pointer"}}>Continue with Email</button>
+            {authErrorProp && (
+              <div style={{color:'#ef4444', background:'rgba(239,68,68,0.1)', padding:'0.5rem 1rem', borderRadius:6, fontSize:'0.75rem', marginBottom:'0.65rem', border:'1px solid rgba(239,68,68,0.2)', width:'100%'}}>
+                {authErrorProp}
+              </div>
+            )}
+
+            <form onSubmit={onSubmitProp} style={{width:"100%",display:"flex",flexDirection:"column",gap:"0.65rem"}}>
+              <input style={input} type="email" placeholder="name@work-email.com" value={email} onChange={e => setEmail(e.target.value)} required/>
+              <input style={input} type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required/>
+              <button type="submit" disabled={isLoadingProp} style={{width:"100%",padding:"0.65rem",borderRadius:6,border:"none",background:"#ededed",color:"#000",fontWeight:500,fontSize:"0.875rem",cursor:"pointer", display:'flex', alignItems:'center', justifyContent:'center', gap:'0.5rem'}}>
+                {isLoadingProp && <Loader2 size={14} className="animate-spin" />}
+                {isLoadingProp ? 'Processing...' : 'Continue with Email'}
+              </button>
             </form>
 
             <div style={{height:1,background:"#222",width:"100%",margin:"0.85rem 0"}}/>
 
-            <button style={socialBtn}>{GoogleIcon}Continue with Google</button>
+            <button onClick={onGoogleSubmitProp} disabled={isGoogleLoadingProp} style={socialBtn}>
+              {isGoogleLoadingProp ? <Loader2 size={14} className="animate-spin" /> : GoogleIcon}
+              Continue with Google
+            </button>
             <button style={socialBtn}>{GitHubIcon}Continue with GitHub</button>
             <button style={{...socialBtn,marginBottom:0}}>{AppleIcon}Continue with Apple</button>
 
@@ -253,15 +322,29 @@ export default function Component() {
             <h1 style={{fontSize:"1.35rem",fontWeight:600,marginBottom:"0.25rem",letterSpacing:"-0.025em"}}>Sign up for Account</h1>
             <p style={{fontSize:"0.85rem",color:"#888",marginBottom:"0.85rem",lineHeight:1.5}}>Create a new account to get started.</p>
 
-            <form onSubmit={e=>e.preventDefault()} style={{width:"100%",display:"flex",flexDirection:"column",gap:"0.65rem"}}>
-              <input style={input} type="text" placeholder="Full Name" required/>
-              <input style={input} type="email" placeholder="name@work-email.com" required/>
-              <button type="submit" style={{width:"100%",padding:"0.65rem",borderRadius:6,border:"none",background:"#ededed",color:"#000",fontWeight:500,fontSize:"0.875rem",cursor:"pointer"}}>Sign Up with Email</button>
+            {authErrorProp && (
+              <div style={{color:'#ef4444', background:'rgba(239,68,68,0.1)', padding:'0.5rem 1rem', borderRadius:6, fontSize:'0.75rem', marginBottom:'0.65rem', border:'1px solid rgba(239,68,68,0.2)', width:'100%'}}>
+                {authErrorProp}
+              </div>
+            )}
+
+            <form onSubmit={onSubmitProp} style={{width:"100%",display:"flex",flexDirection:"column",gap:"0.65rem"}}>
+              <input style={input} type="text" placeholder="Full Name" value={name} onChange={e => setName(e.target.value)} required/>
+              <input style={input} type="email" placeholder="name@work-email.com" value={email} onChange={e => setEmail(e.target.value)} required/>
+              <input style={input} type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required/>
+              <input style={input} type="password" placeholder="Confirm Password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required/>
+              <button type="submit" disabled={isLoadingProp} style={{width:"100%",padding:"0.65rem",borderRadius:6,border:"none",background:"#ededed",color:"#000",fontWeight:500,fontSize:"0.875rem",cursor:"pointer", display:'flex', alignItems:'center', justifyContent:'center', gap:'0.5rem'}}>
+                {isLoadingProp && <Loader2 size={14} className="animate-spin" />}
+                {isLoadingProp ? 'Processing...' : 'Sign Up with Email'}
+              </button>
             </form>
 
             <div style={{height:1,background:"#222",width:"100%",margin:"0.85rem 0"}}/>
 
-            <button style={socialBtn}>{GoogleIcon}Sign up with Google</button>
+            <button onClick={onGoogleSubmitProp} disabled={isGoogleLoadingProp} style={socialBtn}>
+              {isGoogleLoadingProp ? <Loader2 size={14} className="animate-spin" /> : GoogleIcon}
+              Sign up with Google
+            </button>
             <button style={socialBtn}>{GitHubIcon}Sign up with GitHub</button>
             <button style={{...socialBtn,marginBottom:0}}>{AppleIcon}Sign up with Apple</button>
 

@@ -16,6 +16,7 @@ import { Component as SignInCard } from '@/components/ui/sign-in-card-2';
 import { SignUpCard } from '@/components/ui/sign-up-card';
 import { ForgotPasswordCard } from '@/components/ui/forgot-password-card';
 import { ThemeToggle } from '@/components/theme-toggle';
+import ModernLoginSignup from '@/components/ui/modern-login-signup';
 
 // ─── TAB CONFIG ────────────────────────────────────────────────────
 const TABS = [
@@ -714,34 +715,26 @@ export default function Home() {
   // ─────────────────────────────────────────────────────────────────
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen w-screen flex items-center justify-center grid-bg relative overflow-hidden">
-        <AnimatePresence mode="wait">
-          {authMode === 'login' && (
-            <motion.div key="login" initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-20}}>
-              <SignInCard emailProp={email} setEmailProp={setEmail} passwordProp={password} setPasswordProp={setPassword}
-                isLoadingProp={authLoading} onSubmitProp={handleAuthSubmit} authErrorProp={authError}
-                onSwitchToRegister={() => { setAuthMode('register'); setAuthError(''); }}
-                onSwitchToForgotPassword={() => { setAuthMode('forgot-password'); setAuthError(''); }}
-                onGoogleSubmitProp={handleGoogleAuth} isGoogleLoadingProp={googleLoading}/>
-            </motion.div>
-          )}
-          {authMode === 'register' && (
-            <motion.div key="register" initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-20}}>
-              <SignUpCard nameProp={name} setNameProp={setName} emailProp={email} setEmailProp={setEmail}
-                passwordProp={password} setPasswordProp={setPassword} confirmPasswordProp={confirmPassword}
-                setConfirmPasswordProp={setConfirmPassword} isLoadingProp={authLoading} onSubmitProp={handleAuthSubmit}
-                authErrorProp={authError} onSwitchToLogin={() => { setAuthMode('login'); setAuthError(''); }}
-                onGoogleSubmitProp={handleGoogleAuth} isGoogleLoadingProp={googleLoading}/>
-            </motion.div>
-          )}
-          {authMode === 'forgot-password' && (
-            <motion.div key="forgot" initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-20}}>
-              <ForgotPasswordCard emailProp={email} setEmailProp={setEmail} isLoadingProp={authLoading}
-                onSwitchToLogin={() => { setAuthMode('login'); setAuthError(''); }}/>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+      <ModernLoginSignup
+        emailProp={email}
+        setEmailProp={setEmail}
+        passwordProp={password}
+        setPasswordProp={setPassword}
+        nameProp={name}
+        setNameProp={setName}
+        confirmPasswordProp={confirmPassword}
+        setConfirmPasswordProp={setConfirmPassword}
+        isLoadingProp={authLoading}
+        onSubmitProp={handleAuthSubmit}
+        authErrorProp={authError}
+        onGoogleSubmitProp={handleGoogleAuth}
+        isGoogleLoadingProp={googleLoading}
+        isLogin={authMode === 'login'}
+        setIsLogin={(val) => {
+          setAuthMode(val ? 'login' : 'register');
+          setAuthError('');
+        }}
+      />
     );
   }
 
