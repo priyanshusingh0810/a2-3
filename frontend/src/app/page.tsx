@@ -2,12 +2,12 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
-import { 
-  Database, Upload, MessageSquare, LineChart, FileText, LayoutDashboard, 
-  Trash2, LogOut, Loader2, Sparkles, RefreshCw, Send, CheckCircle2, 
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  Database, Upload, MessageSquare, LineChart, FileText, LayoutDashboard,
+  Trash2, LogOut, Loader2, Sparkles, RefreshCw, Send, CheckCircle2,
   AlertTriangle, Shield, Check, Calendar, TrendingUp, HelpCircle, Download,
-  Settings
+  Settings, ChevronDown, Plus, X
 } from 'lucide-react';
 import api from '@/lib/api';
 import PreviewGrid from '@/components/preview-grid';
@@ -17,178 +17,123 @@ import { SignUpCard } from '@/components/ui/sign-up-card';
 import { ForgotPasswordCard } from '@/components/ui/forgot-password-card';
 import { ThemeToggle } from '@/components/theme-toggle';
 
+// ─── TAB CONFIG ────────────────────────────────────────────────────
+const TABS = [
+  { id: 'upload',    icon: Upload,          label: 'Data Library' },
+  { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+  { id: 'chat',      icon: MessageSquare,   label: 'AI Chat' },
+  { id: 'forecast',  icon: LineChart,       label: 'Forecast' },
+  { id: 'reports',   icon: FileText,        label: 'Reports' },
+  { id: 'settings',  icon: Settings,        label: 'Settings' },
+] as const;
+
+type TabId = typeof TABS[number]['id'];
+
 export default function Home() {
-  // --- AUTHENTICATION STATE ---
+  // ── Auth State ──────────────────────────────────────────────────
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'register' | 'forgot-password'>('login');
-  const [email, setEmail] = useState('');
+  const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
+  const [name, setName]         = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [user, setUser] = useState<any>(null);
-  const [authError, setAuthError] = useState('');
+  const [user, setUser]         = useState<any>(null);
+  const [authError, setAuthError]   = useState('');
   const [authLoading, setAuthLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
-  // --- WORKSPACE STATES ---
-  const [activeTab, setActiveTab] = useState<'upload' | 'dashboard' | 'chat' | 'forecast' | 'reports' | 'settings'>('upload');
-  const [datasets, setDatasets] = useState<any[]>([]);
+  // ── App State ───────────────────────────────────────────────────
+  const [activeTab, setActiveTab] = useState<TabId>('upload');
+  const [datasets, setDatasets]   = useState<any[]>([]);
   const [selectedDatasetId, setSelectedDatasetId] = useState<string | null>(null);
-  const [selectedDataset, setSelectedDataset] = useState<any>(null);
-  
-  // Dataset detail states
+  const [selectedDataset, setSelectedDataset]     = useState<any>(null);
   const [previewData, setPreviewData] = useState<any>(null);
   const [analysisJob, setAnalysisJob] = useState<any>(null);
-  const [dashboards, setDashboards] = useState<any>(null);
-  const [reports, setReports] = useState<any[]>([]);
-  
-  // Data loading indicators
-  const [globalLoading, setGlobalLoading] = useState(false);
+  const [dashboards, setDashboards]   = useState<any>(null);
+  const [reports, setReports]         = useState<any[]>([]);
+  const [globalLoading, setGlobalLoading]   = useState(false);
   const [uploadProgress, setUploadProgress] = useState(false);
+  const [datasetMenuOpen, setDatasetMenuOpen] = useState(false);
 
-  // --- DATA CLEANING STATES ---
+  // ── Cleaning State ──────────────────────────────────────────────
   const [cleaningOptions, setCleaningOptions] = useState({
-    impute_missing: true,
-    remove_duplicates: true,
-    handle_outliers: true,
-    drop_empty_columns: false
+    impute_missing: true, remove_duplicates: true,
+    handle_outliers: true, drop_empty_columns: false,
   });
   const [cleaningLoading, setCleaningLoading] = useState(false);
 
-  // --- CHAT STATES ---
-  const [conversations, setConversations] = useState<any[]>([]);
+  // ── Chat State ──────────────────────────────────────────────────
+  const [conversations, setConversations]   = useState<any[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
-  const [chatMessages, setChatMessages] = useState<any[]>([]);
-  const [chatInput, setChatInput] = useState('');
-  const [chatLoading, setChatLoading] = useState(false);
+  const [chatMessages, setChatMessages]     = useState<any[]>([]);
+  const [chatInput, setChatInput]           = useState('');
+  const [chatLoading, setChatLoading]       = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  // --- REPORT GENERATION STATES ---
+  // ── Report State ────────────────────────────────────────────────
   const [reportGenerating, setReportGenerating] = useState(false);
 
-  // --- LLM CONFIG/SETTINGS STATES ---
-  const [llmProvider, setLlmProvider] = useState<'default' | 'gemini' | 'openai' | 'ollama' | 'mock'>('default');
-  const [llmModel, setLlmModel] = useState('');
-  const [llmApiKey, setLlmApiKey] = useState('');
+  // ── LLM Settings ────────────────────────────────────────────────
+  const [llmProvider, setLlmProvider] = useState<'default'|'gemini'|'openai'|'ollama'|'mock'>('default');
+  const [llmModel, setLlmModel]       = useState('');
+  const [llmApiKey, setLlmApiKey]     = useState('');
   const [settingsLoading, setSettingsLoading] = useState(false);
-  const [settingsMessage, setSettingsMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+  const [settingsMessage, setSettingsMessage] = useState<{type:'success'|'error', text:string}|null>(null);
 
-  const handleSaveSettings = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSettingsLoading(true);
-    setSettingsMessage(null);
-    try {
-      const res = await api.put('/auth/llm-settings', {
-        llm_provider: llmProvider,
-        llm_model: llmModel || null,
-        llm_api_key: llmApiKey || null
-      });
-      setUser(res.data);
-      setLlmProvider(res.data.llm_provider || 'default');
-      setLlmModel(res.data.llm_model || '');
-      setLlmApiKey(res.data.llm_api_key || '');
-      setSettingsMessage({ type: 'success', text: 'LLM Settings updated successfully!' });
-    } catch (err: any) {
-      setSettingsMessage({ type: 'error', text: err.response?.data?.detail || 'Failed to update LLM settings.' });
-    } finally {
-      setSettingsLoading(false);
-    }
-  };
-
-  // --- POLLING FOR ANALYSIS JOB ---
   const pollTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // --- INITIAL CHECK ---
+  // ── Effects ─────────────────────────────────────────────────────
   useEffect(() => {
     const token = localStorage.getItem('a3_access_token');
-    if (token) {
-      fetchCurrentUser();
-    }
+    if (token) fetchCurrentUser();
   }, []);
 
-  // Handle Session Expiry Event
   useEffect(() => {
-    const handleExpired = () => {
-      setIsAuthenticated(false);
-      setUser(null);
-      setSelectedDatasetId(null);
-      setSelectedDataset(null);
-    };
-    window.addEventListener('auth_session_expired', handleExpired);
-    return () => window.removeEventListener('auth_session_expired', handleExpired);
+    const handler = () => { setIsAuthenticated(false); setUser(null); setSelectedDatasetId(null); };
+    window.addEventListener('auth_session_expired', handler);
+    return () => window.removeEventListener('auth_session_expired', handler);
   }, []);
 
-  // Fetch datasets list when authenticated
-  useEffect(() => {
-    if (isAuthenticated) {
-      fetchDatasets();
-    }
-  }, [isAuthenticated]);
+  useEffect(() => { if (isAuthenticated) fetchDatasets(); }, [isAuthenticated]);
 
-  // Fetch dataset info when selection changes
   useEffect(() => {
     if (selectedDatasetId) {
       fetchDatasetDetails(selectedDatasetId);
-      // Clear chat
-      setChatMessages([]);
-      setActiveConversationId(null);
+      setChatMessages([]); setActiveConversationId(null);
     } else {
-      setSelectedDataset(null);
-      setPreviewData(null);
-      setAnalysisJob(null);
-      setDashboards(null);
-      setReports([]);
+      setSelectedDataset(null); setPreviewData(null);
+      setAnalysisJob(null); setDashboards(null); setReports([]);
     }
   }, [selectedDatasetId]);
 
-  // Scroll to bottom of chat
-  useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [chatMessages]);
+  useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [chatMessages]);
 
-  // Start polling when analysis job is pending or running
   useEffect(() => {
     if (analysisJob && (analysisJob.status === 'pending' || analysisJob.status === 'running')) {
       if (!pollTimerRef.current) {
-        pollTimerRef.current = setInterval(() => {
-          pollAnalysisJob();
-        }, 2500);
+        pollTimerRef.current = setInterval(() => pollAnalysisJob(), 2500);
       }
     } else {
-      if (pollTimerRef.current) {
-        clearInterval(pollTimerRef.current);
-        pollTimerRef.current = null;
-      }
+      if (pollTimerRef.current) { clearInterval(pollTimerRef.current); pollTimerRef.current = null; }
     }
-    return () => {
-      if (pollTimerRef.current) {
-        clearInterval(pollTimerRef.current);
-        pollTimerRef.current = null;
-      }
-    };
+    return () => { if (pollTimerRef.current) { clearInterval(pollTimerRef.current); pollTimerRef.current = null; } };
   }, [analysisJob]);
 
-  // --- API HANDLERS ---
+  // ── API Handlers ────────────────────────────────────────────────
   const fetchCurrentUser = async () => {
     try {
       const res = await api.get('/auth/me');
-      setUser(res.data);
-      setIsAuthenticated(true);
+      setUser(res.data); setIsAuthenticated(true);
       if (res.data) {
         setLlmProvider(res.data.llm_provider || 'default');
         setLlmModel(res.data.llm_model || '');
         setLlmApiKey(res.data.llm_api_key || '');
       }
-    } catch (err) {
-      localStorage.removeItem('a3_access_token');
-      localStorage.removeItem('a3_refresh_token');
-    }
+    } catch { localStorage.removeItem('a3_access_token'); localStorage.removeItem('a3_refresh_token'); }
   };
 
   const handleAuthSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setAuthError('');
-    setAuthLoading(true);
+    e.preventDefault(); setAuthError(''); setAuthLoading(true);
     try {
       if (authMode === 'login') {
         const res = await api.post('/auth/login', { email, password });
@@ -196,100 +141,58 @@ export default function Home() {
         localStorage.setItem('a3_refresh_token', res.data.refresh_token);
         await fetchCurrentUser();
       } else if (authMode === 'register') {
-        if (password !== confirmPassword) {
-          setAuthError("Passwords do not match");
-          setAuthLoading(false);
-          return;
-        }
+        if (password !== confirmPassword) { setAuthError('Passwords do not match'); setAuthLoading(false); return; }
         await api.post('/auth/register', { email, password });
-        // Auto sign in
         const res = await api.post('/auth/login', { email, password });
         localStorage.setItem('a3_access_token', res.data.access_token);
         localStorage.setItem('a3_refresh_token', res.data.refresh_token);
         await fetchCurrentUser();
       }
     } catch (err: any) {
-      setAuthError(err.response?.data?.detail || 'Authentication failed. Please check credentials.');
-    } finally {
-      setAuthLoading(false);
-    }
+      setAuthError(err.response?.data?.detail || 'Authentication failed.');
+    } finally { setAuthLoading(false); }
   };
 
   const handleGoogleAuth = async () => {
     const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
     if (!clientId || clientId === 'YOUR_GOOGLE_CLIENT_ID_HERE') {
-      setAuthError('Google Client ID is not configured. Please set NEXT_PUBLIC_GOOGLE_CLIENT_ID in your environment variables.');
-      return;
+      setAuthError('Google Client ID is not configured.'); return;
     }
-
-    setAuthError('');
-    setGoogleLoading(true);
-
+    setAuthError(''); setGoogleLoading(true);
     try {
       const google = (window as any).google;
-      if (!google || !google.accounts || !google.accounts.oauth2) {
-        throw new Error('Google Identity Services script failed to load. Please refresh and try again.');
-      }
-
+      if (!google?.accounts?.oauth2) throw new Error('Google Identity Services failed to load.');
       const client = google.accounts.oauth2.initTokenClient({
-        client_id: clientId,
-        scope: 'openid email profile',
+        client_id: clientId, scope: 'openid email profile',
         callback: async (tokenResponse: any) => {
-          if (tokenResponse && tokenResponse.access_token) {
+          if (tokenResponse?.access_token) {
             try {
-              // Send the access token to our backend for validation and sign in
               const res = await api.post('/auth/google', { access_token: tokenResponse.access_token });
               localStorage.setItem('a3_access_token', res.data.access_token);
               localStorage.setItem('a3_refresh_token', res.data.refresh_token);
               await fetchCurrentUser();
-            } catch (err: any) {
-              setAuthError(err.response?.data?.detail || err.message || 'Google authentication failed.');
-            } finally {
-              setGoogleLoading(false);
-            }
-          } else {
-            setGoogleLoading(false);
-          }
+            } catch (err: any) { setAuthError(err.response?.data?.detail || 'Google auth failed.'); }
+            finally { setGoogleLoading(false); }
+          } else { setGoogleLoading(false); }
         },
-        error_callback: (error: any) => {
-          setAuthError(error.message || 'Google OAuth prompt error.');
-          setGoogleLoading(false);
-        }
+        error_callback: (error: any) => { setAuthError(error.message || 'OAuth error.'); setGoogleLoading(false); }
       });
-
       client.requestAccessToken();
-    } catch (err: any) {
-      setAuthError(err.message || 'Failed to initialize Google OAuth.');
-      setGoogleLoading(false);
-    }
+    } catch (err: any) { setAuthError(err.message || 'Failed to initialize Google OAuth.'); setGoogleLoading(false); }
   };
 
-
   const handleLogout = async () => {
-    try {
-      await api.post('/auth/logout');
-    } catch (err) {
-      // Continue with local logout even if server call fails
-    }
-    localStorage.removeItem('a3_access_token');
-    localStorage.removeItem('a3_refresh_token');
-    setIsAuthenticated(false);
-    setUser(null);
-    setSelectedDatasetId(null);
-    setSelectedDataset(null);
+    try { await api.post('/auth/logout'); } catch {}
+    localStorage.removeItem('a3_access_token'); localStorage.removeItem('a3_refresh_token');
+    setIsAuthenticated(false); setUser(null); setSelectedDatasetId(null); setSelectedDataset(null);
   };
 
   const fetchDatasets = async () => {
     try {
       const res = await api.get('/datasets/');
       setDatasets(res.data);
-      // Auto select first dataset if none selected
-      if (res.data.length > 0 && !selectedDatasetId) {
-        setSelectedDatasetId(res.data[0].id);
-      }
-    } catch (err) {
-      console.error('Failed to load datasets', err);
-    }
+      if (res.data.length > 0 && !selectedDatasetId) setSelectedDatasetId(res.data[0].id);
+    } catch (err) { console.error('Failed to load datasets', err); }
   };
 
   const fetchDatasetDetails = async (id: string) => {
@@ -299,28 +202,17 @@ export default function Home() {
         api.get(`/datasets/${id}`),
         api.get(`/datasets/${id}/preview?limit=40`),
         api.get(`/datasets/${id}/job`),
-        api.get(`/reports/list?dataset_id=${id}`)
+        api.get(`/reports/list?dataset_id=${id}`),
       ]);
-      
-      setSelectedDataset(datasetRes.data);
-      setPreviewData(previewRes.data);
-      setAnalysisJob(jobRes.data);
-      setReports(reportsRes.data);
-      
-      // Load dashboard if profiling done
+      setSelectedDataset(datasetRes.data); setPreviewData(previewRes.data);
+      setAnalysisJob(jobRes.data); setReports(reportsRes.data);
       if (jobRes.data.status === 'completed') {
-        const dashboardRes = await api.get(`/dashboards/${id}`);
-        setDashboards(dashboardRes.data);
+        const dashRes = await api.get(`/dashboards/${id}`);
+        setDashboards(dashRes.data);
       }
-      
-      // Load chats
       fetchConversations(id);
-
-    } catch (err) {
-      console.error('Failed to load dataset details', err);
-    } finally {
-      setGlobalLoading(false);
-    }
+    } catch (err) { console.error('Failed to load dataset details', err); }
+    finally { setGlobalLoading(false); }
   };
 
   const pollAnalysisJob = async () => {
@@ -328,142 +220,74 @@ export default function Home() {
     try {
       const res = await api.get(`/datasets/${selectedDatasetId}/job`);
       setAnalysisJob(res.data);
-      if (res.data.status === 'completed') {
-        // Refresh full layout
-        fetchDatasetDetails(selectedDatasetId);
-      }
-    } catch (err) {
-      console.error('Error polling job status', err);
-    }
+      if (res.data.status === 'completed') fetchDatasetDetails(selectedDatasetId);
+    } catch (err) { console.error('Error polling job', err); }
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const formData = new FormData();
-    formData.append('file', file);
-
+    const file = e.target.files?.[0]; if (!file) return;
+    const formData = new FormData(); formData.append('file', file);
     setUploadProgress(true);
     try {
-      const res = await api.post('/datasets/upload', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-      // Add to list and select it
-      await fetchDatasets();
-      setSelectedDatasetId(res.data.id);
-      setActiveTab('upload');
-    } catch (err: any) {
-      alert(err.response?.data?.detail || 'Failed to parse file. Ensure it is valid CSV, XLSX, or JSON.');
-    } finally {
-      setUploadProgress(false);
-    }
+      const res = await api.post('/datasets/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+      await fetchDatasets(); setSelectedDatasetId(res.data.id); setActiveTab('upload');
+    } catch (err: any) { alert(err.response?.data?.detail || 'Failed to parse file.'); }
+    finally { setUploadProgress(false); }
   };
 
   const deleteDataset = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this dataset? This will remove all chats, reports, and files.')) return;
-    try {
-      await api.delete(`/datasets/${id}`);
-      setSelectedDatasetId(null);
-      // Refresh list
-      await fetchDatasets();
-    } catch (err) {
-      alert('Failed to delete dataset');
-    }
+    if (!confirm('Delete this dataset? All chats and reports will be removed.')) return;
+    try { await api.delete(`/datasets/${id}`); setSelectedDatasetId(null); await fetchDatasets(); }
+    catch { alert('Failed to delete dataset'); }
   };
 
-  // --- DATA CLEANING ACTIONS ---
   const handleAutoClean = async () => {
-    if (!selectedDatasetId) return;
-    setCleaningLoading(true);
+    if (!selectedDatasetId) return; setCleaningLoading(true);
     try {
       const res = await api.post(`/datasets/${selectedDatasetId}/clean`, cleaningOptions);
-      alert('Cleaning completed! A new cleaned version of the dataset has been registered.');
-      await fetchDatasets();
-      setSelectedDatasetId(res.data.id);
-    } catch (err) {
-      alert('Failed to run cleaning operations.');
-    } finally {
-      setCleaningLoading(false);
-    }
+      alert('Cleaning completed!'); await fetchDatasets(); setSelectedDatasetId(res.data.id);
+    } catch { alert('Failed to run cleaning operations.'); }
+    finally { setCleaningLoading(false); }
   };
 
-  // --- CHAT ACTIONS ---
   const fetchConversations = async (datasetId: string) => {
-    try {
-      const res = await api.get(`/chat/conversations?dataset_id=${datasetId}`);
-      setConversations(res.data);
-    } catch (err) {
-      console.error(err);
-    }
+    try { const res = await api.get(`/chat/conversations?dataset_id=${datasetId}`); setConversations(res.data); }
+    catch (err) { console.error(err); }
   };
 
   const loadConversation = async (convId: string) => {
     setChatLoading(true);
     try {
       const res = await api.get(`/chat/conversations/${convId}`);
-      setActiveConversationId(convId);
-      // Map message lists
-      setChatMessages(res.data.messages || []);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setChatLoading(false);
-    }
+      setActiveConversationId(convId); setChatMessages(res.data.messages || []);
+    } catch (err) { console.error(err); } finally { setChatLoading(false); }
   };
 
   const handleChatSubmit = async (e?: React.FormEvent, presetQuestion?: string) => {
     if (e) e.preventDefault();
     const queryText = presetQuestion || chatInput;
     if (!queryText.trim() || !selectedDatasetId) return;
-
-    // Append user message immediately
-    const tempUserMsg = { role: 'user', content: queryText };
-    setChatMessages(prev => [...prev, tempUserMsg]);
-    setChatInput('');
-    setChatLoading(true);
-
+    setChatMessages(prev => [...prev, { role: 'user', content: queryText }]);
+    setChatInput(''); setChatLoading(true);
     try {
       const res = await api.post(`/chat/query?dataset_id=${selectedDatasetId}`, {
-        question: queryText,
-        conversation_id: activeConversationId || undefined
+        question: queryText, conversation_id: activeConversationId || undefined,
       });
-
-      // Update message list
       setChatMessages(res.data.messages);
-      
-      // If new conversation, set active and fetch lists
-      if (!activeConversationId) {
-        setActiveConversationId(res.data.conversation_id);
-        fetchConversations(selectedDatasetId);
-      }
+      if (!activeConversationId) { setActiveConversationId(res.data.conversation_id); fetchConversations(selectedDatasetId); }
     } catch (err: any) {
-      setChatMessages(prev => [
-        ...prev, 
-        { role: 'assistant', content: `Error: ${err.response?.data?.detail || 'Failed to process sandbox query.'}` }
-      ]);
-    } finally {
-      setChatLoading(false);
-    }
+      setChatMessages(prev => [...prev, { role: 'assistant', content: `Error: ${err.response?.data?.detail || 'Failed to process query.'}` }]);
+    } finally { setChatLoading(false); }
   };
 
-  // --- REPORT ACTIONS ---
   const handleGenerateReport = async () => {
-    if (!selectedDatasetId) return;
-    setReportGenerating(true);
+    if (!selectedDatasetId) return; setReportGenerating(true);
     try {
       await api.post(`/reports/generate?dataset_id=${selectedDatasetId}`);
-      // Refresh list
       const res = await api.get(`/reports/list?dataset_id=${selectedDatasetId}`);
-      setReports(res.data);
-      alert('Executive report PDF compiled successfully.');
-    } catch (err: any) {
-      alert(err.response?.data?.detail || 'Failed to generate PDF.');
-    } finally {
-      setReportGenerating(false);
-    }
+      setReports(res.data); alert('Report compiled successfully.');
+    } catch (err: any) { alert(err.response?.data?.detail || 'Failed to generate PDF.'); }
+    finally { setReportGenerating(false); }
   };
 
   const handleDownloadReport = async (reportId: string, title: string) => {
@@ -472,814 +296,591 @@ export default function Home() {
       const blob = new Blob([res.data], { type: 'application/pdf' });
       const link = document.createElement('a');
       link.href = window.URL.createObjectURL(blob);
-      link.download = `${title.replace(/\s+/g, '_')}.pdf`;
-      link.click();
-    } catch (err) {
-      alert('Failed to download PDF file.');
-    }
+      link.download = `${title.replace(/\s+/g, '_')}.pdf`; link.click();
+    } catch { alert('Failed to download PDF.'); }
   };
 
-  // --- RENDERING SUB-PANELS ---
-  const renderDashboardWidgets = () => {
-    if (!dashboards || !dashboards.layout) return null;
+  const handleSaveSettings = async (e: React.FormEvent) => {
+    e.preventDefault(); setSettingsLoading(true); setSettingsMessage(null);
+    try {
+      const res = await api.put('/auth/llm-settings', {
+        llm_provider: llmProvider, llm_model: llmModel || null, llm_api_key: llmApiKey || null,
+      });
+      setUser(res.data); setLlmProvider(res.data.llm_provider || 'default');
+      setLlmModel(res.data.llm_model || ''); setLlmApiKey(res.data.llm_api_key || '');
+      setSettingsMessage({ type: 'success', text: 'LLM Settings updated successfully!' });
+    } catch (err: any) {
+      setSettingsMessage({ type: 'error', text: err.response?.data?.detail || 'Failed to update settings.' });
+    } finally { setSettingsLoading(false); }
+  };
 
-    // Filter into KPI and Chart widgets
-    const kpiWidgets = dashboards.layout.filter((w: any) => w.type === 'kpi');
-    const chartWidgets = dashboards.layout.filter((w: any) => w.type === 'chart');
+  // ─────────────────────────────────────────────────────────────────
+  // ── PANEL RENDERERS ──────────────────────────────────────────────
+  // ─────────────────────────────────────────────────────────────────
+
+  const renderUpload = () => {
+    if (!selectedDataset) return (
+      <div className="flex flex-col items-center justify-center py-32 text-center">
+        <div className="w-20 h-20 rounded-2xl flex items-center justify-center mb-6" style={{background:'rgba(212,102,58,0.10)', border:'1px solid rgba(212,102,58,0.20)'}}>
+          <Upload size={32} style={{color:'var(--primary)'}} />
+        </div>
+        <h2 className="font-playfair font-bold text-2xl mb-3" style={{color:'var(--foreground)'}}>Upload your first dataset</h2>
+        <p className="text-sm mb-8 max-w-md" style={{color:'var(--muted-foreground)'}}>
+          Upload a CSV, Excel, or JSON file. Our AI agents will automatically profile, clean, and analyze your data.
+        </p>
+        <label className="btn-primary cursor-pointer">
+          <Upload size={16} /> <span>Choose a file to upload</span>
+          <input type="file" accept=".csv,.xlsx,.xls,.json" onChange={handleFileUpload} className="hidden" />
+        </label>
+      </div>
+    );
 
     return (
-      <div className="space-y-8">
-        {/* KPI Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {kpiWidgets.map((kpi: any) => (
-            <div key={kpi.id} className="glass-panel p-6 rounded-2xl flex items-center justify-between">
-              <div>
-                <p className="text-slate-600 text-[11px] uppercase font-semibold tracking-wider">{kpi.title}</p>
-                <h3 className="section-heading text-3xl mt-1 text-slate-900">{kpi.config.value}</h3>
-                <span className="text-xs text-slate-600 font-medium">{kpi.config.label}</span>
-              </div>
-              <div className="p-3.5 bg-indigo-500/10 rounded-xl text-indigo-400 border border-indigo-500/10">
-                {kpi.id.includes('quality') ? <Shield size={22} /> : <Database size={22} />}
-              </div>
+      <div className="space-y-6">
+        {/* Dataset header card */}
+        <div className="glass-panel p-8 overflow-hidden relative" style={{background: 'linear-gradient(135deg, var(--foreground) 0%, #2d1a0e 100%)'}}>
+          <div className="relative z-10">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-wider" style={{background:'rgba(212,102,58,0.3)', color:'#ffb899', border:'1px solid rgba(212,102,58,0.4)'}}>
+                {selectedDataset.business_domain || 'General Analytics'}
+              </span>
+              <span className="text-xs" style={{color:'rgba(255,255,255,0.5)'}}>AI Understanding Output</span>
+            </div>
+            <h2 className="font-playfair font-bold text-3xl text-white mb-3 leading-tight">{selectedDataset.name}</h2>
+            <p className="text-sm leading-relaxed max-w-3xl" style={{color:'rgba(255,255,255,0.65)'}}>
+              {selectedDataset.summary || 'AI agents are generating a dataset summary...'}
+            </p>
+          </div>
+          <div className="absolute -right-8 -bottom-8 w-40 h-40 rounded-full opacity-10" style={{background:'var(--primary)'}} />
+        </div>
+
+        {/* Stats bar */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[
+            {label:'Rows', value: selectedDataset.row_count?.toLocaleString() || '—'},
+            {label:'Columns', value: selectedDataset.column_count || '—'},
+            {label:'File Type', value: selectedDataset.file_type?.toUpperCase() || '—'},
+            {label:'Size', value: `${(selectedDataset.file_size / 1024).toFixed(1)} KB`},
+          ].map((stat, i) => (
+            <div key={i} className="glass-panel p-5 text-center">
+              <p className="text-xs font-semibold uppercase tracking-widest mb-1" style={{color:'var(--muted-foreground)'}}>{stat.label}</p>
+              <p className="font-playfair font-bold text-2xl" style={{color:'var(--foreground)'}}>{stat.value}</p>
             </div>
           ))}
-          {/* Business Domain & File Type cards */}
-          <div className="glass-panel p-6 rounded-2xl flex items-center justify-between">
-            <div>
-              <p className="text-slate-600 text-[11px] uppercase font-semibold tracking-wider">Domain Vertical</p>
-              <h3 className="section-heading text-2xl mt-1 text-slate-900 truncate max-w-[170px]">
-                {selectedDataset?.business_domain || 'General'}
-              </h3>
-              <span className="text-[11px] text-teal-400 font-mono font-semibold">AI Classified</span>
-            </div>
-            <div className="p-3.5 bg-teal-500/10 rounded-xl text-teal-400 border border-teal-500/10">
-              <Sparkles size={22} />
-            </div>
+        </div>
+
+        {/* Column schema */}
+        <div className="glass-panel p-6">
+          <div className="flex items-center gap-2 mb-5">
+            <Database size={18} style={{color:'var(--primary)'}} />
+            <h3 className="font-semibold text-base" style={{color:'var(--foreground)'}}>Column Schema & Business Dictionary</h3>
           </div>
-          <div className="glass-panel p-6 rounded-2xl flex items-center justify-between">
-            <div>
-              <p className="text-slate-600 text-[11px] uppercase font-semibold tracking-wider">File Format</p>
-              <h3 className="section-heading text-3xl mt-1 text-slate-900 uppercase">{selectedDataset?.file_type}</h3>
-              <span className="text-xs text-slate-600 font-medium">{(selectedDataset?.file_size / 1024).toFixed(1)} KB size</span>
-            </div>
-            <div className="p-3.5 bg-purple-500/10 rounded-xl text-purple-400 border border-purple-500/10">
-              <FileText size={22} />
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {selectedDataset.columns_metadata && Object.entries(selectedDataset.columns_metadata).map(([colName, meta]: [string, any]) => (
+              <div key={colName} className="p-4 rounded-xl transition-all" style={{background:'var(--secondary)', border:'1px solid var(--border)'}}>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-mono text-xs font-semibold truncate" style={{color:'var(--foreground)'}}>{colName}</span>
+                  <span className="text-[9px] px-2 py-0.5 rounded font-mono uppercase font-bold" style={{background:'var(--muted)', color:'var(--muted-foreground)'}}>{meta.data_type}</span>
+                </div>
+                <p className="text-xs leading-relaxed mb-3" style={{color:'var(--muted-foreground)'}}>{meta.description || 'Column descriptor.'}</p>
+                <div className="flex gap-3 text-[10px] font-mono" style={{color:'var(--muted-foreground)'}}>
+                  <span>Nulls: {meta.null_percentage?.toFixed(1)}%</span>
+                  <span>Unique: {meta.unique_count}</span>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 
-        {/* Actionable Recommendations Panel */}
+        {/* Data preview grid */}
+        {previewData && (
+          <div className="glass-panel p-6">
+            <div className="flex items-center gap-2 mb-5">
+              <FileText size={18} style={{color:'var(--primary)'}} />
+              <h3 className="font-semibold text-base" style={{color:'var(--foreground)'}}>Raw Data Preview
+                <span className="ml-2 text-xs font-normal" style={{color:'var(--muted-foreground)'}}>({selectedDataset.row_count} rows total)</span>
+              </h3>
+            </div>
+            <PreviewGrid columns={previewData.columns} rows={previewData.rows} columnsMeta={selectedDataset.columns_metadata} />
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderDashboard = () => {
+    if (!dashboards?.layout) return (
+      <div className="flex flex-col items-center justify-center py-32 text-center">
+        <LayoutDashboard size={40} className="mb-4" style={{color:'var(--muted-foreground)'}} />
+        <h3 className="font-playfair font-bold text-xl mb-2" style={{color:'var(--foreground)'}}>Dashboard not ready</h3>
+        <p className="text-sm" style={{color:'var(--muted-foreground)'}}>Select a dataset and wait for profiling to complete.</p>
+      </div>
+    );
+
+    const kpiWidgets   = dashboards.layout.filter((w: any) => w.type === 'kpi');
+    const chartWidgets = dashboards.layout.filter((w: any) => w.type === 'chart');
+
+    return (
+      <div className="space-y-6">
+        {/* KPI row */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {[...kpiWidgets,
+            { id: 'domain', title: 'Domain Vertical', config: { value: selectedDataset?.business_domain || 'General', label: 'AI Classified' }, icon: 'sparkles' },
+            { id: 'filetype', title: 'File Format', config: { value: selectedDataset?.file_type?.toUpperCase() || '—', label: `${(selectedDataset?.file_size/1024).toFixed(1)} KB` }, icon: 'file' },
+          ].map((kpi: any) => (
+            <motion.div key={kpi.id} initial={{opacity:0,y:12}} animate={{opacity:1,y:0}} transition={{duration:0.4}} className="glass-panel p-5">
+              <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{color:'var(--muted-foreground)'}}>{kpi.title}</p>
+              <p className="font-playfair font-bold text-2xl mb-1 truncate" style={{color:'var(--foreground)'}}>{kpi.config.value}</p>
+              <p className="text-xs" style={{color:'var(--muted-foreground)'}}>{kpi.config.label}</p>
+            </motion.div>
+          ))}
+        </div>
+
+        {/* Quality recommendation panel */}
         {analysisJob?.quality_report && (
-          <div className="glass-panel p-8 rounded-2xl">
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 border-b border-slate-300/50 pb-6 mb-6">
+          <motion.div initial={{opacity:0,y:16}} animate={{opacity:1,y:0}} transition={{delay:0.1}} className="glass-panel p-6">
+            <div className="flex flex-col lg:flex-row gap-6 justify-between pb-5 mb-5" style={{borderBottom:'1px solid var(--border)'}}>
               <div>
-                <h3 className="section-heading text-xl flex items-center gap-2.5 text-slate-900">
-                  <AlertTriangle className="text-amber-500" size={22} />
-                  Data Quality & Recommendation Engine
+                <h3 className="font-semibold text-base flex items-center gap-2 mb-1" style={{color:'var(--foreground)'}}>
+                  <AlertTriangle size={18} style={{color:'#f59e0b'}} /> Data Quality Engine
                 </h3>
-                <p className="section-subtext text-xs md:text-sm mt-1">
-                  AI detected {analysisJob.quality_report.issues?.length || 0} issues. Customize settings and run clean.
+                <p className="text-xs" style={{color:'var(--muted-foreground)'}}>
+                  {analysisJob.quality_report.issues?.length || 0} issues detected. Auto-clean options below.
                 </p>
               </div>
-              <div className="flex flex-wrap items-center gap-5 text-xs">
-                <label className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-slate-800 select-none">
-                  <input 
-                    type="checkbox" 
-                    checked={cleaningOptions.remove_duplicates} 
-                    onChange={e => setCleaningOptions(prev => ({ ...prev, remove_duplicates: e.target.checked }))} 
-                    className="accent-indigo-500 rounded h-4 w-4 cursor-pointer"
-                  />
-                  Dedup Rows
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-slate-800 select-none">
-                  <input 
-                    type="checkbox" 
-                    checked={cleaningOptions.impute_missing} 
-                    onChange={e => setCleaningOptions(prev => ({ ...prev, impute_missing: e.target.checked }))} 
-                    className="accent-indigo-500 rounded h-4 w-4 cursor-pointer"
-                  />
-                  Impute Nulls
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-slate-800 select-none">
-                  <input 
-                    type="checkbox" 
-                    checked={cleaningOptions.handle_outliers} 
-                    onChange={e => setCleaningOptions(prev => ({ ...prev, handle_outliers: e.target.checked }))} 
-                    className="accent-indigo-500 rounded h-4 w-4 cursor-pointer"
-                  />
-                  Clip Outliers
-                </label>
-                <button
-                  onClick={handleAutoClean}
-                  disabled={cleaningLoading}
-                  className="btn-primary py-2 px-4 text-xs font-semibold select-none shadow-md"
-                >
-                  {cleaningLoading ? <Loader2 className="animate-spin" size={14} /> : <RefreshCw size={14} />}
-                  Auto Clean Dataset
+              <div className="flex flex-wrap items-center gap-4 text-xs">
+                {[['remove_duplicates','Dedup'],['impute_missing','Impute Nulls'],['handle_outliers','Clip Outliers']].map(([key, label]) => (
+                  <label key={key} className="flex items-center gap-2 cursor-pointer select-none" style={{color:'var(--muted-foreground)'}}>
+                    <input type="checkbox" checked={(cleaningOptions as any)[key]}
+                      onChange={e => setCleaningOptions(p => ({...p, [key]: e.target.checked}))}
+                      className="rounded" style={{accentColor:'var(--primary)'}} />
+                    {label}
+                  </label>
+                ))}
+                <button onClick={handleAutoClean} disabled={cleaningLoading} className="btn-primary py-2 px-4 text-xs disabled:opacity-50">
+                  {cleaningLoading ? <Loader2 size={13} className="animate-spin"/> : <RefreshCw size={13}/>}
+                  Auto Clean
                 </button>
               </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Issues list */}
-              <div className="space-y-3 max-h-[220px] overflow-y-auto pr-2">
-                <p className="text-[11px] text-slate-600 font-bold uppercase tracking-wider">Detector Logs</p>
-                {analysisJob.quality_report.issues?.length > 0 ? (
-                  analysisJob.quality_report.issues.map((iss: any, idx: number) => (
-                    <div key={idx} className="flex items-start gap-3 text-xs bg-white/60 p-3 border border-slate-300 rounded-xl">
-                      <span className={`px-2 py-0.5 rounded-md text-[9px] uppercase font-bold shrink-0 ${
-                        iss.severity === 'high' ? 'bg-red-500/15 text-red-400 border border-red-500/25' : 
-                        (iss.severity === 'medium' ? 'bg-amber-500/15 text-amber-400 border border-amber-500/25' : 'bg-blue-500/15 text-blue-400 border border-blue-500/25')
-                      }`}>
-                        {iss.severity}
-                      </span>
-                      <span className="text-slate-700 leading-relaxed">{iss.message}</span>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-widest mb-3" style={{color:'var(--muted-foreground)'}}>Detector Logs</p>
+                <div className="space-y-2 max-h-48 overflow-y-auto">
+                  {analysisJob.quality_report.issues?.length > 0 ? analysisJob.quality_report.issues.map((iss:any, i:number) => (
+                    <div key={i} className="flex items-start gap-2.5 text-xs p-3 rounded-xl" style={{background:'var(--secondary)', border:'1px solid var(--border)'}}>
+                      <span className={`px-1.5 py-0.5 rounded text-[9px] uppercase font-bold shrink-0 ${iss.severity==='high'?'bg-red-100 text-red-600':iss.severity==='medium'?'bg-amber-100 text-amber-600':'bg-blue-100 text-blue-600'}`}>{iss.severity}</span>
+                      <span style={{color:'var(--foreground)'}}>{iss.message}</span>
                     </div>
-                  ))
-                ) : (
-                  <div className="flex items-center gap-2 text-xs text-teal-400 font-semibold bg-teal-500/10 p-3 border border-teal-500/20 rounded-xl">
-                    <CheckCircle2 size={16} />
-                    <span>Zero issues flagged. Highly clean configuration.</span>
-                  </div>
-                )}
+                  )) : (
+                    <div className="flex items-center gap-2 text-xs p-3 rounded-xl" style={{background:'rgba(16,185,129,0.08)', color:'#10b981'}}>
+                      <CheckCircle2 size={14}/> Zero issues flagged. Clean dataset.
+                    </div>
+                  )}
+                </div>
               </div>
-              {/* Action plan */}
-              <div className="space-y-3 max-h-[220px] overflow-y-auto pr-2">
-                <p className="text-[11px] text-slate-600 font-bold uppercase tracking-wider">Actionable AI Steps</p>
-                <div className="space-y-2">
-                  {analysisJob.quality_report.actionable_plan?.map((step: string, idx: number) => (
-                    <div key={idx} className="text-xs text-slate-700 flex items-start gap-2.5 bg-white/30 p-3 border border-slate-300/40 rounded-xl">
-                      <span className="text-indigo-400 font-bold">•</span>
-                      <span className="leading-relaxed">{step}</span>
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-widest mb-3" style={{color:'var(--muted-foreground)'}}>AI Action Plan</p>
+                <div className="space-y-2 max-h-48 overflow-y-auto">
+                  {analysisJob.quality_report.actionable_plan?.map((step:string, i:number) => (
+                    <div key={i} className="flex items-start gap-2 text-xs p-3 rounded-xl" style={{background:'var(--secondary)', border:'1px solid var(--border)'}}>
+                      <span style={{color:'var(--primary)', fontWeight:700}}>→</span>
+                      <span style={{color:'var(--foreground)'}}>{step}</span>
                     </div>
                   ))}
                 </div>
               </div>
             </div>
-          </div>
+          </motion.div>
         )}
 
-        {/* Charts Grid */}
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-          {chartWidgets.map((widget: any) => (
-            <div key={widget.id} className="glass-panel p-6 rounded-2xl flex flex-col justify-between">
-              <div className="mb-4">
-                <h4 className="section-heading text-lg text-slate-900">{widget.title}</h4>
-                {/* Find the explanation description from the visualization agent result */}
-                {analysisJob?.quality_report && (
-                  <p className="text-xs text-slate-600 mt-1 italic">
-                    {widget.config?.layout?.title?.text ? `Analyzing trends for ${widget.config.layout.title.text}.` : ''}
-                  </p>
-                )}
-              </div>
-              <div className="w-full flex-grow">
-                <ChartRenderer plotlyJson={widget.config} />
-              </div>
-            </div>
+        {/* Charts bento grid */}
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+          {chartWidgets.map((widget: any, i: number) => (
+            <motion.div key={widget.id} initial={{opacity:0,y:16}} animate={{opacity:1,y:0}} transition={{delay:0.15+i*0.05}} className="glass-panel p-6">
+              <h4 className="font-semibold text-sm mb-1" style={{color:'var(--foreground)'}}>{widget.title}</h4>
+              {analysisJob?.quality_report && widget.config?.layout?.title?.text && (
+                <p className="text-xs italic mb-4" style={{color:'var(--muted-foreground)'}}>Analyzing trends for {widget.config.layout.title.text}.</p>
+              )}
+              <ChartRenderer plotlyJson={widget.config} />
+            </motion.div>
           ))}
         </div>
       </div>
     );
   };
 
-  const renderDatasetOverview = () => {
-    if (!selectedDataset) return null;
-    return (
-      <div className="space-y-8">
-        {/* Domain and Summary Header */}
-        <div className="glass-panel p-8 rounded-2xl bg-gradient-to-br from-slate-900 via-slate-900 to-indigo-950/20">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="bg-indigo-500/10 text-indigo-400 text-[11px] px-3 py-1 rounded-full font-semibold border border-indigo-500/20 uppercase tracking-wider select-none">
-              {selectedDataset.business_domain || 'General Analytics'}
-            </span>
-            <span className="text-slate-600 text-[11px] font-medium select-none">AI Understanding Output</span>
-          </div>
-          <h2 className="section-heading text-3xl text-slate-900 mb-3">{selectedDataset.name}</h2>
-          <p className="section-subtext text-slate-700 text-sm leading-relaxed max-w-4xl">
-            {selectedDataset.summary || 'AI agent is writing the dataset summary...'}
-          </p>
+  const renderChat = () => (
+    <div className="grid grid-cols-1 lg:grid-cols-4 gap-5 h-[calc(100vh-230px)]">
+      {/* Conversation sidebar */}
+      <div className="glass-panel p-4 flex flex-col gap-3">
+        <div className="flex items-center justify-between pb-3" style={{borderBottom:'1px solid var(--border)'}}>
+          <p className="text-xs font-bold uppercase tracking-wider" style={{color:'var(--muted-foreground)'}}>Conversations</p>
+          <button onClick={() => { setActiveConversationId(null); setChatMessages([]); }}
+            className="text-xs px-2.5 py-1 rounded-lg font-semibold transition" style={{background:'rgba(212,102,58,0.1)', color:'var(--primary)', border:'1px solid rgba(212,102,58,0.2)'}}>
+            + New
+          </button>
         </div>
-
-        {/* Columns Definition List */}
-        <div className="glass-panel p-8 rounded-2xl">
-          <h3 className="section-heading text-lg text-slate-900 mb-6 flex items-center gap-2">
-            <Database size={18} className="text-indigo-400" />
-            Column Schema & Business Dictionary
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {selectedDataset.columns_metadata && 
-              Object.entries(selectedDataset.columns_metadata).map(([name, meta]: [string, any]) => (
-                <div key={name} className="bg-white/60 p-5 border border-slate-300 rounded-2xl flex flex-col justify-between hover:border-slate-300/80 transition-all duration-200">
-                  <div>
-                    <div className="flex items-center justify-between gap-2 border-b border-slate-850 pb-2 mb-3">
-                      <span className="font-mono text-xs font-semibold text-slate-800 truncate">{name}</span>
-                      <span className="text-[10px] px-2 py-0.5 rounded-md font-mono uppercase bg-slate-50 text-slate-600 border border-slate-300/50">
-                        {meta.data_type}
-                      </span>
-                    </div>
-                    <p className="text-xs text-slate-600 leading-relaxed">
-                      {meta.description || 'Purpose column description helper.'}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-4 mt-4 text-[10px] text-slate-600 font-mono font-medium">
-                    <span>Nulls: {meta.null_percentage?.toFixed(1)}%</span>
-                    <span>Unique: {meta.unique_count}</span>
-                  </div>
-                </div>
-              ))
-            }
-          </div>
-        </div>
-
-        {/* Data Grid Preview */}
-        {previewData && (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="section-heading text-lg text-slate-900 flex items-center gap-2">
-                <FileText size={18} className="text-teal-400" />
-                Raw Data Grid Preview <span className="text-xs text-slate-600 font-normal font-sans">({selectedDataset.row_count} rows total)</span>
-              </h3>
-            </div>
-            <PreviewGrid 
-              columns={previewData.columns} 
-              rows={previewData.rows} 
-              columnsMeta={selectedDataset.columns_metadata} 
-            />
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  // --- RENDERING CHAT INTERFACE ---
-  const renderChatPlayground = () => {
-    return (
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-[calc(100vh-160px)]">
-        {/* Left conversations list */}
-        <div className="lg:col-span-1 glass-panel rounded-2xl p-5 flex flex-col justify-between">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-300/50 pb-3.5">
-              <h4 className="section-heading text-sm text-slate-900">Conversations</h4>
-              <button 
-                onClick={() => {
-                  setActiveConversationId(null);
-                  setChatMessages([]);
-                }}
-                className="text-xs bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 px-2.5 py-1.5 rounded-lg transition border border-indigo-500/15 font-semibold"
-              >
-                + New Chat
-              </button>
-            </div>
-            <div className="space-y-1.5 overflow-y-auto max-h-[400px]">
-              {conversations.length > 0 ? (
-                conversations.map((conv) => (
-                  <button
-                    key={conv.id}
-                    onClick={() => loadConversation(conv.id)}
-                    className={`w-full text-left p-2.5 rounded-xl text-xs truncate transition flex items-center gap-2.5 ${
-                      activeConversationId === conv.id 
-                        ? 'bg-indigo-600 text-slate-900 font-semibold shadow-md shadow-indigo-600/10' 
-                        : 'text-slate-600 hover:bg-slate-50/40 hover:text-slate-800'
-                    }`}
-                  >
-                    <MessageSquare size={14} />
-                    {conv.title}
-                  </button>
-                ))
-              ) : (
-                <div className="text-center text-xs text-slate-600 py-8 select-none">No past conversations</div>
-              )}
-            </div>
-          </div>
-          <div className="bg-white/60 p-3.5 rounded-xl border border-slate-300 text-xs text-slate-600 flex items-start gap-2 select-none">
-            <HelpCircle className="text-indigo-400 shrink-0 mt-0.5" size={14} />
-            <span>AI executes pandas scripts locally on your data. Data stays completely on-device.</span>
-          </div>
-        </div>
-
-        {/* Right main conversation thread */}
-        <div className="lg:col-span-3 glass-panel rounded-2xl flex flex-col justify-between overflow-hidden">
-          {/* Thread messages window */}
-          <div className="flex-grow p-6 overflow-y-auto space-y-5 max-h-[calc(100vh-280px)] bg-white/10">
-            {chatMessages.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full text-center max-w-lg mx-auto pt-12">
-                <div className="p-4.5 bg-indigo-500/10 text-indigo-400 rounded-full mb-5 border border-indigo-500/10">
-                  <MessageSquare size={32} />
-                </div>
-                <h3 className="section-heading text-xl text-slate-900">Autonomous AI Data Chat</h3>
-                <p className="section-subtext text-xs mt-2 leading-relaxed">
-                  Ask conversational questions in plain English. The AI agent translates queries to Python data commands, executes them locally in a secure sandbox, and formats results.
-                </p>
-                <div className="grid grid-cols-2 gap-3 mt-8 w-full">
-                  <button 
-                    onClick={() => handleChatSubmit(undefined, "Show Sales distribution by Region")} 
-                    className="p-3 bg-white/60 hover:bg-slate-50/60 border border-slate-300 hover:border-slate-300/80 rounded-xl text-left text-xs text-slate-700 transition leading-relaxed"
-                  >
-                    "Show Sales by Region"
-                  </button>
-                  <button 
-                    onClick={() => handleChatSubmit(undefined, "What are the top 5 product categories?")} 
-                    className="p-3 bg-white/60 hover:bg-slate-50/60 border border-slate-300 hover:border-slate-300/80 rounded-xl text-left text-xs text-slate-700 transition leading-relaxed"
-                  >
-                    "What are the top 5 product categories?"
-                  </button>
-                  <button 
-                    onClick={() => handleChatSubmit(undefined, "Identify outlier records in numerical columns")} 
-                    className="p-3 bg-white/60 hover:bg-slate-50/60 border border-slate-300 hover:border-slate-300/80 rounded-xl text-left text-xs text-slate-700 transition leading-relaxed"
-                  >
-                    "Identify outlier rows"
-                  </button>
-                  <button 
-                    onClick={() => handleChatSubmit(undefined, "Is there a correlation between columns?")} 
-                    className="p-3 bg-white/60 hover:bg-slate-50/60 border border-slate-300 hover:border-slate-300/80 rounded-xl text-left text-xs text-slate-700 transition leading-relaxed"
-                  >
-                    "Correlation check"
-                  </button>
-                </div>
-              </div>
-            ) : (
-              chatMessages.map((msg, idx) => (
-                <div 
-                  key={idx} 
-                  className={`flex flex-col max-w-[85%] ${msg.role === 'user' ? 'ml-auto items-end' : 'mr-auto items-start'}`}
-                >
-                  <div className={`p-4 rounded-2xl text-xs leading-relaxed ${
-                    msg.role === 'user' 
-                      ? 'bg-indigo-600 text-slate-900 rounded-br-none shadow-md shadow-indigo-600/10' 
-                      : 'bg-slate-50/60 border border-slate-300/50 text-slate-800 rounded-bl-none shadow-sm'
-                  }`}>
-                    {msg.content}
-                  </div>
-                  {msg.chart && (
-                    <div className="w-[320px] sm:w-[450px] md:w-[600px] glass-panel p-5 rounded-2xl mt-3">
-                      <ChartRenderer plotlyJson={msg.chart} />
-                    </div>
-                  )}
-                </div>
-              ))
-            )}
-            {chatLoading && (
-              <div className="flex items-center gap-2.5 text-xs text-slate-600 bg-slate-50/50 py-3 px-5 rounded-xl border border-slate-300/50 w-max animate-pulse">
-                <Loader2 className="animate-spin text-indigo-400" size={14} />
-                <span>AI Agent is writing script and analyzing tables...</span>
-              </div>
-            )}
-            <div ref={chatEndRef} />
-          </div>
-
-          {/* Bottom input form */}
-          <form onSubmit={handleChatSubmit} className="p-4 bg-white border-t border-slate-300/50 flex gap-2.5">
-            <input
-              type="text"
-              value={chatInput}
-              onChange={e => setChatInput(e.target.value)}
-              placeholder="Ask A3 a dataset question (e.g., 'What is the sum of profit for each category?')"
-              className="input-clean flex-grow py-3 px-4 text-xs placeholder:text-slate-600 focus:outline-none"
-            />
-            <button
-              type="submit"
-              disabled={chatLoading}
-              className="btn-primary py-3 px-5 select-none shrink-0 flex items-center justify-center shadow-md disabled:opacity-50"
-            >
-              <Send size={15} />
+        <div className="space-y-1 overflow-y-auto flex-grow">
+          {conversations.length > 0 ? conversations.map(conv => (
+            <button key={conv.id} onClick={() => loadConversation(conv.id)}
+              className="w-full text-left px-3 py-2.5 rounded-xl text-xs flex items-center gap-2 truncate transition"
+              style={activeConversationId===conv.id?{background:'var(--primary)',color:'#fff'}:{color:'var(--muted-foreground)', background:'transparent'}}>
+              <MessageSquare size={12}/> {conv.title}
             </button>
-          </form>
+          )) : (
+            <p className="text-xs text-center py-8 select-none" style={{color:'var(--muted-foreground)'}}>No conversations yet</p>
+          )}
+        </div>
+        <div className="text-xs flex gap-2 p-3 rounded-xl" style={{background:'var(--secondary)', color:'var(--muted-foreground)'}}>
+          <HelpCircle size={13} className="shrink-0 mt-0.5" style={{color:'var(--primary)'}}/> AI executes code locally. Your data stays on-device.
         </div>
       </div>
-    );
-  };
 
-  // --- RENDERING FORECAST PANEL ---
-  const renderForecasting = () => {
-    // Check if the completed job has forecast values
-    const hasForecast = analysisJob?.insights?.forecast_chart !== undefined;
-    
-    return (
-      <div className="glass-panel p-8 rounded-2xl space-y-8">
-        <div>
-          <h3 className="section-heading text-xl flex items-center gap-2.5 text-slate-900">
-            <LineChart className="text-teal-400" size={22} />
-            Auto Time-Series Trend Forecaster
-          </h3>
-          <p className="section-subtext text-xs md:text-sm mt-1">
-            A3 scans columns, isolates date index, and fits predictive regression trends locally.
-          </p>
-        </div>
-
-        {hasForecast ? (
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-            <div className="xl:col-span-2 glass-panel p-6 rounded-2xl">
-              <ChartRenderer plotlyJson={analysisJob.insights.forecast_chart} />
-            </div>
-            <div className="xl:col-span-1 space-y-4 flex flex-col justify-center">
-              <div className="bg-teal-500/5 border border-teal-500/10 p-5 rounded-2xl">
-                <h4 className="text-xs uppercase text-teal-400 font-bold font-mono tracking-wider mb-2.5 flex items-center gap-1.5 select-none">
-                  <TrendingUp size={14} /> Predictive Trend Commentary
-                </h4>
-                <p className="text-xs text-slate-700 leading-relaxed italic">
-                  "{analysisJob.insights.forecast_commentary || 'Trend is stable according to models.'}"
-                </p>
+      {/* Chat main */}
+      <div className="lg:col-span-3 glass-panel flex flex-col overflow-hidden">
+        <div className="flex-grow p-5 overflow-y-auto space-y-4">
+          {chatMessages.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full text-center py-12 max-w-md mx-auto">
+              <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-5" style={{background:'rgba(212,102,58,0.10)', border:'1px solid rgba(212,102,58,0.20)'}}>
+                <MessageSquare size={28} style={{color:'var(--primary)'}}/>
               </div>
-              <div className="bg-white/60 p-5 border border-slate-300 rounded-2xl space-y-2.5 text-xs text-slate-600">
-                <p className="text-slate-900 font-semibold select-none">Model Specifications:</p>
-                <p>• Model Type: Polynomial Ridge Regression (2nd degree)</p>
-                <p>• Seasonality: Autoregressive Month/Day periodicity</p>
-                <p>• target: Automatically selected primary numerical scale</p>
-                <p>• Cost: 100% Local ($0.0 API Cost)</p>
+              <h3 className="font-playfair font-bold text-xl mb-2" style={{color:'var(--foreground)'}}>AI Data Chat</h3>
+              <p className="text-xs mb-8" style={{color:'var(--muted-foreground)'}}>Ask questions in plain English. AI translates them to Python and returns results instantly.</p>
+              <div className="grid grid-cols-2 gap-3 w-full">
+                {['"Show Sales by Region"','"Top 5 product categories?"','"Find outlier records"','"Correlations check"'].map((q,i) => (
+                  <button key={i} onClick={() => handleChatSubmit(undefined, q.replace(/"/g,''))}
+                    className="text-left text-xs p-3 rounded-xl transition" style={{background:'var(--secondary)', border:'1px solid var(--border)', color:'var(--foreground)'}}>
+                    {q}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : chatMessages.map((msg, i) => (
+            <div key={i} className={`flex flex-col max-w-[82%] ${msg.role==='user'?'ml-auto items-end':'mr-auto items-start'}`}>
+              <div className="text-xs leading-relaxed p-4 rounded-2xl" style={msg.role==='user'
+                ? {background:'var(--primary)', color:'#fff', borderBottomRightRadius:4}
+                : {background:'var(--card)', border:'1px solid var(--border)', color:'var(--foreground)', borderBottomLeftRadius:4}}>
+                {msg.content}
+              </div>
+              {msg.chart && <div className="mt-3 glass-panel p-4 w-[500px] max-w-full"><ChartRenderer plotlyJson={msg.chart}/></div>}
+            </div>
+          ))}
+          {chatLoading && (
+            <div className="flex items-center gap-2.5 text-xs px-4 py-3 rounded-xl w-max animate-pulse" style={{background:'var(--secondary)', color:'var(--muted-foreground)'}}>
+              <Loader2 size={13} className="animate-spin" style={{color:'var(--primary)'}}/> AI is analyzing your data...
+            </div>
+          )}
+          <div ref={chatEndRef}/>
+        </div>
+        <form onSubmit={handleChatSubmit} className="p-4 flex gap-3" style={{borderTop:'1px solid var(--border)', background:'var(--card)'}}>
+          <input value={chatInput} onChange={e => setChatInput(e.target.value)}
+            placeholder="Ask A3 a question about your data..."
+            className="flex-grow text-xs px-4 py-3 rounded-full outline-none"
+            style={{background:'var(--secondary)', border:'1px solid var(--border)', color:'var(--foreground)'}}/>
+          <button type="submit" disabled={chatLoading} className="btn-primary px-5 py-2.5 disabled:opacity-50 flex items-center justify-center">
+            <Send size={15}/>
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+
+  const renderForecast = () => {
+    const hasForecast = analysisJob?.insights?.forecast_chart !== undefined;
+    return (
+      <div className="glass-panel p-8 space-y-8">
+        <div>
+          <h3 className="font-playfair font-bold text-xl flex items-center gap-2.5 mb-2" style={{color:'var(--foreground)'}}>
+            <LineChart style={{color:'#10b981'}} size={22}/> Auto Time-Series Trend Forecaster
+          </h3>
+          <p className="text-sm" style={{color:'var(--muted-foreground)'}}>A3 scans columns, isolates date index, and fits predictive regression trends locally.</p>
+        </div>
+        {hasForecast ? (
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
+            <div className="xl:col-span-2 glass-panel p-5"><ChartRenderer plotlyJson={analysisJob.insights.forecast_chart}/></div>
+            <div className="space-y-4">
+              <div className="p-5 rounded-2xl" style={{background:'rgba(16,185,129,0.06)', border:'1px solid rgba(16,185,129,0.15)'}}>
+                <p className="text-xs font-bold uppercase tracking-wider mb-2 flex items-center gap-1.5" style={{color:'#10b981'}}><TrendingUp size={13}/> Commentary</p>
+                <p className="text-xs italic leading-relaxed" style={{color:'var(--foreground)'}}>"{analysisJob.insights.forecast_commentary || 'Trend is stable.'}"</p>
+              </div>
+              <div className="p-5 rounded-2xl text-xs space-y-2" style={{background:'var(--secondary)', border:'1px solid var(--border)', color:'var(--muted-foreground)'}}>
+                <p className="font-semibold" style={{color:'var(--foreground)'}}>Model Specs:</p>
+                <p>• Polynomial Ridge Regression (2°)</p><p>• Autoregressive seasonality</p>
+                <p>• Auto-selected numerical target</p><p>• 100% Local ($0.0 cost)</p>
               </div>
             </div>
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center py-16 text-center max-w-lg mx-auto">
-            <div className="p-4 bg-teal-500/10 text-teal-400 rounded-full mb-5 border border-teal-500/10">
-              <LineChart size={28} />
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-5" style={{background:'rgba(16,185,129,0.08)', border:'1px solid rgba(16,185,129,0.15)'}}>
+              <LineChart size={28} style={{color:'#10b981'}}/>
             </div>
-            <h4 className="section-heading text-base text-slate-900">No Forecast Available</h4>
-            <p className="section-subtext text-xs text-slate-600 mt-2 leading-relaxed">
-              Forecasting requires a date/time column (e.g. 'Date', 'Year', 'Created_At') and a numeric metric (e.g. 'Sales', 'Profit') to aggregate. Ensure your uploaded dataset matches this schema.
-            </p>
+            <h4 className="font-semibold text-base mb-2" style={{color:'var(--foreground)'}}>No Forecast Available</h4>
+            <p className="text-sm max-w-md" style={{color:'var(--muted-foreground)'}}>Requires a date/time column and a numeric metric. Upload a dataset with this schema to enable forecasting.</p>
           </div>
         )}
       </div>
     );
   };
 
-  // --- RENDERING REPORTS PANEL ---
-  const renderReports = () => {
-    return (
-      <div className="glass-panel p-8 rounded-2xl space-y-8">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 border-b border-slate-300/50 pb-6">
-          <div>
-            <h3 className="section-heading text-xl flex items-center gap-2.5 text-slate-900">
-              <FileText className="text-purple-400" size={22} />
-              Executive PDF Report Builder
-            </h3>
-            <p className="section-subtext text-xs md:text-sm mt-1">
-              Compile full analytical scorecards, insights, and trend commentary into downloadable executive-ready PDFs.
-            </p>
-          </div>
-          <button
-            onClick={handleGenerateReport}
-            disabled={reportGenerating || analysisJob?.status !== 'completed'}
-            className="bg-purple-600 hover:bg-purple-500 hover:shadow-purple-500/20 hover:shadow-lg text-slate-900 font-semibold py-2.5 px-5 rounded-xl text-xs transition flex items-center gap-2 select-none disabled:opacity-50 disabled:pointer-events-none"
-          >
-            {reportGenerating ? <Loader2 className="animate-spin" size={14} /> : <FileText size={14} />}
-            Generate New Report
-          </button>
-        </div>
-
-        <div className="space-y-4">
-          <p className="text-[11px] text-slate-600 font-bold uppercase tracking-wider select-none">Compiled Reports</p>
-          {reports.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {reports.map((rep) => (
-                <div key={rep.id} className="bg-white/60 border border-slate-300 hover:border-slate-300/80 p-5 rounded-2xl transition flex items-center justify-between shadow-sm hover:shadow-md">
-                  <div className="space-y-1.5 min-w-0">
-                    <h4 className="section-heading text-sm text-slate-800 truncate max-w-[200px] sm:max-w-[300px]">{rep.title}</h4>
-                    <p className="text-[11px] text-slate-600 flex items-center gap-1.5 font-medium">
-                      <Calendar size={12} />
-                      {new Date(rep.created_at).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => handleDownloadReport(rep.id, rep.title)}
-                    className="p-3 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 rounded-xl transition border border-indigo-500/15"
-                  >
-                    <Download size={15} />
-                  </button>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-16 bg-white/40 rounded-2xl border border-slate-300 border-dashed text-xs text-slate-600 select-none">
-              No reports generated. Click 'Generate New Report' to build one.
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  };
-
-  // --- RENDERING SETTINGS PANEL ---
-  const renderSettings = () => {
-    return (
-      <div className="glass-panel p-8 rounded-2xl max-w-2xl mx-auto space-y-6">
+  const renderReports = () => (
+    <div className="glass-panel p-8 space-y-6">
+      <div className="flex items-center justify-between pb-5" style={{borderBottom:'1px solid var(--border)'}}>
         <div>
-          <h3 className="section-heading text-xl flex items-center gap-2.5 text-slate-900">
-            <Settings className="text-indigo-400" size={22} />
-            AI LLM Model Settings
+          <h3 className="font-playfair font-bold text-xl flex items-center gap-2.5 mb-1" style={{color:'var(--foreground)'}}>
+            <FileText style={{color:'#a855f7'}} size={22}/> Executive Report Builder
           </h3>
-          <p className="section-subtext text-xs md:text-sm mt-1 text-slate-600">
-            Configure system-wide default model configurations or provide custom keys for external LLM providers.
-          </p>
+          <p className="text-sm" style={{color:'var(--muted-foreground)'}}>Compile insights and charts into downloadable executive-ready PDFs.</p>
         </div>
-
-        <form onSubmit={handleSaveSettings} className="space-y-5">
-          {settingsMessage && (
-            <div className={`p-4 rounded-xl text-xs flex items-center gap-2.5 ${
-              settingsMessage.type === 'success' 
-                ? 'bg-teal-500/10 border border-teal-500/20 text-teal-400' 
-                : 'bg-red-500/10 border border-red-500/20 text-red-400'
-            }`}>
-              {settingsMessage.type === 'success' ? <CheckCircle2 size={16} /> : <AlertTriangle size={16} />}
-              <span>{settingsMessage.text}</span>
+        <button onClick={handleGenerateReport} disabled={reportGenerating || analysisJob?.status !== 'completed'}
+          className="flex items-center gap-2 text-xs font-semibold px-5 py-2.5 rounded-full transition disabled:opacity-50"
+          style={{background:'#a855f7', color:'#fff'}}>
+          {reportGenerating ? <Loader2 size={13} className="animate-spin"/> : <FileText size={13}/>} Generate Report
+        </button>
+      </div>
+      <div className="space-y-3">
+        {reports.length > 0 ? reports.map(rep => (
+          <div key={rep.id} className="flex items-center justify-between p-5 rounded-2xl transition" style={{background:'var(--secondary)', border:'1px solid var(--border)'}}>
+            <div>
+              <h4 className="font-semibold text-sm mb-1" style={{color:'var(--foreground)'}}>{rep.title}</h4>
+              <p className="text-xs flex items-center gap-1.5" style={{color:'var(--muted-foreground)'}}><Calendar size={11}/>{new Date(rep.created_at).toLocaleDateString()}</p>
             </div>
-          )}
-
-          <div className="space-y-2">
-            <label className="text-xs font-semibold text-slate-700 block">LLM Provider</label>
-            <select
-              value={llmProvider}
-              onChange={e => {
-                const prov = e.target.value as any;
-                setLlmProvider(prov);
-                if (prov === 'default') setLlmModel('');
-                else if (prov === 'gemini') setLlmModel('gemini-2.5-flash');
-                else if (prov === 'openai') setLlmModel('gpt-4o-mini');
-                else if (prov === 'ollama') setLlmModel('qwen2.5:latest');
-                else if (prov === 'mock') setLlmModel('');
-              }}
-              className="w-full bg-slate-100 border border-slate-300/60 focus:border-indigo-500 focus:outline-none rounded-xl p-3 text-xs text-slate-900 font-sans"
-            >
-              <option value="default">System Default (Gemini/Ollama/Mock)</option>
-              <option value="gemini">Google Gemini API</option>
-              <option value="openai">OpenAI API</option>
-              <option value="ollama">Local Ollama</option>
-              <option value="mock">Local Heuristic Mock</option>
-            </select>
-          </div>
-
-          {llmProvider !== 'default' && llmProvider !== 'mock' && (
-            <div className="space-y-2">
-              <label className="text-xs font-semibold text-slate-700 block">Model Name</label>
-              <input
-                type="text"
-                value={llmModel}
-                onChange={e => setLlmModel(e.target.value)}
-                placeholder={
-                  llmProvider === 'gemini' ? 'e.g., gemini-2.5-flash, gemini-1.5-pro' :
-                  llmProvider === 'openai' ? 'e.g., gpt-4o-mini, gpt-4o' :
-                  llmProvider === 'ollama' ? 'e.g., qwen2.5:latest, llama3' : 'Model name'
-                }
-                className="w-full bg-slate-100 border border-slate-300/60 focus:border-indigo-500 focus:outline-none rounded-xl p-3 text-xs text-slate-900 placeholder:text-slate-600 font-sans"
-              />
-            </div>
-          )}
-
-          {llmProvider !== 'default' && llmProvider !== 'ollama' && llmProvider !== 'mock' && (
-            <div className="space-y-2">
-              <label className="text-xs font-semibold text-slate-700 block">Custom API Key</label>
-              <input
-                type="password"
-                value={llmApiKey}
-                onChange={e => setLlmApiKey(e.target.value)}
-                placeholder="Enter API key (leave unchanged to keep current key, or empty to clear)"
-                className="w-full bg-slate-100 border border-slate-300/60 focus:border-indigo-500 focus:outline-none rounded-xl p-3 text-xs text-slate-900 placeholder:text-slate-600 font-sans"
-              />
-            </div>
-          )}
-
-          <div className="pt-2">
-            <button
-              type="submit"
-              disabled={settingsLoading}
-              className="btn-primary w-full py-3 select-none flex items-center justify-center gap-2 font-semibold shadow-md disabled:opacity-50"
-            >
-              {settingsLoading ? <Loader2 className="animate-spin" size={14} /> : null}
-              Save Configuration Settings
+            <button onClick={() => handleDownloadReport(rep.id, rep.title)}
+              className="p-3 rounded-xl transition" style={{background:'rgba(212,102,58,0.10)', color:'var(--primary)', border:'1px solid rgba(212,102,58,0.20)'}}>
+              <Download size={15}/>
             </button>
           </div>
-        </form>
+        )) : (
+          <div className="text-center py-16 rounded-2xl border-2 border-dashed text-sm" style={{borderColor:'var(--border)', color:'var(--muted-foreground)'}}>
+            No reports yet. Click 'Generate Report' to build one.
+          </div>
+        )}
       </div>
-    );
-  };
+    </div>
+  );
 
-  // --- MAIN AUTH SCREEN RENDERING ---
+  const renderSettings = () => (
+    <div className="glass-panel p-8 max-w-2xl mx-auto space-y-6">
+      <div>
+        <h3 className="font-playfair font-bold text-xl flex items-center gap-2.5 mb-1" style={{color:'var(--foreground)'}}>
+          <Settings style={{color:'var(--primary)'}} size={22}/> AI Model Settings
+        </h3>
+        <p className="text-sm" style={{color:'var(--muted-foreground)'}}>Configure the LLM provider powering your AI agents.</p>
+      </div>
+      <form onSubmit={handleSaveSettings} className="space-y-5">
+        {settingsMessage && (
+          <div className={`p-4 rounded-xl text-xs flex items-center gap-2 ${settingsMessage.type==='success'?'text-green-600':'text-red-500'}`}
+            style={{background:settingsMessage.type==='success'?'rgba(16,185,129,0.08)':'rgba(239,68,68,0.08)', border:`1px solid ${settingsMessage.type==='success'?'rgba(16,185,129,0.2)':'rgba(239,68,68,0.2)'}`}}>
+            {settingsMessage.type==='success'?<CheckCircle2 size={14}/>:<AlertTriangle size={14}/>} {settingsMessage.text}
+          </div>
+        )}
+        <div className="space-y-2">
+          <label className="text-xs font-semibold block" style={{color:'var(--foreground)'}}>LLM Provider</label>
+          <select value={llmProvider} onChange={e => { const p=e.target.value as any; setLlmProvider(p); if(p==='gemini')setLlmModel('gemini-2.5-flash'); else if(p==='openai')setLlmModel('gpt-4o-mini'); else if(p==='ollama')setLlmModel('qwen2.5:latest'); else setLlmModel(''); }}
+            className="w-full p-3 text-xs rounded-xl outline-none" style={{background:'var(--secondary)', border:'1px solid var(--border)', color:'var(--foreground)'}}>
+            <option value="default">System Default (Gemini/Ollama/Mock)</option>
+            <option value="gemini">Google Gemini API</option>
+            <option value="openai">OpenAI API</option>
+            <option value="ollama">Local Ollama</option>
+            <option value="mock">Local Heuristic Mock</option>
+          </select>
+        </div>
+        {llmProvider !== 'default' && llmProvider !== 'mock' && (
+          <div className="space-y-2">
+            <label className="text-xs font-semibold block" style={{color:'var(--foreground)'}}>Model Name</label>
+            <input value={llmModel} onChange={e => setLlmModel(e.target.value)}
+              placeholder={llmProvider==='gemini'?'e.g., gemini-2.5-flash':llmProvider==='openai'?'e.g., gpt-4o-mini':'e.g., qwen2.5:latest'}
+              className="w-full p-3 text-xs rounded-xl outline-none" style={{background:'var(--secondary)', border:'1px solid var(--border)', color:'var(--foreground)'}}/>
+          </div>
+        )}
+        {llmProvider !== 'default' && llmProvider !== 'ollama' && llmProvider !== 'mock' && (
+          <div className="space-y-2">
+            <label className="text-xs font-semibold block" style={{color:'var(--foreground)'}}>API Key</label>
+            <input type="password" value={llmApiKey} onChange={e => setLlmApiKey(e.target.value)}
+              placeholder="Enter your API key"
+              className="w-full p-3 text-xs rounded-xl outline-none" style={{background:'var(--secondary)', border:'1px solid var(--border)', color:'var(--foreground)'}}/>
+          </div>
+        )}
+        <button type="submit" disabled={settingsLoading} className="btn-primary w-full py-3 flex items-center justify-center gap-2 disabled:opacity-50">
+          {settingsLoading && <Loader2 size={14} className="animate-spin"/>} Save Configuration
+        </button>
+      </form>
+    </div>
+  );
+
+  // ─────────────────────────────────────────────────────────────────
+  // ── AUTH SCREEN ──────────────────────────────────────────────────
+  // ─────────────────────────────────────────────────────────────────
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen w-screen relative overflow-hidden flex items-center justify-center">
-        {authMode === 'login' && (
-          <SignInCard
-            emailProp={email}
-            setEmailProp={setEmail}
-            passwordProp={password}
-            setPasswordProp={setPassword}
-            isLoadingProp={authLoading}
-            onSubmitProp={handleAuthSubmit}
-            authErrorProp={authError}
-            onSwitchToRegister={() => { setAuthMode('register'); setAuthError(''); }}
-            onSwitchToForgotPassword={() => { setAuthMode('forgot-password'); setAuthError(''); }}
-            onGoogleSubmitProp={handleGoogleAuth}
-            isGoogleLoadingProp={googleLoading}
-          />
-        )}
-        {authMode === 'register' && (
-          <SignUpCard
-            nameProp={name}
-            setNameProp={setName}
-            emailProp={email}
-            setEmailProp={setEmail}
-            passwordProp={password}
-            setPasswordProp={setPassword}
-            confirmPasswordProp={confirmPassword}
-            setConfirmPasswordProp={setConfirmPassword}
-            isLoadingProp={authLoading}
-            onSubmitProp={handleAuthSubmit}
-            authErrorProp={authError}
-            onSwitchToLogin={() => { setAuthMode('login'); setAuthError(''); }}
-            onGoogleSubmitProp={handleGoogleAuth}
-            isGoogleLoadingProp={googleLoading}
-          />
-        )}
-        {authMode === 'forgot-password' && (
-          <ForgotPasswordCard
-            emailProp={email}
-            setEmailProp={setEmail}
-            isLoadingProp={authLoading}
-            onSwitchToLogin={() => { setAuthMode('login'); setAuthError(''); }}
-          />
-        )}
+      <div className="min-h-screen w-screen flex items-center justify-center grid-bg relative overflow-hidden">
+        <AnimatePresence mode="wait">
+          {authMode === 'login' && (
+            <motion.div key="login" initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-20}}>
+              <SignInCard emailProp={email} setEmailProp={setEmail} passwordProp={password} setPasswordProp={setPassword}
+                isLoadingProp={authLoading} onSubmitProp={handleAuthSubmit} authErrorProp={authError}
+                onSwitchToRegister={() => { setAuthMode('register'); setAuthError(''); }}
+                onSwitchToForgotPassword={() => { setAuthMode('forgot-password'); setAuthError(''); }}
+                onGoogleSubmitProp={handleGoogleAuth} isGoogleLoadingProp={googleLoading}/>
+            </motion.div>
+          )}
+          {authMode === 'register' && (
+            <motion.div key="register" initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-20}}>
+              <SignUpCard nameProp={name} setNameProp={setName} emailProp={email} setEmailProp={setEmail}
+                passwordProp={password} setPasswordProp={setPassword} confirmPasswordProp={confirmPassword}
+                setConfirmPasswordProp={setConfirmPassword} isLoadingProp={authLoading} onSubmitProp={handleAuthSubmit}
+                authErrorProp={authError} onSwitchToLogin={() => { setAuthMode('login'); setAuthError(''); }}
+                onGoogleSubmitProp={handleGoogleAuth} isGoogleLoadingProp={googleLoading}/>
+            </motion.div>
+          )}
+          {authMode === 'forgot-password' && (
+            <motion.div key="forgot" initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-20}}>
+              <ForgotPasswordCard emailProp={email} setEmailProp={setEmail} isLoadingProp={authLoading}
+                onSwitchToLogin={() => { setAuthMode('login'); setAuthError(''); }}/>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
-    )
+    );
   }
 
-  // --- AUTHENTICATED APP SCREEN (Formula Bot Design) ---
+  // ─────────────────────────────────────────────────────────────────
+  // ── MAIN APP — Formula Bot Full-Width Layout ─────────────────────
+  // ─────────────────────────────────────────────────────────────────
+  const isJobRunning = selectedDatasetId && analysisJob && (analysisJob.status === 'pending' || analysisJob.status === 'running');
+
   return (
-    <div className="min-h-screen flex grid-bg">
-      {/* SIDEBAR - Formula Bot Style: clean white card */}
-      <aside className="fb-sidebar w-60 flex flex-col justify-between shrink-0 h-screen sticky top-0">
-        <div className="p-4 flex flex-col gap-6 overflow-hidden h-full">
-          {/* Logo - Formula Bot style */}
-          <div className="flex items-center gap-2.5 px-1 pt-2">
-            <div className="p-1.5 rounded-lg" style={{background: 'var(--primary)'}}>
-              <Sparkles size={16} className="text-white" />
+    <div className="min-h-screen grid-bg">
+      {/* ── FLOATING DARK NAVBAR (exact Formula Bot style) ── */}
+      <div className="sticky top-0 z-50 flex justify-center px-4 pt-4 pb-2 pointer-events-none">
+        <nav className="fb-nav w-full max-w-5xl px-5 py-3 flex items-center justify-between pointer-events-auto">
+          {/* Logo */}
+          <div className="flex items-center gap-2.5 shrink-0">
+            <div className="p-1.5 rounded-lg" style={{background:'var(--primary)'}}>
+              <Sparkles size={15} className="text-white"/>
             </div>
-            <span className="font-playfair font-bold text-base tracking-tight" style={{color: 'var(--foreground)'}}>
-              A3 <span className="font-sans font-medium text-sm" style={{color: 'var(--muted-foreground)'}}>Analyst</span>
-            </span>
+            <span className="font-playfair font-bold text-white text-lg tracking-tight">A3 <span className="font-sans font-normal text-sm opacity-60">Analyst</span></span>
           </div>
 
-          {/* Navigation Items - Formula Bot style */}
-          <nav className="space-y-0.5">
-            {[
-              { id: 'upload', icon: <Upload size={15}/>, label: 'Upload & Preview', disabled: false },
-              { id: 'dashboard', icon: <LayoutDashboard size={15}/>, label: 'Exploratory Dashboard', disabled: !selectedDatasetId || analysisJob?.status !== 'completed' },
-              { id: 'chat', icon: <MessageSquare size={15}/>, label: 'AI Chat Playground', disabled: !selectedDatasetId || analysisJob?.status !== 'completed' },
-              { id: 'forecast', icon: <LineChart size={15}/>, label: 'Trend Forecasting', disabled: !selectedDatasetId || analysisJob?.status !== 'completed' },
-              { id: 'reports', icon: <FileText size={15}/>, label: 'Report Center', disabled: !selectedDatasetId || analysisJob?.status !== 'completed' },
-              { id: 'settings', icon: <Settings size={15}/>, label: 'AI Settings', disabled: false },
-            ].map((item) => (
-              <button
-                key={item.id}
-                onClick={() => setActiveTab(item.id as any)}
-                disabled={item.disabled}
-                className={`sidebar-item disabled:opacity-35 disabled:cursor-not-allowed ${
-                  activeTab === item.id ? 'active' : ''
-                }`}
-              >
-                {item.icon}
-                <span>{item.label}</span>
-              </button>
-            ))}
-            <Link
-              href="/sign-in-demo"
-              target="_blank"
-              className="sidebar-item"
-            >
-              <Shield size={15} style={{color: '#a855f7'}} />
-              Interactive Auth Kit
-            </Link>
-          </nav>
-
-          {/* Datasets list */}
-          <div className="flex-grow overflow-hidden flex flex-col gap-2">
-            <span className="text-[10px] font-bold uppercase tracking-widest px-3" style={{color: 'var(--muted-foreground)'}}>Active Datasets</span>
-            <div className="space-y-0.5 overflow-y-auto flex-grow">
-              {datasets.map((ds) => (
-                <div
-                  key={ds.id}
-                  className={`group flex items-center justify-between px-3 py-2 rounded-lg text-sm cursor-pointer transition-all ${
-                    selectedDatasetId === ds.id
-                      ? 'font-medium'
-                      : 'hover:opacity-80'
-                  }`}
-                  style={{
-                    background: selectedDatasetId === ds.id ? 'var(--muted)' : 'transparent',
-                    color: selectedDatasetId === ds.id ? 'var(--foreground)' : 'var(--muted-foreground)',
-                    border: selectedDatasetId === ds.id ? '1px solid var(--border)' : '1px solid transparent',
-                  }}
-                  onClick={() => setSelectedDatasetId(ds.id)}
-                >
-                  <div className="flex items-center gap-2 min-w-0 flex-grow">
-                    <Database size={13} style={{color: selectedDatasetId === ds.id ? 'var(--primary)' : 'var(--muted-foreground)'}} />
-                    <span className="truncate text-xs">{ds.name}</span>
-                  </div>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); deleteDataset(ds.id); }}
-                    className="opacity-0 group-hover:opacity-100 p-1 rounded transition hover:text-red-500"
-                  >
-                    <Trash2 size={12} />
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Bottom user footer - Formula Bot style */}
-        <div className="p-4 flex items-center justify-between" style={{borderTop: '1px solid var(--border)'}}>
-          <div className="min-w-0 flex-1 pr-2">
-            <p className="text-xs font-medium truncate" style={{color: 'var(--foreground)'}}>{user?.email}</p>
-            <span className="text-[10px] font-mono uppercase font-semibold px-1.5 py-0.5 rounded" style={{background: 'rgba(212,102,58,0.12)', color: 'var(--primary)', border: '1px solid rgba(212,102,58,0.20)'}}>
-              {user?.role}
-            </span>
-          </div>
-          <div className="flex items-center gap-1">
-            <ThemeToggle />
-            <button
-              onClick={handleLogout}
-              className="p-2 rounded-lg transition hover:bg-red-50"
-              style={{color: 'var(--muted-foreground)'}}
-              title="Log Out"
-            >
-              <LogOut size={15} />
-            </button>
-          </div>
-        </div>
-      </aside>
-
-      {/* MAIN CONTENT - clean parchment bg with full height */}
-      <main className="flex-grow overflow-y-auto max-h-screen" style={{background: 'var(--background)'}}>
-        {/* Formula Bot-style top header bar */}
-        <header className="sticky top-0 z-10 px-8 py-4 flex items-center justify-between" style={{background: 'var(--background)', borderBottom: '1px solid var(--border)'}}>
-          <div>
-            <h1 className="font-playfair font-bold text-xl md:text-2xl tracking-tight" style={{color: 'var(--foreground)'}}>
-              {activeTab === 'upload' ? 'Datasets Library' :
-               activeTab === 'dashboard' ? 'Insight Dashboard' :
-               activeTab === 'chat' ? 'AI Chat Playground' :
-               activeTab === 'forecast' ? 'Predictive Forecast' :
-               activeTab === 'settings' ? 'AI Model Settings' : 'Report Center'}
-            </h1>
-            <p className="text-xs mt-0.5" style={{color: 'var(--muted-foreground)'}}>
-              {activeTab === 'upload' ? 'Upload files and preview row properties.' :
-               activeTab === 'dashboard' ? 'Overview of statistical insights and visualisations.' :
-               activeTab === 'chat' ? 'Query your data via natural language AI.' :
-               activeTab === 'forecast' ? 'Seasonal trend predictions and regression models.' :
-               activeTab === 'settings' ? 'Configure model routing and custom API keys.' : 'Generate and download executive PDF reports.'}
-            </p>
+          {/* Center: Tab navigation pills */}
+          <div className="hidden md:flex items-center gap-1 p-1 rounded-full" style={{background:'rgba(255,255,255,0.08)'}}>
+            {TABS.map(tab => {
+              const Icon = tab.icon;
+              const isDisabled = (tab.id !== 'upload' && tab.id !== 'settings') && (!selectedDatasetId || analysisJob?.status !== 'completed');
+              return (
+                <button key={tab.id}
+                  onClick={() => !isDisabled && setActiveTab(tab.id)}
+                  disabled={isDisabled}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${isDisabled ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer'}`}
+                  style={activeTab === tab.id
+                    ? {background:'rgba(255,255,255,1)', color:'#0f0f0f'}
+                    : {color:'rgba(255,255,255,0.65)'}}>
+                  <Icon size={13}/> {tab.label}
+                </button>
+              );
+            })}
           </div>
 
-          {/* Upload CTA - terracotta pill button */}
+          {/* Right: Dataset selector + actions */}
           <div className="flex items-center gap-2">
-            {uploadProgress ? (
-              <div className="flex items-center gap-2 text-xs px-4 py-2.5 rounded-full" style={{background: 'var(--muted)', color: 'var(--muted-foreground)', border: '1px solid var(--border)'}}>
-                <Loader2 className="animate-spin" size={13} style={{color: 'var(--primary)'}} />
-                <span>Uploading...</span>
-              </div>
-            ) : (
-              <label className="btn-primary cursor-pointer text-xs select-none">
-                <Upload size={13} />
-                <span>Upload New Data</span>
-                <input
-                  type="file"
-                  accept=".csv,.xlsx,.xls,.json"
-                  onChange={handleFileUpload}
-                  className="hidden"
-                />
-              </label>
-            )}
-          </div>
-        </header>
-
-        <div className="p-8">
-          {/* Global Loading */}
-          {globalLoading ? (
-            <div className="flex h-64 items-center justify-center">
-              <div className="flex flex-col items-center gap-3">
-                <Loader2 className="animate-spin" size={28} style={{color: 'var(--primary)'}} />
-                <p className="text-xs font-medium animate-pulse" style={{color: 'var(--muted-foreground)'}}>Assembling workspace views...</p>
-              </div>
-            </div>
-          ) : (
-            <div>
-              {/* Analysis job running banner */}
-              {selectedDatasetId && analysisJob && (analysisJob.status === 'pending' || analysisJob.status === 'running') && (
-                <div className="p-5 rounded-2xl text-center mb-6 flex flex-col items-center gap-2" style={{background: 'rgba(212,102,58,0.08)', border: '1px solid rgba(212,102,58,0.18)'}}>
-                  <Loader2 className="animate-spin" size={22} style={{color: 'var(--primary)'}} />
-                  <h3 className="text-sm font-semibold" style={{color: 'var(--foreground)'}}>Multi-Agent Profiling In Progress</h3>
-                  <p className="text-xs max-w-md" style={{color: 'var(--muted-foreground)'}}>Data Understanding, Cleaning, and Visualization agents are scanning columns. Results load automatically.</p>
+            {/* Dataset dropdown */}
+            <div className="relative">
+              <button onClick={() => setDatasetMenuOpen(p => !p)}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition"
+                style={{background:'rgba(255,255,255,0.10)', color:'rgba(255,255,255,0.8)', border:'1px solid rgba(255,255,255,0.12)'}}>
+                <Database size={12}/>
+                <span className="max-w-[120px] truncate">{selectedDataset?.name || 'Select dataset'}</span>
+                <ChevronDown size={11} className={`transition-transform ${datasetMenuOpen ? 'rotate-180' : ''}`}/>
+              </button>
+              {datasetMenuOpen && (
+                <div className="absolute right-0 top-full mt-2 w-64 rounded-2xl overflow-hidden shadow-2xl z-50"
+                  style={{background:'rgba(15,15,15,0.96)', border:'1px solid rgba(255,255,255,0.10)', backdropFilter:'blur(16px)'}}>
+                  <div className="p-2">
+                    {datasets.map(ds => (
+                      <button key={ds.id} onClick={() => { setSelectedDatasetId(ds.id); setDatasetMenuOpen(false); }}
+                        className="w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl text-xs text-left transition group"
+                        style={{color: ds.id===selectedDatasetId ? 'white' : 'rgba(255,255,255,0.6)', background: ds.id===selectedDatasetId ? 'rgba(255,255,255,0.12)' : 'transparent'}}>
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Database size={12} style={{color:'var(--primary)'}} className="shrink-0"/>
+                          <span className="truncate">{ds.name}</span>
+                        </div>
+                        <button onClick={e => { e.stopPropagation(); deleteDataset(ds.id); }} className="opacity-0 group-hover:opacity-100 p-1 rounded hover:text-red-400 transition">
+                          <X size={11}/>
+                        </button>
+                      </button>
+                    ))}
+                    {datasets.length === 0 && <p className="text-center py-4 text-xs" style={{color:'rgba(255,255,255,0.4)'}}>No datasets</p>}
+                  </div>
+                  <div className="p-2 pt-0" style={{borderTop:'1px solid rgba(255,255,255,0.06)'}}>
+                    <label className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs cursor-pointer w-full transition" style={{color:'var(--primary)', background:'rgba(212,102,58,0.12)'}}>
+                      {uploadProgress ? <Loader2 size={12} className="animate-spin"/> : <Plus size={12}/>}
+                      {uploadProgress ? 'Uploading...' : 'Upload new dataset'}
+                      <input type="file" accept=".csv,.xlsx,.xls,.json" onChange={e => { setDatasetMenuOpen(false); handleFileUpload(e); }} className="hidden"/>
+                    </label>
+                  </div>
                 </div>
               )}
-
-              {/* TAB SCREENS */}
-              {activeTab === 'upload' && renderDatasetOverview()}
-              {activeTab === 'dashboard' && renderDashboardWidgets()}
-              {activeTab === 'chat' && renderChatPlayground()}
-              {activeTab === 'forecast' && renderForecasting()}
-              {activeTab === 'reports' && renderReports()}
-              {activeTab === 'settings' && renderSettings()}
             </div>
-          )}
-        </div>
+
+            <ThemeToggle />
+
+            {/* User + logout */}
+            <button onClick={handleLogout} title="Log Out"
+              className="p-2 rounded-full transition" style={{color:'rgba(255,255,255,0.55)', background:'rgba(255,255,255,0.08)'}}>
+              <LogOut size={14}/>
+            </button>
+          </div>
+        </nav>
+      </div>
+
+      {/* Mobile tab bar */}
+      <div className="md:hidden flex items-center gap-1 px-4 py-2 overflow-x-auto" style={{borderBottom:'1px solid var(--border)', background:'var(--card)'}}>
+        {TABS.map(tab => {
+          const Icon = tab.icon;
+          const isDisabled = (tab.id !== 'upload' && tab.id !== 'settings') && (!selectedDatasetId || analysisJob?.status !== 'completed');
+          return (
+            <button key={tab.id} onClick={() => !isDisabled && setActiveTab(tab.id)} disabled={isDisabled}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-medium whitespace-nowrap transition ${isDisabled?'opacity-30':''}`}
+              style={activeTab===tab.id?{background:'var(--foreground)', color:'var(--background)'}:{color:'var(--muted-foreground)'}}>
+              <Icon size={13}/> {tab.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* ── MAIN CONTENT ── */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Job running banner */}
+        {isJobRunning && (
+          <motion.div initial={{opacity:0,y:-8}} animate={{opacity:1,y:0}} className="mb-6 p-4 rounded-2xl flex items-center gap-4"
+            style={{background:'rgba(212,102,58,0.08)', border:'1px solid rgba(212,102,58,0.18)'}}>
+            <Loader2 size={20} className="animate-spin shrink-0" style={{color:'var(--primary)'}}/>
+            <div>
+              <p className="text-sm font-semibold" style={{color:'var(--foreground)'}}>Multi-Agent Profiling In Progress</p>
+              <p className="text-xs" style={{color:'var(--muted-foreground)'}}>AI agents are scanning your data. Dashboard will update automatically.</p>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Global loading */}
+        {globalLoading ? (
+          <div className="flex flex-col items-center justify-center py-32 gap-4">
+            <Loader2 size={32} className="animate-spin" style={{color:'var(--primary)'}}/>
+            <p className="text-sm animate-pulse" style={{color:'var(--muted-foreground)'}}>Loading workspace...</p>
+          </div>
+        ) : (
+          <AnimatePresence mode="wait">
+            <motion.div key={activeTab} initial={{opacity:0,y:16}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-8}} transition={{duration:0.3}}>
+              {activeTab === 'upload'    && renderUpload()}
+              {activeTab === 'dashboard' && renderDashboard()}
+              {activeTab === 'chat'      && renderChat()}
+              {activeTab === 'forecast'  && renderForecast()}
+              {activeTab === 'reports'   && renderReports()}
+              {activeTab === 'settings'  && renderSettings()}
+            </motion.div>
+          </AnimatePresence>
+        )}
       </main>
     </div>
   );
