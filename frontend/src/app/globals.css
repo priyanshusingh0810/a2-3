@@ -191,24 +191,43 @@
 
 /* ─── CARDS / PANELS ─── */
 @keyframes slideUpFade {
-  from { opacity: 0; transform: translateY(16px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(12px) scale(0.99); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .glass-panel {
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 1rem;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-  animation: slideUpFade 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+  border-radius: 1.25rem;
+  box-shadow: 
+    0 1px 2px rgba(0,0,0,0.04),
+    0 4px 16px rgba(0,0,0,0.03);
+  animation: slideUpFade 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  transition: box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1), 
+              border-color 0.35s ease;
 }
 .glass-panel:hover {
-  box-shadow: 0 4px 20px rgba(0,0,0,0.10);
-  transform: translateY(-1px);
-  transition: box-shadow 0.25s ease, transform 0.25s ease;
+  box-shadow: 
+    0 2px 4px rgba(0,0,0,0.04),
+    0 8px 32px rgba(0,0,0,0.06);
+  border-color: rgba(0,0,0,0.12);
+}
+.dark .glass-panel {
+  box-shadow: 
+    0 1px 2px rgba(0,0,0,0.3),
+    0 4px 24px rgba(0,0,0,0.4),
+    inset 0 1px 0 rgba(255,255,255,0.03);
+  border-color: rgba(255,255,255,0.06);
+}
+.dark .glass-panel:hover {
+  box-shadow: 
+    0 4px 8px rgba(0,0,0,0.4),
+    0 12px 40px rgba(0,0,0,0.5),
+    inset 0 1px 0 rgba(255,255,255,0.05);
+  border-color: rgba(255,255,255,0.10);
 }
 .glass-panel-hover {
-  transition: all 0.25s ease;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   cursor: pointer;
 }
 
@@ -375,17 +394,62 @@ input, button, a { transition: all 0.2s ease; }
   animation: shimmer 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* ─── APPLE SHADOWS AND GLASS PANEL OVERRIDES ─── */
-.glass-panel {
-  box-shadow: 0 8px 30px rgba(0,0,0,0.03), 0 1px 8px rgba(0,0,0,0.015);
-  border: 1px solid var(--border) !important;
-  border-radius: 1.5rem !important; /* smooth rounded corners */
+/* ─── PROFESSIONAL MICRO-INTERACTIONS ─── */
+.smooth-hover {
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
-.dark .glass-panel {
-  box-shadow: 0 12px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.03);
-  border-color: rgba(255,255,255,0.05) !important;
+.smooth-hover:hover {
+  transform: translateY(-2px);
 }
+
+/* Live pulse dot for status indicators */
+@keyframes pulse-ring {
+  0% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+.pulse-dot {
+  position: relative;
+}
+.pulse-dot::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: inherit;
+  animation: pulse-ring 1.8s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+}
+
+/* Counter number animation */
+@keyframes countUp {
+  from { opacity: 0; transform: translateY(8px); filter: blur(4px); }
+  to { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+.animate-count-up {
+  animation: countUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Apple-theme specific panel overrides */
 .apple .glass-panel {
-  box-shadow: 0 12px 36px rgba(0,0,0,0.03), 0 1px 10px rgba(0,0,0,0.015);
-  border-color: rgba(0,0,0,0.07) !important;
+  box-shadow: 
+    0 1px 3px rgba(0,0,0,0.04),
+    0 8px 24px rgba(0,0,0,0.03);
+  border-color: rgba(0,0,0,0.08);
 }
+.apple .glass-panel:hover {
+  box-shadow: 
+    0 2px 6px rgba(0,0,0,0.05),
+    0 12px 32px rgba(0,0,0,0.05);
+  border-color: rgba(0,0,0,0.12);
+}
+
+/* ─── PROFESSIONAL FOCUS RING ─── */
+*:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 0.5rem;
+}
+button:focus-visible {
+  outline-offset: 2px;
+}
+

@@ -785,13 +785,14 @@ export default function Home() {
             <Upload size={32} style={{color:'var(--primary)'}} />
           </div>
           <h2 className="font-outfit font-extrabold text-2xl tracking-tight mb-3" style={{color:'var(--foreground)'}}>Upload your first dataset</h2>
-          <p className="text-sm mb-8 max-w-md" style={{color:'var(--muted-foreground)'}}>
+          <p className="text-sm mb-8 max-w-md leading-relaxed" style={{color:'var(--muted-foreground)'}}>
             Upload a CSV, Excel, or JSON file. Our AI agents will automatically profile, clean, and analyze your data.
           </p>
-          <label className="btn-primary cursor-pointer shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all duration-300">
-            <Upload size={16} /> <span>Choose a file to upload</span>
+          <label className="btn-primary cursor-pointer shadow-lg transition-all duration-300 hover:shadow-xl group">
+            <Upload size={16} className="transition-transform group-hover:-translate-y-0.5" /> <span>Choose a file to upload</span>
             <input type="file" accept=".csv,.xlsx,.xls,.json" onChange={handleFileUpload} className="hidden" />
           </label>
+          <p className="text-[11px] mt-4" style={{color:'var(--muted-foreground)'}}>Supports CSV, Excel (.xlsx), and JSON formats</p>
         </div>
       </div>
     );
@@ -818,23 +819,32 @@ export default function Home() {
         {/* Stats bar */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
-            {label:'Rows', value: selectedDataset.row_count?.toLocaleString() || '—'},
-            {label:'Columns', value: selectedDataset.column_count || '—'},
-            {label:'File Type', value: selectedDataset.file_type?.toUpperCase() || '—'},
-            {label:'Size', value: `${(selectedDataset.file_size / 1024).toFixed(1)} KB`},
+            {label:'Rows', value: selectedDataset.row_count?.toLocaleString() || '—', icon: Database},
+            {label:'Columns', value: selectedDataset.column_count || '—', icon: LayoutDashboard},
+            {label:'File Type', value: selectedDataset.file_type?.toUpperCase() || '—', icon: FileText},
+            {label:'Size', value: `${(selectedDataset.file_size / 1024).toFixed(1)} KB`, icon: Shield},
           ].map((stat, i) => (
-            <AnimatedTile key={i} className="text-center p-5" delay={i * 0.05}>
-              <p className="text-xs font-semibold uppercase tracking-widest mb-1" style={{color:'var(--muted-foreground)'}}>{stat.label}</p>
-              <p className="font-outfit font-bold text-3xl tracking-tight" style={{color:'var(--foreground)'}}>{stat.value}</p>
+            <AnimatedTile key={i} className="text-center p-5 relative" delay={i * 0.06}>
+              <div className="absolute top-3 right-3 opacity-[0.06]">
+                <stat.icon size={28} />
+              </div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.15em] mb-2" style={{color:'var(--muted-foreground)'}}>{stat.label}</p>
+              <p className="font-outfit font-extrabold text-3xl tracking-tight animate-count-up" style={{color:'var(--foreground)', animationDelay: `${i * 0.08}s`}}>{stat.value}</p>
             </AnimatedTile>
           ))}
         </div>
 
         {/* Column schema */}
         <div className="glass-panel p-6">
-          <div className="flex items-center gap-2 mb-5">
-            <Database size={18} style={{color:'var(--primary)'}} />
-            <h3 className="font-semibold text-base" style={{color:'var(--foreground)'}}>Column Schema & Business Dictionary</h3>
+          <div className="flex items-center gap-2.5 mb-5">
+            <div className="w-1 h-5 rounded-full" style={{background:'var(--primary)'}} />
+            <Database size={16} style={{color:'var(--primary)'}} />
+            <h3 className="font-outfit font-bold text-base tracking-tight" style={{color:'var(--foreground)'}}>Column Schema & Business Dictionary</h3>
+            {selectedDataset.columns_metadata && (
+              <span className="text-[10px] font-medium px-2 py-0.5 rounded-full" style={{background:'var(--secondary)', color:'var(--muted-foreground)'}}>
+                {Object.keys(selectedDataset.columns_metadata).length} columns
+              </span>
+            )}
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {selectedDataset.columns_metadata && Object.entries(selectedDataset.columns_metadata).map(([colName, meta]: [string, any], i) => (
@@ -899,9 +909,9 @@ export default function Home() {
             { id: 'domain', title: 'Domain Vertical', config: { value: selectedDataset?.business_domain || 'General', label: 'AI Classified' }, icon: 'sparkles' },
             { id: 'filetype', title: 'File Format', config: { value: selectedDataset?.file_type?.toUpperCase() || '—', label: `${(selectedDataset?.file_size/1024).toFixed(1)} KB` }, icon: 'file' },
           ].map((kpi: any, i) => (
-            <AnimatedTile key={kpi.id} className="p-5" delay={i * 0.05}>
-              <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{color:'var(--muted-foreground)'}}>{kpi.title}</p>
-              <p className="font-outfit font-bold text-3xl tracking-tight mb-1 truncate" style={{color:'var(--foreground)'}}>{kpi.config.value}</p>
+            <AnimatedTile key={kpi.id} className="p-5 relative" delay={i * 0.06}>
+              <p className="text-[10px] font-bold uppercase tracking-[0.15em] mb-2" style={{color:'var(--muted-foreground)'}}>{kpi.title}</p>
+              <p className="font-outfit font-extrabold text-3xl tracking-tight mb-1 truncate animate-count-up" style={{color:'var(--foreground)', animationDelay: `${i * 0.08}s`}}>{kpi.config.value}</p>
               <p className="text-xs" style={{color:'var(--muted-foreground)'}}>{kpi.config.label}</p>
             </AnimatedTile>
           ))}
@@ -966,16 +976,29 @@ export default function Home() {
         )}
 
         {/* Charts bento grid */}
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
-           {chartWidgets.map((widget: any, i: number) => (
-            <AnimatedTile key={widget.id} className="p-6" delay={0.15 + i * 0.05}>
-              <h4 className="font-semibold text-sm mb-1" style={{color:'var(--foreground)'}}>{widget.title}</h4>
-              {analysisJob?.quality_report && widget.config?.layout?.title?.text && (
-                <p className="text-xs italic mb-4" style={{color:'var(--muted-foreground)'}}>Analyzing trends for {widget.config.layout.title.text}.</p>
-              )}
-              <ChartRenderer plotlyJson={widget.config} />
-            </AnimatedTile>
-          ))}
+        {chartWidgets.length > 0 && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-2.5">
+              <div className="w-1 h-5 rounded-full" style={{background:'var(--primary)'}} />
+              <h3 className="font-outfit font-bold text-base tracking-tight" style={{color:'var(--foreground)'}}>Visual Analytics</h3>
+              <span className="text-[10px] font-medium px-2 py-0.5 rounded-full" style={{background:'var(--secondary)', color:'var(--muted-foreground)'}}>{chartWidgets.length} charts</span>
+            </div>
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+              {chartWidgets.map((widget: any, i: number) => (
+                <AnimatedTile key={widget.id} className="p-6 relative" delay={0.1 + i * 0.06}>
+                  <div className="absolute top-4 right-4 opacity-[0.04]">
+                    <LineChart size={32} />
+                  </div>
+                  <h4 className="font-semibold text-sm mb-1" style={{color:'var(--foreground)'}}>{widget.title}</h4>
+                  {analysisJob?.quality_report && widget.config?.layout?.title?.text && (
+                    <p className="text-xs mb-4" style={{color:'var(--muted-foreground)'}}>Analyzing trends for {widget.config.layout.title.text}.</p>
+                  )}
+                  <ChartRenderer plotlyJson={widget.config} />
+                </AnimatedTile>
+              ))}
+            </div>
+          </div>
+        )}
         </div>
       </div>
     );
@@ -1051,9 +1074,9 @@ export default function Home() {
         <form onSubmit={handleChatSubmit} className="p-4 flex gap-3" style={{borderTop:'1px solid var(--border)', background:'var(--card)'}}>
           <input value={chatInput} onChange={e => setChatInput(e.target.value)}
             placeholder="Ask A3 a question about your data..."
-            className="flex-grow text-xs px-4 py-3 rounded-full outline-none"
+            className="flex-grow text-sm px-5 py-3 rounded-full outline-none transition-all"
             style={{background:'var(--secondary)', border:'1px solid var(--border)', color:'var(--foreground)'}}/>
-          <button type="submit" disabled={chatLoading} className="btn-primary px-5 py-2.5 disabled:opacity-50 flex items-center justify-center">
+          <button type="submit" disabled={chatLoading} className="btn-primary px-5 py-2.5 disabled:opacity-50 flex items-center justify-center rounded-full">
             <Send size={15}/>
           </button>
         </form>
@@ -1379,21 +1402,29 @@ export default function Home() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Job running banner */}
         {isJobRunning && (
-          <motion.div initial={{opacity:0,y:-8}} animate={{opacity:1,y:0}} className="mb-6 p-4 rounded-2xl flex items-center gap-4"
-            style={{background:'rgba(0,0,0,0.04)', border:'1px solid rgba(0,0,0,0.08)'}}>
-            <Loader2 size={20} className="animate-spin shrink-0" style={{color:'var(--primary)'}}/>
-            <div>
+          <motion.div initial={{opacity:0,y:-8}} animate={{opacity:1,y:0}} className="mb-6 p-5 rounded-2xl flex items-center gap-4"
+            style={{background:'var(--card)', border:'1px solid var(--border)'}}>
+            <div className="relative">
+              <div className="w-3 h-3 rounded-full pulse-dot" style={{background:'#10b981'}} />
+            </div>
+            <div className="flex-grow">
               <p className="text-sm font-semibold" style={{color:'var(--foreground)'}}>Multi-Agent Profiling In Progress</p>
               <p className="text-xs" style={{color:'var(--muted-foreground)'}}>AI agents are scanning your data. Dashboard will update automatically.</p>
             </div>
+            <Loader2 size={16} className="animate-spin shrink-0" style={{color:'var(--muted-foreground)'}}/>
           </motion.div>
         )}
 
         {/* Global loading */}
         {globalLoading ? (
-          <div className="flex flex-col items-center justify-center py-32 gap-4">
-            <Loader2 size={32} className="animate-spin" style={{color:'var(--primary)'}}/>
-            <p className="text-sm animate-pulse" style={{color:'var(--muted-foreground)'}}>Loading workspace...</p>
+          <div className="flex flex-col items-center justify-center py-32 gap-5">
+            <div className="relative">
+              <Loader2 size={28} className="animate-spin" style={{color:'var(--primary)'}}/>
+            </div>
+            <div className="text-center">
+              <p className="text-sm font-medium mb-1" style={{color:'var(--foreground)'}}>Loading workspace</p>
+              <p className="text-xs" style={{color:'var(--muted-foreground)'}}>Preparing your analytics environment...</p>
+            </div>
           </div>
         ) : (
           <AnimatePresence mode="wait">
