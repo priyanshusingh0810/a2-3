@@ -784,7 +784,7 @@ export default function Home() {
           <div className="w-20 h-20 rounded-2xl flex items-center justify-center mb-6 shadow-lg backdrop-blur-sm transition-all duration-300 hover:scale-105 hover:border-primary/40" style={{background:'rgba(212,102,58,0.10)', border:'1px solid rgba(212,102,58,0.20)'}}>
             <Upload size={32} style={{color:'var(--primary)'}} />
           </div>
-          <h2 className="font-playfair font-bold text-2xl mb-3" style={{color:'var(--foreground)'}}>Upload your first dataset</h2>
+          <h2 className="font-outfit font-extrabold text-2xl tracking-tight mb-3" style={{color:'var(--foreground)'}}>Upload your first dataset</h2>
           <p className="text-sm mb-8 max-w-md" style={{color:'var(--muted-foreground)'}}>
             Upload a CSV, Excel, or JSON file. Our AI agents will automatically profile, clean, and analyze your data.
           </p>
@@ -807,7 +807,7 @@ export default function Home() {
               </span>
               <span className="text-xs" style={{color:'rgba(255,255,255,0.5)'}}>AI Understanding Output</span>
             </div>
-            <h2 className="font-playfair font-bold text-3xl text-white mb-3 leading-tight">{selectedDataset.name}</h2>
+            <h2 className="font-outfit font-extrabold text-3xl text-white tracking-tight mb-3 leading-tight">{selectedDataset.name}</h2>
             <p className="text-sm leading-relaxed max-w-3xl" style={{color:'rgba(255,255,255,0.65)'}}>
               {selectedDataset.summary || 'AI agents are generating a dataset summary...'}
             </p>
@@ -883,7 +883,7 @@ export default function Home() {
     if (!dashboards?.layout) return (
       <div className="flex flex-col items-center justify-center py-32 text-center">
         <LayoutDashboard size={40} className="mb-4" style={{color:'var(--muted-foreground)'}} />
-        <h3 className="font-playfair font-bold text-xl mb-2" style={{color:'var(--foreground)'}}>Dashboard not ready</h3>
+        <h3 className="font-outfit font-extrabold text-xl tracking-tight mb-2" style={{color:'var(--foreground)'}}>Dashboard not ready</h3>
         <p className="text-sm" style={{color:'var(--muted-foreground)'}}>Select a dataset and wait for profiling to complete.</p>
       </div>
     );
@@ -1016,7 +1016,7 @@ export default function Home() {
               <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-5" style={{background:'rgba(212,102,58,0.10)', border:'1px solid rgba(212,102,58,0.20)'}}>
                 <MessageSquare size={28} style={{color:'var(--primary)'}}/>
               </div>
-              <h3 className="font-playfair font-bold text-xl mb-2" style={{color:'var(--foreground)'}}>AI Data Chat</h3>
+              <h3 className="font-outfit font-extrabold text-xl tracking-tight mb-2" style={{color:'var(--foreground)'}}>AI Data Chat</h3>
               <p className="text-xs mb-8" style={{color:'var(--muted-foreground)'}}>Ask questions in plain English. AI translates them to Python and returns results instantly.</p>
               <div className="grid grid-cols-2 gap-3 w-full">
                 {['"Show Sales by Region"','"Top 5 product categories?"','"Find outlier records"','"Correlations check"'].map((q,i) => (
@@ -1066,7 +1066,7 @@ export default function Home() {
     return (
       <div className="glass-panel p-8 space-y-8">
         <div>
-          <h3 className="font-playfair font-bold text-xl flex items-center gap-2.5 mb-2" style={{color:'var(--foreground)'}}>
+          <h3 className="font-outfit font-extrabold text-xl tracking-tight flex items-center gap-2.5 mb-2" style={{color:'var(--foreground)'}}>
             <LineChart style={{color:'#10b981'}} size={22}/> Auto Time-Series Trend Forecaster
           </h3>
           <p className="text-sm" style={{color:'var(--muted-foreground)'}}>A3 scans columns, isolates date index, and fits predictive regression trends locally.</p>
@@ -1119,7 +1119,7 @@ export default function Home() {
     <div className="glass-panel p-8 space-y-6">
       <div className="flex items-center justify-between pb-5" style={{borderBottom:'1px solid var(--border)'}}>
         <div>
-          <h3 className="font-playfair font-bold text-xl flex items-center gap-2.5 mb-1" style={{color:'var(--foreground)'}}>
+          <h3 className="font-outfit font-extrabold text-xl tracking-tight flex items-center gap-2.5 mb-1" style={{color:'var(--foreground)'}}>
             <FileText style={{color:'#a855f7'}} size={22}/> Executive Report Builder
           </h3>
           <p className="text-sm" style={{color:'var(--muted-foreground)'}}>Compile insights and charts into downloadable executive-ready PDFs.</p>
@@ -1397,7 +1397,13 @@ export default function Home() {
           </div>
         ) : (
           <AnimatePresence mode="wait">
-            <motion.div key={activeTab} initial={{opacity:0,y:16}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-8}} transition={{duration:0.3}}>
+            <motion.div 
+              key={activeTab} 
+              initial={{ opacity: 0, y: 15, scale: 0.985 }} 
+              animate={{ opacity: 1, y: 0, scale: 1 }} 
+              exit={{ opacity: 0, y: -10, scale: 0.99 }} 
+              transition={{ type: 'spring', stiffness: 220, damping: 24 }}
+            >
               {activeTab === 'upload'    && renderUpload()}
               {activeTab === 'dashboard' && renderDashboard()}
               {activeTab === 'chat'      && renderChat()}

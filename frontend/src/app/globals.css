@@ -376,3 +376,18 @@ input, button, a { transition: all 0.2s ease; }
 .group-hover\:animate-shimmer {
   animation: shimmer 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
+
+/* ─── APPLE SHADOWS AND GLASS PANEL OVERRIDES ─── */
+.glass-panel {
+  box-shadow: 0 8px 30px rgba(0,0,0,0.03), 0 1px 8px rgba(0,0,0,0.015);
+  border: 1px solid var(--border) !important;
+  border-radius: 1.5rem !important; /* smooth rounded corners */
+}
+.dark .glass-panel {
+  box-shadow: 0 12px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.03);
+  border-color: rgba(255,255,255,0.05) !important;
+}
+.apple .glass-panel {
+  box-shadow: 0 12px 36px rgba(0,0,0,0.03), 0 1px 10px rgba(0,0,0,0.015);
+  border-color: rgba(0,0,0,0.07) !important;
+}
