@@ -87,6 +87,29 @@
   border-radius: 1rem;
   box-shadow: 0 8px 32px rgba(0,0,0,0.2), 0 0 0 1px rgba(255,255,255,0.06);
 }
+.fb-nav-glowing-border {
+  position: relative;
+}
+.fb-nav-glowing-border::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 1rem;
+  padding: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.12), rgba(224,115,72,0.25), rgba(255,255,255,0.12), transparent);
+  background-size: 200% auto;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: xor;
+  -webkit-mask-composite: xor;
+  animation: borderShine 6s linear infinite;
+  pointer-events: none;
+}
+@keyframes borderShine {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 200% 50%; }
+}
 
 /* ─── SIDEBAR: White card sidebar ─── */
 .fb-sidebar {

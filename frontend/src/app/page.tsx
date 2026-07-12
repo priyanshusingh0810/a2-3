@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useMotionValue, useTransform } from 'framer-motion';
 import {
   Database, Upload, MessageSquare, LineChart, FileText, LayoutDashboard,
   Trash2, LogOut, Loader2, Sparkles, RefreshCw, Send, CheckCircle2,
@@ -80,6 +80,23 @@ export default function Home() {
   const [llmApiKey, setLlmApiKey]     = useState('');
   const [settingsLoading, setSettingsLoading] = useState(false);
   const [settingsMessage, setSettingsMessage] = useState<{type:'success'|'error', text:string}|null>(null);
+
+  // ── Navbar 3D Hover & Motion State ──────────────────────────────
+  const navMouseX = useMotionValue(0);
+  const navMouseY = useMotionValue(0);
+  const navRotateX = useTransform(navMouseY, [-60, 60], [10, -10]);
+  const navRotateY = useTransform(navMouseX, [-300, 300], [-6, 6]);
+
+  const handleNavMouseMove = (e: React.MouseEvent) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    navMouseX.set(e.clientX - rect.left - rect.width / 2);
+    navMouseY.set(e.clientY - rect.top - rect.height / 2);
+  };
+
+  const handleNavMouseLeave = () => {
+    navMouseX.set(0);
+    navMouseY.set(0);
+  };
 
   const pollTimerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -1024,10 +1041,23 @@ export default function Home() {
   return (
     <div className="min-h-screen grid-bg">
       {/* ── FLOATING DARK NAVBAR (exact Formula Bot style) ── */}
-      <div className="sticky top-0 z-50 flex justify-center px-4 pt-4 pb-2 pointer-events-none">
-        <nav className="fb-nav w-full max-w-5xl px-5 py-3 flex items-center justify-between pointer-events-auto">
+      <div className="sticky top-0 z-50 flex justify-center px-4 pt-4 pb-2 pointer-events-none" style={{ perspective: '1200px' }}>
+        <motion.nav 
+          className="fb-nav fb-nav-glowing-border w-full max-w-5xl px-5 py-3 flex items-center justify-between pointer-events-auto"
+          style={{ 
+            rotateX: navRotateX, 
+            rotateY: navRotateY, 
+            transformStyle: 'preserve-3d',
+            transition: 'box-shadow 0.3s ease'
+          }}
+          onMouseMove={handleNavMouseMove}
+          onMouseLeave={handleNavMouseLeave}
+          whileHover={{
+            boxShadow: '0 20px 40px rgba(0,0,0,0.5), 0 0 25px rgba(224,115,72,0.15)',
+          }}
+        >
           {/* Logo */}
-          <div className="flex items-center gap-2.5 shrink-0">
+          <div className="flex items-center gap-2.5 shrink-0" style={{ transform: 'translateZ(15px)' }}>
             <img 
               src="/logo.jpg" 
               alt="A3 Logo" 
@@ -1037,19 +1067,32 @@ export default function Home() {
           </div>
 
           {/* Center: Tab navigation pills */}
-          <div className="hidden md:flex items-center gap-1 p-1 rounded-full" style={{background:'rgba(255,255,255,0.08)'}}>
+          <div className="hidden md:flex items-center gap-1 p-1 rounded-full relative z-10" style={{background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.04)', transform: 'translateZ(10px)'}}>
             {TABS.map(tab => {
               const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
               const isDisabled = (tab.id !== 'upload' && tab.id !== 'settings') && (!selectedDatasetId || analysisJob?.status !== 'completed');
               return (
                 <button key={tab.id}
                   onClick={() => !isDisabled && setActiveTab(tab.id)}
                   disabled={isDisabled}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${isDisabled ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer'}`}
-                  style={activeTab === tab.id
-                    ? {background:'rgba(255,255,255,1)', color:'#0f0f0f'}
-                    : {color:'rgba(255,255,255,0.65)'}}>
-                  <Icon size={13}/> {tab.label}
+                  className="relative flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold transition-all select-none"
+                  style={{
+                    color: isActive ? '#000000' : 'rgba(255,255,255,0.65)',
+                    cursor: isDisabled ? 'not-allowed' : 'pointer',
+                    opacity: isDisabled ? 0.35 : 1
+                  }}
+                >
+                  {isActive && (
+                    <motion.div 
+                      layoutId="activeTabPill" 
+                      className="absolute inset-0 bg-white rounded-full z-0 shadow-[0_2px_8px_rgba(255,255,255,0.15)]"
+                      transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                    />
+                  )}
+                  <span className="relative z-10 flex items-center gap-1.5">
+                    <Icon size={12}/> {tab.label}
+                  </span>
                 </button>
               );
             })}
@@ -1104,7 +1147,7 @@ export default function Home() {
               <LogOut size={14}/>
             </button>
           </div>
-        </nav>
+        </motion.nav>
       </div>
 
       {/* Mobile tab bar */}
