@@ -750,9 +750,11 @@ export default function Home() {
         <nav className="fb-nav w-full max-w-5xl px-5 py-3 flex items-center justify-between pointer-events-auto">
           {/* Logo */}
           <div className="flex items-center gap-2.5 shrink-0">
-            <div className="p-1.5 rounded-lg" style={{background:'var(--primary)'}}>
-              <Sparkles size={15} className="text-white"/>
-            </div>
+            <img 
+              src="/logo.jpg" 
+              alt="A3 Logo" 
+              className="w-7 h-7 rounded-full object-cover border border-white/20"
+            />
             <span className="font-playfair font-bold text-white text-lg tracking-tight">A3 <span className="font-sans font-normal text-sm opacity-60">Analyst</span></span>
           </div>
 

@@ -259,7 +259,18 @@ export default function Component({
   );
 
   const Logo = (
-    <div style={{background:"#111",width:44,height:44,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:"1.15rem",marginBottom:"0.75rem",border:"1px solid #333"}}>JS</div>
+    <img 
+      src="/logo.jpg" 
+      alt="A3 Logo" 
+      style={{
+        width: 48,
+        height: 48,
+        borderRadius: "50%",
+        objectFit: "cover",
+        marginBottom: "0.75rem",
+        border: "1px solid #333"
+      }} 
+    />
   );
   const Footer = (
     <div style={{marginTop:"0.85rem",fontSize:"0.75rem",color:"#666",lineHeight:1.5,textAlign:"center"}}>
