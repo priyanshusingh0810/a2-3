@@ -17,6 +17,7 @@ import { SignUpCard } from '@/components/ui/sign-up-card';
 import { ForgotPasswordCard } from '@/components/ui/forgot-password-card';
 import { ThemeToggle } from '@/components/theme-toggle';
 import ModernLoginSignup from '@/components/ui/modern-login-signup';
+import { AnimatedTile } from '@/components/animated-tile';
 
 // ─── TAB CONFIG ────────────────────────────────────────────────────
 const TABS = [
@@ -658,10 +659,10 @@ export default function Home() {
             {label:'File Type', value: selectedDataset.file_type?.toUpperCase() || '—'},
             {label:'Size', value: `${(selectedDataset.file_size / 1024).toFixed(1)} KB`},
           ].map((stat, i) => (
-            <div key={i} className="glass-panel p-5 text-center">
+            <AnimatedTile key={i} className="text-center p-5" delay={i * 0.05}>
               <p className="text-xs font-semibold uppercase tracking-widest mb-1" style={{color:'var(--muted-foreground)'}}>{stat.label}</p>
               <p className="font-playfair font-bold text-2xl" style={{color:'var(--foreground)'}}>{stat.value}</p>
-            </div>
+            </AnimatedTile>
           ))}
         </div>
 
@@ -672,8 +673,18 @@ export default function Home() {
             <h3 className="font-semibold text-base" style={{color:'var(--foreground)'}}>Column Schema & Business Dictionary</h3>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {selectedDataset.columns_metadata && Object.entries(selectedDataset.columns_metadata).map(([colName, meta]: [string, any]) => (
-              <div key={colName} className="p-4 rounded-xl transition-all" style={{background:'var(--secondary)', border:'1px solid var(--border)'}}>
+            {selectedDataset.columns_metadata && Object.entries(selectedDataset.columns_metadata).map(([colName, meta]: [string, any], i) => (
+              <motion.div 
+                key={colName}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.35, delay: i * 0.03 }}
+                whileHover={{ scale: 1.02, y: -2, boxShadow: '0 8px 24px rgba(0,0,0,0.06)' }}
+                className="p-4 rounded-xl transition-all relative overflow-hidden group" 
+                style={{background:'var(--secondary)', border:'1px solid var(--border)'}}
+              >
+                {/* Subtle sheen overlay */}
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:animate-shimmer pointer-events-none" />
                 <div className="flex items-center justify-between mb-2">
                   <span className="font-mono text-xs font-semibold truncate" style={{color:'var(--foreground)'}}>{colName}</span>
                   <span className="text-[9px] px-2 py-0.5 rounded font-mono uppercase font-bold" style={{background:'var(--muted)', color:'var(--muted-foreground)'}}>{meta.data_type}</span>
@@ -683,7 +694,7 @@ export default function Home() {
                   <span>Nulls: {meta.null_percentage?.toFixed(1)}%</span>
                   <span>Unique: {meta.unique_count}</span>
                 </div>
-              </div>
+              </motion.div>
             ))}
           </div>
         </div>
@@ -723,12 +734,12 @@ export default function Home() {
           {[...kpiWidgets,
             { id: 'domain', title: 'Domain Vertical', config: { value: selectedDataset?.business_domain || 'General', label: 'AI Classified' }, icon: 'sparkles' },
             { id: 'filetype', title: 'File Format', config: { value: selectedDataset?.file_type?.toUpperCase() || '—', label: `${(selectedDataset?.file_size/1024).toFixed(1)} KB` }, icon: 'file' },
-          ].map((kpi: any) => (
-            <motion.div key={kpi.id} initial={{opacity:0,y:12}} animate={{opacity:1,y:0}} transition={{duration:0.4}} className="glass-panel p-5">
+          ].map((kpi: any, i) => (
+            <AnimatedTile key={kpi.id} className="p-5" delay={i * 0.05}>
               <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{color:'var(--muted-foreground)'}}>{kpi.title}</p>
               <p className="font-playfair font-bold text-2xl mb-1 truncate" style={{color:'var(--foreground)'}}>{kpi.config.value}</p>
               <p className="text-xs" style={{color:'var(--muted-foreground)'}}>{kpi.config.label}</p>
-            </motion.div>
+            </AnimatedTile>
           ))}
         </div>
 
@@ -792,14 +803,14 @@ export default function Home() {
 
         {/* Charts bento grid */}
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
-          {chartWidgets.map((widget: any, i: number) => (
-            <motion.div key={widget.id} initial={{opacity:0,y:16}} animate={{opacity:1,y:0}} transition={{delay:0.15+i*0.05}} className="glass-panel p-6">
+           {chartWidgets.map((widget: any, i: number) => (
+            <AnimatedTile key={widget.id} className="p-6" delay={0.15 + i * 0.05}>
               <h4 className="font-semibold text-sm mb-1" style={{color:'var(--foreground)'}}>{widget.title}</h4>
               {analysisJob?.quality_report && widget.config?.layout?.title?.text && (
                 <p className="text-xs italic mb-4" style={{color:'var(--muted-foreground)'}}>Analyzing trends for {widget.config.layout.title.text}.</p>
               )}
               <ChartRenderer plotlyJson={widget.config} />
-            </motion.div>
+            </AnimatedTile>
           ))}
         </div>
       </div>
@@ -859,7 +870,11 @@ export default function Home() {
                 : {background:'var(--card)', border:'1px solid var(--border)', color:'var(--foreground)', borderBottomLeftRadius:4}}>
                 {msg.content}
               </div>
-              {msg.chart && <div className="mt-3 glass-panel p-4 w-[500px] max-w-full"><ChartRenderer plotlyJson={msg.chart}/></div>}
+              {msg.chart && (
+                <AnimatedTile className="mt-3 w-[500px] max-w-full p-4">
+                  <ChartRenderer plotlyJson={msg.chart}/>
+                </AnimatedTile>
+              )}
             </div>
           ))}
           {chatLoading && (
@@ -894,17 +909,33 @@ export default function Home() {
         </div>
         {hasForecast ? (
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
-            <div className="xl:col-span-2 glass-panel p-5"><ChartRenderer plotlyJson={analysisJob.insights.forecast_chart}/></div>
+            <AnimatedTile className="xl:col-span-2 p-5" delay={0.05}>
+              <ChartRenderer plotlyJson={analysisJob.insights.forecast_chart}/>
+            </AnimatedTile>
             <div className="space-y-4">
-              <div className="p-5 rounded-2xl" style={{background:'rgba(16,185,129,0.06)', border:'1px solid rgba(16,185,129,0.15)'}}>
+              <motion.div 
+                initial={{ opacity: 0, x: 15 }} 
+                animate={{ opacity: 1, x: 0 }} 
+                transition={{ duration: 0.4, delay: 0.1 }}
+                whileHover={{ scale: 1.01, y: -2 }}
+                className="p-5 rounded-2xl" 
+                style={{background:'rgba(16,185,129,0.06)', border:'1px solid rgba(16,185,129,0.15)'}}
+              >
                 <p className="text-xs font-bold uppercase tracking-wider mb-2 flex items-center gap-1.5" style={{color:'#10b981'}}><TrendingUp size={13}/> Commentary</p>
                 <p className="text-xs italic leading-relaxed" style={{color:'var(--foreground)'}}>"{analysisJob.insights.forecast_commentary || 'Trend is stable.'}"</p>
-              </div>
-              <div className="p-5 rounded-2xl text-xs space-y-2" style={{background:'var(--secondary)', border:'1px solid var(--border)', color:'var(--muted-foreground)'}}>
+              </motion.div>
+              <motion.div 
+                initial={{ opacity: 0, x: 15 }} 
+                animate={{ opacity: 1, x: 0 }} 
+                transition={{ duration: 0.4, delay: 0.15 }}
+                whileHover={{ scale: 1.01, y: -2 }}
+                className="p-5 rounded-2xl text-xs space-y-2" 
+                style={{background:'var(--secondary)', border:'1px solid var(--border)', color:'var(--muted-foreground)'}}
+              >
                 <p className="font-semibold" style={{color:'var(--foreground)'}}>Model Specs:</p>
                 <p>• Polynomial Ridge Regression (2°)</p><p>• Autoregressive seasonality</p>
                 <p>• Auto-selected numerical target</p><p>• 100% Local ($0.0 cost)</p>
-              </div>
+              </motion.div>
             </div>
           </div>
         ) : (
@@ -936,8 +967,16 @@ export default function Home() {
         </button>
       </div>
       <div className="space-y-3">
-        {reports.length > 0 ? reports.map(rep => (
-          <div key={rep.id} className="flex items-center justify-between p-5 rounded-2xl transition" style={{background:'var(--secondary)', border:'1px solid var(--border)'}}>
+        {reports.length > 0 ? reports.map((rep, i) => (
+          <motion.div 
+            key={rep.id} 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: i * 0.05 }}
+            whileHover={{ scale: 1.01, y: -2, boxShadow: '0 8px 24px rgba(0,0,0,0.04)' }}
+            className="flex items-center justify-between p-5 rounded-2xl transition" 
+            style={{background:'var(--secondary)', border:'1px solid var(--border)'}}
+          >
             <div>
               <h4 className="font-semibold text-sm mb-1" style={{color:'var(--foreground)'}}>{rep.title}</h4>
               <p className="text-xs flex items-center gap-1.5" style={{color:'var(--muted-foreground)'}}><Calendar size={11}/>{new Date(rep.created_at).toLocaleDateString()}</p>
@@ -946,7 +985,7 @@ export default function Home() {
               className="p-3 rounded-xl transition" style={{background:'rgba(212,102,58,0.10)', color:'var(--primary)', border:'1px solid rgba(212,102,58,0.20)'}}>
               <Download size={15}/>
             </button>
-          </div>
+          </motion.div>
         )) : (
           <div className="text-center py-16 rounded-2xl border-2 border-dashed text-sm" style={{borderColor:'var(--border)', color:'var(--muted-foreground)'}}>
             No reports yet. Click 'Generate Report' to build one.
