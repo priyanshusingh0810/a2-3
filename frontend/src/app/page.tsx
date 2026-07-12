@@ -347,11 +347,60 @@ export default function Home() {
               50% { transform: translate(15px, 10px) rotate(-3deg); }
               100% { transform: translate(0px, 0px) rotate(0deg); }
             }
+            @keyframes float-rotate-1 {
+              0% { transform: translateY(0px) rotateX(10deg) rotateY(10deg) rotateZ(0deg); }
+              50% { transform: translateY(-15px) rotateX(15deg) rotateY(-10deg) rotateZ(5deg); }
+              100% { transform: translateY(0px) rotateX(10deg) rotateY(10deg) rotateZ(0deg); }
+            }
+            @keyframes float-rotate-2 {
+              0% { transform: translateY(0px) rotateX(-5deg) rotateY(-15deg) rotateZ(0deg); }
+              50% { transform: translateY(-20px) rotateX(10deg) rotateY(5deg) rotateZ(-6deg); }
+              100% { transform: translateY(0px) rotateX(-5deg) rotateY(-15deg) rotateZ(0deg); }
+            }
+            @keyframes float-rotate-3 {
+              0% { transform: translateY(0px) rotateX(5deg) rotateY(5deg) rotateZ(0deg); }
+              50% { transform: translateY(-12px) rotateX(-5deg) rotateY(-5deg) rotateZ(3deg); }
+              100% { transform: translateY(0px) rotateX(5deg) rotateY(5deg) rotateZ(0deg); }
+            }
+            @keyframes float-rotate-4 {
+              0% { transform: translateY(0px) rotateX(-10deg) rotateY(10deg) rotateZ(0deg); }
+              50% { transform: translateY(-18px) rotateX(10deg) rotateY(-10deg) rotateZ(-4deg); }
+              100% { transform: translateY(0px) rotateX(-10deg) rotateY(10deg) rotateZ(0deg); }
+            }
             .animate-float-1 { animation: float-1 8s ease-in-out infinite; }
             .animate-float-2 { animation: float-2 10s ease-in-out infinite; }
             .animate-float-3 { animation: float-3 9s ease-in-out infinite; }
             .animate-float-4 { animation: float-4 11s ease-in-out infinite; }
+            .animate-float-rotate-1 { animation: float-rotate-1 12s ease-in-out infinite; }
+            .animate-float-rotate-2 { animation: float-rotate-2 14s ease-in-out infinite; }
+            .animate-float-rotate-3 { animation: float-rotate-3 10s ease-in-out infinite; }
+            .animate-float-rotate-4 { animation: float-rotate-4 13s ease-in-out infinite; }
           `}} />
+
+          {/* Floating 3D Pie Image */}
+          <div className="absolute left-[4%] top-[45%] opacity-20 hover:opacity-50 transition-opacity duration-300 animate-float-rotate-1" style={{ perspective: '800px' }}>
+            <img src="/3d-pie.png" alt="3D Pie Chart" className="w-20 h-20 object-contain filter drop-shadow-[0_8px_32px_rgba(6,182,212,0.25)]" />
+          </div>
+
+          {/* Floating 3D Dashboard Image */}
+          <div className="absolute right-[4%] top-[42%] opacity-20 hover:opacity-50 transition-opacity duration-300 animate-float-rotate-2" style={{ perspective: '800px' }}>
+            <img src="/3d-dashboard.png" alt="3D Dashboard" className="w-24 h-24 object-contain filter drop-shadow-[0_8px_32px_rgba(99,102,241,0.25)]" />
+          </div>
+
+          {/* Floating 3D Asset Image */}
+          <div className="absolute left-[40%] top-[8%] opacity-20 hover:opacity-50 transition-opacity duration-300 animate-float-rotate-3" style={{ perspective: '800px' }}>
+            <img src="/asset-3d.png" alt="3D Chart File" className="w-16 h-16 object-contain filter drop-shadow-[0_8px_32px_rgba(16,185,129,0.25)]" />
+          </div>
+
+          {/* Floating Python Flat Logo */}
+          <div className="absolute left-[28%] bottom-[8%] opacity-15 hover:opacity-40 transition-opacity duration-300 animate-float-rotate-4" style={{ perspective: '800px' }}>
+            <img src="/python-flat.png" alt="Python Logo" className="w-10 h-10 object-contain filter invert dark:invert-0 drop-shadow-[0_4px_12px_rgba(255,255,255,0.1)]" />
+          </div>
+
+          {/* Floating Excel Flat Logo */}
+          <div className="absolute right-[28%] bottom-[8%] opacity-15 hover:opacity-40 transition-opacity duration-300 animate-float-rotate-1" style={{ perspective: '800px' }}>
+            <img src="/excel-flat.png" alt="Excel Logo" className="w-10 h-10 object-contain filter drop-shadow-[0_4px_12px_rgba(34,197,94,0.15)]" />
+          </div>
 
           {/* 3D Shiny Logo - PowerBI */}
           <div className="absolute left-[8%] top-[12%] opacity-25 hover:opacity-50 transition-opacity duration-300 animate-float-1">
