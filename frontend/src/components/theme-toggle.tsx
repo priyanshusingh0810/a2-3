@@ -16,9 +16,9 @@ export function ThemeToggle() {
   const currentTheme = theme || resolvedTheme || 'light';
 
   const OPTIONS = [
-    { id: 'light', icon: Sun, label: 'Formula Light', activeColor: 'var(--primary)' },
-    { id: 'dark', icon: Moon, label: 'WebGL Dark', activeColor: '#60a5fa' },
-    { id: 'apple', icon: Laptop, label: 'Apple White', activeColor: 'var(--foreground)' },
+    { id: 'light', icon: Sun, label: 'Light', activeColor: '#1d1d1f' },
+    { id: 'dark', icon: Moon, label: 'Dark', activeColor: '#60a5fa' },
+    { id: 'apple', icon: Laptop, label: 'Apple', activeColor: '#0071e3' },
   ];
 
   return (

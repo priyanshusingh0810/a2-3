@@ -781,7 +781,7 @@ export default function Home() {
 
         {/* Upload card and details */}
         <div className="relative z-10 flex flex-col items-center justify-center">
-          <div className="w-20 h-20 rounded-2xl flex items-center justify-center mb-6 shadow-lg backdrop-blur-sm transition-all duration-300 hover:scale-105 hover:border-primary/40" style={{background:'rgba(212,102,58,0.10)', border:'1px solid rgba(212,102,58,0.20)'}}>
+          <div className="w-20 h-20 rounded-2xl flex items-center justify-center mb-6 shadow-lg backdrop-blur-sm transition-all duration-300 hover:scale-105 hover:border-primary/40" style={{background:'rgba(0,0,0,0.04)', border:'1px solid rgba(0,0,0,0.08)'}}>
             <Upload size={32} style={{color:'var(--primary)'}} />
           </div>
           <h2 className="font-outfit font-extrabold text-2xl tracking-tight mb-3" style={{color:'var(--foreground)'}}>Upload your first dataset</h2>
@@ -799,10 +799,10 @@ export default function Home() {
     return (
       <div className="space-y-6">
         {/* Dataset header card */}
-        <div className="glass-panel p-8 overflow-hidden relative" style={{background: 'linear-gradient(135deg, var(--foreground) 0%, #2d1a0e 100%)'}}>
+        <div className="glass-panel p-8 overflow-hidden relative" style={{background: 'linear-gradient(135deg, #1d1d1f 0%, #2c2c2e 100%)'}}>
           <div className="relative z-10">
             <div className="flex items-center gap-2 mb-4">
-              <span className="text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-wider" style={{background:'rgba(212,102,58,0.3)', color:'#ffb899', border:'1px solid rgba(212,102,58,0.4)'}}>
+              <span className="text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-wider" style={{background:'rgba(255,255,255,0.12)', color:'rgba(255,255,255,0.85)', border:'1px solid rgba(255,255,255,0.15)'}}>
                 {selectedDataset.business_domain || 'General Analytics'}
               </span>
               <span className="text-xs" style={{color:'rgba(255,255,255,0.5)'}}>AI Understanding Output</span>
@@ -988,7 +988,7 @@ export default function Home() {
         <div className="flex items-center justify-between pb-3" style={{borderBottom:'1px solid var(--border)'}}>
           <p className="text-xs font-bold uppercase tracking-wider" style={{color:'var(--muted-foreground)'}}>Conversations</p>
           <button onClick={() => { setActiveConversationId(null); setChatMessages([]); }}
-            className="text-xs px-2.5 py-1 rounded-lg font-semibold transition" style={{background:'rgba(212,102,58,0.1)', color:'var(--primary)', border:'1px solid rgba(212,102,58,0.2)'}}>
+            className="text-xs px-2.5 py-1 rounded-lg font-semibold transition" style={{background:'rgba(0,0,0,0.04)', color:'var(--primary)', border:'1px solid rgba(0,0,0,0.08)'}}>
             + New
           </button>
         </div>
@@ -1013,7 +1013,7 @@ export default function Home() {
         <div className="flex-grow p-5 overflow-y-auto space-y-4">
           {chatMessages.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center py-12 max-w-md mx-auto">
-              <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-5" style={{background:'rgba(212,102,58,0.10)', border:'1px solid rgba(212,102,58,0.20)'}}>
+              <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-5" style={{background:'rgba(0,0,0,0.04)', border:'1px solid rgba(0,0,0,0.08)'}}>
                 <MessageSquare size={28} style={{color:'var(--primary)'}}/>
               </div>
               <h3 className="font-outfit font-extrabold text-xl tracking-tight mb-2" style={{color:'var(--foreground)'}}>AI Data Chat</h3>
@@ -1146,7 +1146,7 @@ export default function Home() {
               <p className="text-xs flex items-center gap-1.5" style={{color:'var(--muted-foreground)'}}><Calendar size={11}/>{new Date(rep.created_at).toLocaleDateString()}</p>
             </div>
             <button onClick={() => handleDownloadReport(rep.id, rep.title)}
-              className="p-3 rounded-xl transition" style={{background:'rgba(212,102,58,0.10)', color:'var(--primary)', border:'1px solid rgba(212,102,58,0.20)'}}>
+              className="p-3 rounded-xl transition" style={{background:'rgba(0,0,0,0.04)', color:'var(--primary)', border:'1px solid rgba(0,0,0,0.08)'}}>
               <Download size={15}/>
             </button>
           </motion.div>
@@ -1339,7 +1339,7 @@ export default function Home() {
                     {datasets.length === 0 && <p className="text-center py-4 text-xs" style={{color:'var(--muted-foreground)'}}>No datasets</p>}
                   </div>
                   <div className="p-2 pt-0" style={{borderTop:'1px solid var(--border)'}}>
-                    <label className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs cursor-pointer w-full transition" style={{color:'var(--primary)', background:'rgba(212,102,58,0.12)'}}>
+                    <label className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs cursor-pointer w-full transition" style={{color:'var(--primary)', background:'rgba(0,0,0,0.04)'}}>
                       {uploadProgress ? <Loader2 size={12} className="animate-spin"/> : <Plus size={12}/>}
                       {uploadProgress ? 'Uploading...' : 'Upload new dataset'}
                       <input type="file" accept=".csv,.xlsx,.xls,.json" onChange={e => { setDatasetMenuOpen(false); handleFileUpload(e); }} className="hidden"/>
@@ -1380,7 +1380,7 @@ export default function Home() {
         {/* Job running banner */}
         {isJobRunning && (
           <motion.div initial={{opacity:0,y:-8}} animate={{opacity:1,y:0}} className="mb-6 p-4 rounded-2xl flex items-center gap-4"
-            style={{background:'rgba(212,102,58,0.08)', border:'1px solid rgba(212,102,58,0.18)'}}>
+            style={{background:'rgba(0,0,0,0.04)', border:'1px solid rgba(0,0,0,0.08)'}}>
             <Loader2 size={20} className="animate-spin shrink-0" style={{color:'var(--primary)'}}/>
             <div>
               <p className="text-sm font-semibold" style={{color:'var(--foreground)'}}>Multi-Agent Profiling In Progress</p>

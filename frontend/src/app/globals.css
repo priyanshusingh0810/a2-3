@@ -3,44 +3,45 @@
 @tailwind utilities;
 
 /* ─────────────────────────────────────────────
-   FORMULA BOT EXACT DESIGN SYSTEM
-   Light: warm off-white #f0ede8 + terracotta #d4663a
-   Dark:  near-black #0f0f0f
+   A3 ANALYST DESIGN SYSTEM
+   Light: pure white #ffffff + grey #1d1d1f
+   Dark:  pitch-black #000000
+   Apple: light grey #f5f5f7 + blue #0071e3
 ──────────────────────────────────────────────── */
 @layer base {
   :root {
-    /* Formulabot Light Palette */
-    --background:          #f0ede8;   /* warm parchment */
-    --foreground:          #0f0f0f;   /* near-black */
-    --card:                #ffffff;   /* pure white cards */
-    --card-foreground:     #0f0f0f;
+    /* Pure White & Grey Light Palette */
+    --background:          #ffffff;   /* pure white */
+    --foreground:          #1d1d1f;   /* near-black */
+    --card:                #ffffff;   /* white cards */
+    --card-foreground:     #1d1d1f;
     --popover:             #ffffff;
-    --popover-foreground:  #0f0f0f;
-    --primary:             #d4663a;   /* terracotta / formulabot orange */
+    --popover-foreground:  #1d1d1f;
+    --primary:             #1d1d1f;   /* dark grey primary */
     --primary-foreground:  #ffffff;
-    --secondary:           #f5f2ee;   /* slightly lighter parchment */
-    --secondary-foreground:#0f0f0f;
-    --muted:               #e8e4de;   /* muted parchment */
-    --muted-foreground:    #6b6b6b;   /* medium gray */
-    --accent:              #d4663a;
+    --secondary:           #f5f5f7;   /* light grey */
+    --secondary-foreground:#1d1d1f;
+    --muted:               #e8e8ed;   /* muted grey */
+    --muted-foreground:    #86868b;   /* medium grey */
+    --accent:              #1d1d1f;
     --accent-foreground:   #ffffff;
-    --destructive:         #ef4444;
+    --destructive:         #ff3b30;
     --destructive-foreground: #fff;
-    --border:              #dbd7d0;   /* warm gray border */
-    --input:               #dbd7d0;
-    --ring:                #d4663a;
+    --border:              #d2d2d7;   /* clean grey border */
+    --input:               #d2d2d7;
+    --ring:                #1d1d1f;
     --radius:              0.75rem;
-    --nav-bg:              rgba(15, 15, 15, 0.95); /* dark floating nav */
-    --nav-foreground:      #ffffff;
-    --nav-border:          rgba(255,255,255,0.06);
-    --nav-pills-bg:        rgba(255, 255, 255, 0.06);
-    --nav-pills-border:    rgba(255, 255, 255, 0.04);
-    --nav-pill-color:      rgba(255, 255, 255, 0.65);
-    --nav-pill-active-bg:  #ffffff;
-    --nav-pill-active-color:#000000;
-    --nav-button-bg:       rgba(255, 255, 255, 0.10);
-    --nav-button-color:    rgba(255, 255, 255, 0.8);
-    --nav-button-border:   rgba(255, 255, 255, 0.12);
+    --nav-bg:              rgba(255, 255, 255, 0.88);
+    --nav-foreground:      #1d1d1f;
+    --nav-border:          rgba(0,0,0,0.06);
+    --nav-pills-bg:        rgba(0, 0, 0, 0.04);
+    --nav-pills-border:    rgba(0, 0, 0, 0.04);
+    --nav-pill-color:      rgba(0, 0, 0, 0.55);
+    --nav-pill-active-bg:  #1d1d1f;
+    --nav-pill-active-color:#ffffff;
+    --nav-button-bg:       rgba(0, 0, 0, 0.05);
+    --nav-button-color:    rgba(0, 0, 0, 0.75);
+    --nav-button-border:   rgba(0, 0, 0, 0.06);
   }
 
   .dark {
@@ -118,13 +119,10 @@
   }
 }
 
-/* ─── BACKGROUND: Parchment with faint grid (exact formulabot) ─── */
+/* ─── BACKGROUND: Clean layout ─── */
 .grid-bg {
   background-color: var(--background);
-  background-image:
-    linear-gradient(to right, rgba(0,0,0,0.04) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(0,0,0,0.04) 1px, transparent 1px);
-  background-size: 48px 48px;
+  background-image: none;
 }
 .dark .grid-bg {
   background-color: #000000;
@@ -143,13 +141,13 @@
   display: block !important;
 }
 
-/* ─── NAVBAR: Dark floating pill (exact formulabot) ─── */
+/* ─── NAVBAR: Floating glassmorphic pill ─── */
 .fb-nav {
   background: var(--nav-bg);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border-radius: 1rem;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.12), 0 0 0 1px var(--nav-border);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.06), 0 0 0 1px var(--nav-border);
 }
 .fb-nav-glowing-border {
   position: relative;
@@ -160,7 +158,7 @@
   inset: 0;
   border-radius: 1rem;
   padding: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.12), rgba(224,115,72,0.25), rgba(255,255,255,0.12), transparent);
+  background: linear-gradient(90deg, transparent, rgba(0,0,0,0.04), rgba(0,0,0,0.08), rgba(0,0,0,0.04), transparent);
   background-size: 200% auto;
   mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
@@ -215,7 +213,7 @@
 }
 
 /* ─── BUTTONS ─── */
-/* Primary: terracotta pill */
+/* Primary: dark pill */
 .btn-primary {
   background: var(--primary);
   color: #ffffff;
@@ -233,7 +231,7 @@
 .btn-primary:hover {
   filter: brightness(1.08);
   transform: translateY(-1px);
-  box-shadow: 0 4px 14px rgba(212, 102, 58, 0.4);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
 }
 .btn-primary:active {
   transform: scale(0.98);
@@ -321,9 +319,9 @@
   color: var(--foreground);
 }
 .sidebar-item.active {
-  background: rgba(212, 102, 58, 0.12);
+  background: rgba(0, 0, 0, 0.06);
   color: var(--primary);
-  border: 1px solid rgba(212, 102, 58, 0.20);
+  border: 1px solid rgba(0, 0, 0, 0.08);
 }
 .dark .sidebar-item.active {
   background: rgba(224, 115, 72, 0.15);
@@ -343,7 +341,7 @@
 
 /* ─── SELECTION ─── */
 ::selection {
-  background: rgba(212, 102, 58, 0.25);
+  background: rgba(29, 29, 31, 0.12);
   color: var(--foreground);
 }
 
@@ -362,7 +360,7 @@
 .input-clean::placeholder { color: var(--muted-foreground); }
 .input-clean:focus {
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(212, 102, 58, 0.15);
+  box-shadow: 0 0 0 3px rgba(29, 29, 31, 0.1);
 }
 
 /* ─── TRANSITIONS ─── */
