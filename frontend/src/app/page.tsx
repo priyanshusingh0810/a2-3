@@ -779,20 +779,53 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Upload card and details */}
-        <div className="relative z-10 flex flex-col items-center justify-center">
-          <div className="w-20 h-20 rounded-2xl flex items-center justify-center mb-6 shadow-lg backdrop-blur-sm transition-all duration-300 hover:scale-105 hover:border-primary/40" style={{background:'rgba(0,0,0,0.04)', border:'1px solid rgba(0,0,0,0.08)'}}>
-            <Upload size={32} style={{color:'var(--primary)'}} />
+        {/* Upload hero */}
+        <div className="relative z-10 flex flex-col items-center justify-center max-w-3xl mx-auto w-full">
+          {/* Upload zone */}
+          <motion.div initial={{opacity:0,y:20,scale:0.97}} animate={{opacity:1,y:0,scale:1}} transition={{type:'spring',stiffness:240,damping:22}}>
+            <label className="group block cursor-pointer">
+              <div className="relative border-2 border-dashed rounded-3xl p-12 text-center transition-all duration-500"
+                style={{borderColor:'var(--border)', background:'var(--card)'}}
+                onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--primary)')}
+                onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border)')}
+              >
+                <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-5 transition-transform duration-300 group-hover:scale-110" style={{background:'var(--secondary)', border:'1px solid var(--border)'}}>
+                  <Upload size={28} style={{color:'var(--primary)'}} />
+                </div>
+                <h2 className="font-outfit font-extrabold text-2xl tracking-tight mb-2" style={{color:'var(--foreground)'}}>Drop your dataset here</h2>
+                <p className="text-sm leading-relaxed max-w-sm mx-auto mb-6" style={{color:'var(--muted-foreground)'}}>
+                  CSV, Excel (.xlsx, .xls), or JSON — our AI agents will handle the rest automatically.
+                </p>
+                <div className="inline-flex items-center gap-2 px-6 py-3 rounded-full font-semibold text-sm transition-all duration-300"
+                  style={{background:'var(--primary)', color:'var(--primary-foreground)'}}>
+                  <Upload size={14} /> Browse files
+                </div>
+                <p className="text-[11px] mt-4" style={{color:'var(--muted-foreground)'}}>or drag and drop anywhere in this area</p>
+                <input type="file" accept=".csv,.xlsx,.xls,.json" onChange={handleFileUpload} className="hidden" />
+              </div>
+            </label>
+          </motion.div>
+
+          {/* Capability cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-8 w-full">
+            {[
+              { icon: '⚡', title: 'Auto-Profile', desc: 'Column types, nulls & distributions' },
+              { icon: '🤖', title: 'AI Insights', desc: 'GPT-powered business commentary' },
+              { icon: '📊', title: 'Visual Charts', desc: 'Auto-generated Plotly dashboards' },
+              { icon: '📄', title: 'PDF Reports', desc: 'One-click executive reports' },
+            ].map((cap, i) => (
+              <motion.div key={i}
+                initial={{opacity:0, y:12}} animate={{opacity:1, y:0}}
+                transition={{type:'spring', stiffness:260, damping:22, delay: 0.1 + i * 0.07}}
+                className="p-4 rounded-2xl text-left group cursor-default"
+                style={{background:'var(--card)', border:'1px solid var(--border)'}}
+              >
+                <div className="text-xl mb-2">{cap.icon}</div>
+                <p className="font-semibold text-xs mb-1" style={{color:'var(--foreground)'}}>{cap.title}</p>
+                <p className="text-[11px] leading-relaxed" style={{color:'var(--muted-foreground)'}}>{cap.desc}</p>
+              </motion.div>
+            ))}
           </div>
-          <h2 className="font-outfit font-extrabold text-2xl tracking-tight mb-3" style={{color:'var(--foreground)'}}>Upload your first dataset</h2>
-          <p className="text-sm mb-8 max-w-md leading-relaxed" style={{color:'var(--muted-foreground)'}}>
-            Upload a CSV, Excel, or JSON file. Our AI agents will automatically profile, clean, and analyze your data.
-          </p>
-          <label className="btn-primary cursor-pointer shadow-lg transition-all duration-300 hover:shadow-xl group">
-            <Upload size={16} className="transition-transform group-hover:-translate-y-0.5" /> <span>Choose a file to upload</span>
-            <input type="file" accept=".csv,.xlsx,.xls,.json" onChange={handleFileUpload} className="hidden" />
-          </label>
-          <p className="text-[11px] mt-4" style={{color:'var(--muted-foreground)'}}>Supports CSV, Excel (.xlsx), and JSON formats</p>
         </div>
       </div>
     );
@@ -846,41 +879,56 @@ export default function Home() {
               </span>
             )}
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {selectedDataset.columns_metadata && Object.entries(selectedDataset.columns_metadata).map(([colName, meta]: [string, any], i) => (
-              <motion.div 
-                key={colName}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.35, delay: i * 0.03 }}
-                whileHover={{ scale: 1.02, y: -2, boxShadow: '0 8px 24px rgba(0,0,0,0.06)' }}
-                className="p-4 rounded-xl transition-all relative overflow-hidden group" 
-                style={{background:'var(--secondary)', border:'1px solid var(--border)'}}
-              >
-                {/* Subtle sheen overlay */}
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:animate-shimmer pointer-events-none" />
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-mono text-xs font-semibold truncate" style={{color:'var(--foreground)'}}>{colName}</span>
-                  <span className="text-[9px] px-2 py-0.5 rounded font-mono uppercase font-bold" style={{background:'var(--muted)', color:'var(--muted-foreground)'}}>{meta.data_type}</span>
-                </div>
-                <p className="text-xs leading-relaxed mb-3" style={{color:'var(--muted-foreground)'}}>{meta.description || 'Column descriptor.'}</p>
-                <div className="flex gap-3 text-[10px] font-mono" style={{color:'var(--muted-foreground)'}}>
-                  <span>Nulls: {meta.null_percentage?.toFixed(1)}%</span>
-                  <span>Unique: {meta.unique_count}</span>
-                </div>
-              </motion.div>
-            ))}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {selectedDataset.columns_metadata && Object.entries(selectedDataset.columns_metadata).map(([colName, meta]: [string, any], i) => {
+              const typeColors: Record<string,{bg:string,text:string}> = {
+                int64:    {bg:'rgba(59,130,246,0.08)', text:'#3b82f6'},
+                float64:  {bg:'rgba(99,102,241,0.08)', text:'#6366f1'},
+                object:   {bg:'rgba(16,185,129,0.08)', text:'#10b981'},
+                bool:     {bg:'rgba(245,158,11,0.08)', text:'#f59e0b'},
+                datetime: {bg:'rgba(168,85,247,0.08)', text:'#a855f7'},
+              };
+              const typeColor = typeColors[meta.data_type] || {bg:'var(--secondary)', text:'var(--muted-foreground)'};
+              return (
+                <motion.div 
+                  key={colName}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: i * 0.025 }}
+                  whileHover={{ scale: 1.02, y: -2 }}
+                  className="p-4 rounded-xl relative overflow-hidden group" 
+                  style={{background:'var(--card)', border:'1px solid var(--border)'}}
+                >
+                  {/* Type color accent bar */}
+                  <div className="absolute top-0 left-0 w-0.5 h-full rounded-l-xl" style={{background:typeColor.text}} />
+                  <div className="pl-2">
+                    <div className="flex items-start justify-between mb-1.5 gap-2">
+                      <span className="font-mono text-xs font-bold truncate leading-tight" style={{color:'var(--foreground)'}}>{colName}</span>
+                      <span className="text-[9px] px-1.5 py-0.5 rounded-md font-mono uppercase font-bold shrink-0 mt-0.5" style={{background:typeColor.bg, color:typeColor.text}}>{meta.data_type}</span>
+                    </div>
+                    <p className="text-[11px] leading-relaxed mb-3" style={{color:'var(--muted-foreground)'}}>{meta.description || 'AI-generated column descriptor.'}</p>
+                    <div className="flex gap-4 text-[10px]" style={{color:'var(--muted-foreground)'}}>
+                      <span className="flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full" style={{background: meta.null_percentage > 10 ? '#f59e0b' : '#10b981'}} />
+                        {meta.null_percentage?.toFixed(1)}% null
+                      </span>
+                      <span>{meta.unique_count?.toLocaleString()} unique</span>
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })}
           </div>
         </div>
 
         {/* Data preview grid */}
         {previewData && (
           <div className="glass-panel p-6">
-            <div className="flex items-center gap-2 mb-5">
-              <FileText size={18} style={{color:'var(--primary)'}} />
-              <h3 className="font-semibold text-base" style={{color:'var(--foreground)'}}>Raw Data Preview
-                <span className="ml-2 text-xs font-normal" style={{color:'var(--muted-foreground)'}}>({selectedDataset.row_count} rows total)</span>
-              </h3>
+            <div className="flex items-center gap-2.5 mb-5">
+              <div className="w-1 h-5 rounded-full" style={{background:'var(--primary)'}} />
+              <FileText size={16} style={{color:'var(--primary)'}} />
+              <h3 className="font-outfit font-bold text-base tracking-tight" style={{color:'var(--foreground)'}}>Raw Data Preview</h3>
+              <span className="text-[10px] font-medium px-2 py-0.5 rounded-full" style={{background:'var(--secondary)', color:'var(--muted-foreground)'}}>{selectedDataset.row_count?.toLocaleString()} rows</span>
             </div>
             <PreviewGrid columns={previewData.columns} rows={previewData.rows} columnsMeta={selectedDataset.columns_metadata} />
           </div>
@@ -891,11 +939,14 @@ export default function Home() {
 
   const renderDashboard = () => {
     if (!dashboards?.layout) return (
-      <div className="flex flex-col items-center justify-center py-32 text-center">
-        <LayoutDashboard size={40} className="mb-4" style={{color:'var(--muted-foreground)'}} />
+      <motion.div initial={{opacity:0,y:16}} animate={{opacity:1,y:0}} transition={{duration:0.4}}
+        className="glass-panel flex flex-col items-center justify-center py-32 text-center">
+        <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-5" style={{background:'var(--secondary)', border:'1px solid var(--border)'}}>
+          <LayoutDashboard size={28} style={{color:'var(--muted-foreground)'}} />
+        </div>
         <h3 className="font-outfit font-extrabold text-xl tracking-tight mb-2" style={{color:'var(--foreground)'}}>Dashboard not ready</h3>
-        <p className="text-sm" style={{color:'var(--muted-foreground)'}}>Select a dataset and wait for profiling to complete.</p>
-      </div>
+        <p className="text-sm max-w-xs" style={{color:'var(--muted-foreground)'}}>Select a dataset and run profiling to generate your AI dashboard.</p>
+      </motion.div>
     );
 
     const kpiWidgets   = dashboards.layout.filter((w: any) => w.type === 'kpi');
@@ -1087,13 +1138,18 @@ export default function Home() {
   const renderForecast = () => {
     const hasForecast = analysisJob?.insights?.forecast_chart !== undefined;
     return (
-      <div className="glass-panel p-8 space-y-8">
-        <div>
-          <h3 className="font-outfit font-extrabold text-xl tracking-tight flex items-center gap-2.5 mb-2" style={{color:'var(--foreground)'}}>
-            <LineChart style={{color:'#10b981'}} size={22}/> Auto Time-Series Trend Forecaster
-          </h3>
-          <p className="text-sm" style={{color:'var(--muted-foreground)'}}>A3 scans columns, isolates date index, and fits predictive regression trends locally.</p>
+      <div className="space-y-5">
+        {/* Section header */}
+        <div className="glass-panel p-6 flex items-center gap-4">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{background:'rgba(16,185,129,0.08)', border:'1px solid rgba(16,185,129,0.15)'}}>
+            <LineChart size={20} style={{color:'#10b981'}}/>
+          </div>
+          <div>
+            <h3 className="font-outfit font-extrabold text-lg tracking-tight" style={{color:'var(--foreground)'}}>Time-Series Trend Forecaster</h3>
+            <p className="text-sm" style={{color:'var(--muted-foreground)'}}>A3 scans columns, isolates date index, and fits predictive regression trends locally.</p>
+          </div>
         </div>
+
         {hasForecast ? (
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
             <AnimatedTile className="xl:col-span-2 p-5" delay={0.05}>
@@ -1104,130 +1160,194 @@ export default function Home() {
                 initial={{ opacity: 0, x: 15 }} 
                 animate={{ opacity: 1, x: 0 }} 
                 transition={{ duration: 0.4, delay: 0.1 }}
-                whileHover={{ scale: 1.01, y: -2 }}
                 className="p-5 rounded-2xl" 
-                style={{background:'rgba(16,185,129,0.06)', border:'1px solid rgba(16,185,129,0.15)'}}
+                style={{background:'rgba(16,185,129,0.05)', border:'1px solid rgba(16,185,129,0.12)'}}
               >
-                <p className="text-xs font-bold uppercase tracking-wider mb-2 flex items-center gap-1.5" style={{color:'#10b981'}}><TrendingUp size={13}/> Commentary</p>
-                <p className="text-xs italic leading-relaxed" style={{color:'var(--foreground)'}}>"{analysisJob.insights.forecast_commentary || 'Trend is stable.'}"</p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.15em] mb-3 flex items-center gap-1.5" style={{color:'#10b981'}}><TrendingUp size={12}/> AI Commentary</p>
+                <p className="text-sm leading-relaxed italic" style={{color:'var(--foreground)'}}>"{analysisJob.insights.forecast_commentary || 'Trend is stable.'}"</p>
               </motion.div>
               <motion.div 
                 initial={{ opacity: 0, x: 15 }} 
                 animate={{ opacity: 1, x: 0 }} 
-                transition={{ duration: 0.4, delay: 0.15 }}
-                whileHover={{ scale: 1.01, y: -2 }}
-                className="p-5 rounded-2xl text-xs space-y-2" 
-                style={{background:'var(--secondary)', border:'1px solid var(--border)', color:'var(--muted-foreground)'}}
+                transition={{ duration: 0.4, delay: 0.18 }}
+                className="glass-panel p-5 text-xs space-y-2.5"
               >
-                <p className="font-semibold" style={{color:'var(--foreground)'}}>Model Specs:</p>
-                <p>• Polynomial Ridge Regression (2°)</p><p>• Autoregressive seasonality</p>
-                <p>• Auto-selected numerical target</p><p>• 100% Local ($0.0 cost)</p>
+                <p className="font-outfit font-bold text-sm mb-3" style={{color:'var(--foreground)'}}>Model Specifications</p>
+                {[
+                  'Polynomial Ridge Regression (2°)',
+                  'Autoregressive seasonality detection',
+                  'Auto-selected numerical target',
+                  '100% Local · Zero API cost',
+                ].map((spec, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{background:'#10b981'}} />
+                    <span style={{color:'var(--muted-foreground)'}}>{spec}</span>
+                  </div>
+                ))}
               </motion.div>
             </div>
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-5" style={{background:'rgba(16,185,129,0.08)', border:'1px solid rgba(16,185,129,0.15)'}}>
+          <motion.div initial={{opacity:0,y:16}} animate={{opacity:1,y:0}}
+            className="glass-panel flex flex-col items-center justify-center py-24 text-center">
+            <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-5" style={{background:'rgba(16,185,129,0.06)', border:'1px solid rgba(16,185,129,0.12)'}}>
               <LineChart size={28} style={{color:'#10b981'}}/>
             </div>
-            <h4 className="font-semibold text-base mb-2" style={{color:'var(--foreground)'}}>No Forecast Available</h4>
-            <p className="text-sm max-w-md" style={{color:'var(--muted-foreground)'}}>Requires a date/time column and a numeric metric. Upload a dataset with this schema to enable forecasting.</p>
-          </div>
+            <h4 className="font-outfit font-bold text-lg tracking-tight mb-2" style={{color:'var(--foreground)'}}>No Forecast Available</h4>
+            <p className="text-sm max-w-sm leading-relaxed" style={{color:'var(--muted-foreground)'}}>Requires a date/time column and a numeric metric. Upload a dataset with time-series data to enable forecasting.</p>
+          </motion.div>
         )}
       </div>
     );
   };
 
   const renderReports = () => (
-    <div className="glass-panel p-8 space-y-6">
-      <div className="flex items-center justify-between pb-5" style={{borderBottom:'1px solid var(--border)'}}>
-        <div>
-          <h3 className="font-outfit font-extrabold text-xl tracking-tight flex items-center gap-2.5 mb-1" style={{color:'var(--foreground)'}}>
-            <FileText style={{color:'#a855f7'}} size={22}/> Executive Report Builder
-          </h3>
-          <p className="text-sm" style={{color:'var(--muted-foreground)'}}>Compile insights and charts into downloadable executive-ready PDFs.</p>
+    <div className="space-y-5">
+      {/* Section header */}
+      <div className="glass-panel p-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{background:'rgba(168,85,247,0.08)', border:'1px solid rgba(168,85,247,0.15)'}}>
+              <FileText size={18} style={{color:'#a855f7'}}/>
+            </div>
+            <div>
+              <h3 className="font-outfit font-bold text-lg tracking-tight" style={{color:'var(--foreground)'}}>Executive Reports</h3>
+              <p className="text-xs" style={{color:'var(--muted-foreground)'}}>Compile insights into downloadable executive-ready PDFs.</p>
+            </div>
+          </div>
+          <button onClick={handleGenerateReport} disabled={reportGenerating || analysisJob?.status !== 'completed'}
+            className="flex items-center gap-2 text-sm font-semibold px-5 py-2.5 rounded-full transition disabled:opacity-40"
+            style={{background:'#a855f7', color:'#fff'}}>
+            {reportGenerating ? <Loader2 size={13} className="animate-spin"/> : <Sparkles size={13}/>}
+            {reportGenerating ? 'Building...' : 'Generate Report'}
+          </button>
         </div>
-        <button onClick={handleGenerateReport} disabled={reportGenerating || analysisJob?.status !== 'completed'}
-          className="flex items-center gap-2 text-xs font-semibold px-5 py-2.5 rounded-full transition disabled:opacity-50"
-          style={{background:'#a855f7', color:'#fff'}}>
-          {reportGenerating ? <Loader2 size={13} className="animate-spin"/> : <FileText size={13}/>} Generate Report
-        </button>
       </div>
+
+      {/* Reports list */}
       <div className="space-y-3">
         {reports.length > 0 ? reports.map((rep, i) => (
           <motion.div 
             key={rep.id} 
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: i * 0.05 }}
-            whileHover={{ scale: 1.01, y: -2, boxShadow: '0 8px 24px rgba(0,0,0,0.04)' }}
-            className="flex items-center justify-between p-5 rounded-2xl transition" 
-            style={{background:'var(--secondary)', border:'1px solid var(--border)'}}
+            transition={{ type:'spring', stiffness:260, damping:22, delay: i * 0.05 }}
+            className="glass-panel flex items-center gap-4 p-5" 
           >
-            <div>
-              <h4 className="font-semibold text-sm mb-1" style={{color:'var(--foreground)'}}>{rep.title}</h4>
-              <p className="text-xs flex items-center gap-1.5" style={{color:'var(--muted-foreground)'}}><Calendar size={11}/>{new Date(rep.created_at).toLocaleDateString()}</p>
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{background:'rgba(168,85,247,0.06)', border:'1px solid rgba(168,85,247,0.12)'}}>
+              <FileText size={16} style={{color:'#a855f7'}}/>
+            </div>
+            <div className="flex-grow min-w-0">
+              <h4 className="font-semibold text-sm truncate mb-0.5" style={{color:'var(--foreground)'}}>{rep.title}</h4>
+              <p className="text-[11px] flex items-center gap-1.5" style={{color:'var(--muted-foreground)'}}><Calendar size={11}/>{new Date(rep.created_at).toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'})}</p>
             </div>
             <button onClick={() => handleDownloadReport(rep.id, rep.title)}
-              className="p-3 rounded-xl transition" style={{background:'rgba(0,0,0,0.04)', color:'var(--primary)', border:'1px solid rgba(0,0,0,0.08)'}}>
-              <Download size={15}/>
+              className="flex items-center gap-2 text-xs font-semibold px-3.5 py-2 rounded-xl transition"
+              style={{background:'var(--secondary)', color:'var(--foreground)', border:'1px solid var(--border)'}}>
+              <Download size={13}/> Download
             </button>
           </motion.div>
         )) : (
-          <div className="text-center py-16 rounded-2xl border-2 border-dashed text-sm" style={{borderColor:'var(--border)', color:'var(--muted-foreground)'}}>
-            No reports yet. Click 'Generate Report' to build one.
-          </div>
+          <motion.div initial={{opacity:0,y:16}} animate={{opacity:1,y:0}}
+            className="glass-panel flex flex-col items-center justify-center py-24 text-center">
+            <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-5" style={{background:'rgba(168,85,247,0.06)', border:'1px solid rgba(168,85,247,0.12)'}}>
+              <FileText size={28} style={{color:'#a855f7'}}/>
+            </div>
+            <h4 className="font-outfit font-bold text-lg tracking-tight mb-2" style={{color:'var(--foreground)'}}>No reports yet</h4>
+            <p className="text-sm max-w-xs leading-relaxed mb-6" style={{color:'var(--muted-foreground)'}}>Click "Generate Report" to compile your AI insights into a professional PDF.</p>
+            <button onClick={handleGenerateReport} disabled={reportGenerating || analysisJob?.status !== 'completed'}
+              className="flex items-center gap-2 text-sm font-semibold px-5 py-2.5 rounded-full transition disabled:opacity-40"
+              style={{background:'#a855f7', color:'#fff'}}>
+              {reportGenerating ? <Loader2 size={13} className="animate-spin"/> : <Sparkles size={13}/>}
+              Generate First Report
+            </button>
+          </motion.div>
         )}
       </div>
     </div>
   );
 
   const renderSettings = () => (
-    <div className="glass-panel p-8 max-w-2xl mx-auto space-y-6">
-      <div>
-        <h3 className="font-playfair font-bold text-xl flex items-center gap-2.5 mb-1" style={{color:'var(--foreground)'}}>
-          <Settings style={{color:'var(--primary)'}} size={22}/> AI Model Settings
-        </h3>
-        <p className="text-sm" style={{color:'var(--muted-foreground)'}}>Configure the LLM provider powering your AI agents.</p>
-      </div>
-      <form onSubmit={handleSaveSettings} className="space-y-5">
-        {settingsMessage && (
-          <div className={`p-4 rounded-xl text-xs flex items-center gap-2 ${settingsMessage.type==='success'?'text-green-600':'text-red-500'}`}
-            style={{background:settingsMessage.type==='success'?'rgba(16,185,129,0.08)':'rgba(239,68,68,0.08)', border:`1px solid ${settingsMessage.type==='success'?'rgba(16,185,129,0.2)':'rgba(239,68,68,0.2)'}`}}>
-            {settingsMessage.type==='success'?<CheckCircle2 size={14}/>:<AlertTriangle size={14}/>} {settingsMessage.text}
-          </div>
-        )}
-        <div className="space-y-2">
-          <label className="text-xs font-semibold block" style={{color:'var(--foreground)'}}>LLM Provider</label>
-          <select value={llmProvider} onChange={e => { const p=e.target.value as any; setLlmProvider(p); if(p==='gemini')setLlmModel('gemini-2.5-flash'); else if(p==='openai')setLlmModel('gpt-4o-mini'); else if(p==='ollama')setLlmModel('qwen2.5:latest'); else setLlmModel(''); }}
-            className="w-full p-3 text-xs rounded-xl outline-none" style={{background:'var(--secondary)', border:'1px solid var(--border)', color:'var(--foreground)'}}>
-            <option value="default">System Default (Gemini/Ollama/Mock)</option>
-            <option value="gemini">Google Gemini API</option>
-            <option value="openai">OpenAI API</option>
-            <option value="ollama">Local Ollama</option>
-            <option value="mock">Local Heuristic Mock</option>
-          </select>
+    <div className="max-w-2xl mx-auto space-y-5">
+      {/* Header */}
+      <div className="glass-panel p-6">
+        <div className="flex items-center gap-3 mb-1">
+          <div className="w-1 h-5 rounded-full" style={{background:'var(--primary)'}} />
+          <h3 className="font-outfit font-extrabold text-xl tracking-tight" style={{color:'var(--foreground)'}}>Settings</h3>
         </div>
-        {llmProvider !== 'default' && llmProvider !== 'mock' && (
+        <p className="text-sm" style={{color:'var(--muted-foreground)'}}>Configure the AI model provider powering your analytics agents.</p>
+      </div>
+
+      {/* Status message */}
+      {settingsMessage && (
+        <motion.div initial={{opacity:0,y:-6}} animate={{opacity:1,y:0}}
+          className="p-4 rounded-2xl text-sm flex items-center gap-3"
+          style={{background:settingsMessage.type==='success'?'rgba(16,185,129,0.06)':'rgba(239,68,68,0.06)', border:`1px solid ${settingsMessage.type==='success'?'rgba(16,185,129,0.2)':'rgba(239,68,68,0.2)'}`, color:settingsMessage.type==='success'?'#10b981':'#ef4444'}}>
+          {settingsMessage.type==='success'?<CheckCircle2 size={16}/>:<AlertTriangle size={16}/>}
+          <span>{settingsMessage.text}</span>
+        </motion.div>
+      )}
+
+      {/* LLM Configuration card */}
+      <div className="glass-panel p-6 space-y-5">
+        <div className="flex items-center gap-2.5 pb-4" style={{borderBottom:'1px solid var(--border)'}}>
+          <Sparkles size={16} style={{color:'var(--primary)'}} />
+          <h4 className="font-outfit font-bold text-base tracking-tight" style={{color:'var(--foreground)'}}>AI Model Configuration</h4>
+        </div>
+        <form onSubmit={handleSaveSettings} className="space-y-5">
           <div className="space-y-2">
-            <label className="text-xs font-semibold block" style={{color:'var(--foreground)'}}>Model Name</label>
-            <input value={llmModel} onChange={e => setLlmModel(e.target.value)}
-              placeholder={llmProvider==='gemini'?'e.g., gemini-2.5-flash':llmProvider==='openai'?'e.g., gpt-4o-mini':'e.g., qwen2.5:latest'}
-              className="w-full p-3 text-xs rounded-xl outline-none" style={{background:'var(--secondary)', border:'1px solid var(--border)', color:'var(--foreground)'}}/>
+            <label className="text-xs font-semibold uppercase tracking-wider block" style={{color:'var(--muted-foreground)'}}>LLM Provider</label>
+            <select value={llmProvider} onChange={e => { const p=e.target.value as any; setLlmProvider(p); if(p==='gemini')setLlmModel('gemini-2.5-flash'); else if(p==='openai')setLlmModel('gpt-4o-mini'); else if(p==='ollama')setLlmModel('qwen2.5:latest'); else setLlmModel(''); }}
+              className="w-full px-4 py-3 text-sm rounded-xl outline-none transition-all" style={{background:'var(--secondary)', border:'1px solid var(--border)', color:'var(--foreground)'}}>
+              <option value="default">System Default (Gemini / Ollama / Mock)</option>
+              <option value="gemini">Google Gemini API</option>
+              <option value="openai">OpenAI API</option>
+              <option value="ollama">Local Ollama</option>
+              <option value="mock">Local Heuristic Mock</option>
+            </select>
           </div>
-        )}
-        {llmProvider !== 'default' && llmProvider !== 'ollama' && llmProvider !== 'mock' && (
-          <div className="space-y-2">
-            <label className="text-xs font-semibold block" style={{color:'var(--foreground)'}}>API Key</label>
-            <input type="password" value={llmApiKey} onChange={e => setLlmApiKey(e.target.value)}
-              placeholder="Enter your API key"
-              className="w-full p-3 text-xs rounded-xl outline-none" style={{background:'var(--secondary)', border:'1px solid var(--border)', color:'var(--foreground)'}}/>
+          {llmProvider !== 'default' && llmProvider !== 'mock' && (
+            <div className="space-y-2">
+              <label className="text-xs font-semibold uppercase tracking-wider block" style={{color:'var(--muted-foreground)'}}>Model Name</label>
+              <input value={llmModel} onChange={e => setLlmModel(e.target.value)}
+                placeholder={llmProvider==='gemini'?'e.g., gemini-2.5-flash':llmProvider==='openai'?'e.g., gpt-4o-mini':'e.g., qwen2.5:latest'}
+                className="w-full px-4 py-3 text-sm rounded-xl outline-none" style={{background:'var(--secondary)', border:'1px solid var(--border)', color:'var(--foreground)'}}/>
+            </div>
+          )}
+          {llmProvider !== 'default' && llmProvider !== 'ollama' && llmProvider !== 'mock' && (
+            <div className="space-y-2">
+              <label className="text-xs font-semibold uppercase tracking-wider block" style={{color:'var(--muted-foreground)'}}>API Key</label>
+              <input type="password" value={llmApiKey} onChange={e => setLlmApiKey(e.target.value)}
+                placeholder="Enter your API key"
+                className="w-full px-4 py-3 text-sm rounded-xl outline-none" style={{background:'var(--secondary)', border:'1px solid var(--border)', color:'var(--foreground)'}}/>
+            </div>
+          )}
+          <button type="submit" disabled={settingsLoading}
+            className="btn-primary w-full py-3 flex items-center justify-center gap-2 text-sm disabled:opacity-50 rounded-xl">
+            {settingsLoading ? <Loader2 size={14} className="animate-spin"/> : <Check size={14}/>}
+            {settingsLoading ? 'Saving...' : 'Save Configuration'}
+          </button>
+        </form>
+      </div>
+
+      {/* Danger zone */}
+      <div className="glass-panel p-6">
+        <div className="flex items-center gap-2.5 pb-4 mb-4" style={{borderBottom:'1px solid var(--border)'}}>
+          <AlertTriangle size={16} style={{color:'#ef4444'}} />
+          <h4 className="font-outfit font-bold text-base tracking-tight" style={{color:'#ef4444'}}>Danger Zone</h4>
+        </div>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium" style={{color:'var(--foreground)'}}>Sign out of A3 Analyst</p>
+            <p className="text-xs" style={{color:'var(--muted-foreground)'}}>You will be returned to the login screen.</p>
           </div>
-        )}
-        <button type="submit" disabled={settingsLoading} className="btn-primary w-full py-3 flex items-center justify-center gap-2 disabled:opacity-50">
-          {settingsLoading && <Loader2 size={14} className="animate-spin"/>} Save Configuration
-        </button>
-      </form>
+          <button onClick={handleLogout}
+            className="flex items-center gap-2 text-xs font-semibold px-4 py-2.5 rounded-xl transition"
+            style={{background:'rgba(239,68,68,0.06)', color:'#ef4444', border:'1px solid rgba(239,68,68,0.2)'}}>
+            <LogOut size={13}/> Sign Out
+          </button>
+        </div>
+      </div>
     </div>
   );
 
