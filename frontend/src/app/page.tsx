@@ -661,7 +661,7 @@ export default function Home() {
           ].map((stat, i) => (
             <AnimatedTile key={i} className="text-center p-5" delay={i * 0.05}>
               <p className="text-xs font-semibold uppercase tracking-widest mb-1" style={{color:'var(--muted-foreground)'}}>{stat.label}</p>
-              <p className="font-playfair font-bold text-2xl" style={{color:'var(--foreground)'}}>{stat.value}</p>
+              <p className="font-outfit font-bold text-3xl tracking-tight" style={{color:'var(--foreground)'}}>{stat.value}</p>
             </AnimatedTile>
           ))}
         </div>
@@ -737,7 +737,7 @@ export default function Home() {
           ].map((kpi: any, i) => (
             <AnimatedTile key={kpi.id} className="p-5" delay={i * 0.05}>
               <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{color:'var(--muted-foreground)'}}>{kpi.title}</p>
-              <p className="font-playfair font-bold text-2xl mb-1 truncate" style={{color:'var(--foreground)'}}>{kpi.config.value}</p>
+              <p className="font-outfit font-bold text-3xl tracking-tight mb-1 truncate" style={{color:'var(--foreground)'}}>{kpi.config.value}</p>
               <p className="text-xs" style={{color:'var(--muted-foreground)'}}>{kpi.config.label}</p>
             </AnimatedTile>
           ))}

@@ -46,6 +46,7 @@ module.exports = {
       fontFamily: {
         sans:      ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
         playfair:  ['"Playfair Display"', 'Georgia', 'serif'],
+        outfit:    ['Outfit', 'sans-serif'],
         mono:      ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
       },
       borderRadius: {
