@@ -1272,11 +1272,11 @@ export default function Home() {
               alt="A3 Logo" 
               className="w-7 h-7 rounded-full object-cover border border-white/20"
             />
-            <span className="font-playfair font-bold text-white text-lg tracking-tight">A3 <span className="font-sans font-normal text-sm opacity-60">Analyst</span></span>
+            <span className="font-playfair font-bold text-lg tracking-tight" style={{ color: 'var(--nav-foreground)' }}>A3 <span className="font-sans font-normal text-sm opacity-60">Analyst</span></span>
           </div>
 
           {/* Center: Tab navigation pills */}
-          <div className="hidden md:flex items-center gap-1 p-1 rounded-full relative z-10" style={{background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.04)', transform: 'translateZ(10px)'}}>
+          <div className="hidden md:flex items-center gap-1 p-1 rounded-full relative z-10" style={{background:'var(--nav-pills-bg)', border:'1px solid var(--nav-pills-border)', transform: 'translateZ(10px)'}}>
             {TABS.map(tab => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -1287,7 +1287,7 @@ export default function Home() {
                   disabled={isDisabled}
                   className="relative flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold transition-all select-none"
                   style={{
-                    color: isActive ? '#000000' : 'rgba(255,255,255,0.65)',
+                    color: isActive ? 'var(--nav-pill-active-color)' : 'var(--nav-pill-color)',
                     cursor: isDisabled ? 'not-allowed' : 'pointer',
                     opacity: isDisabled ? 0.35 : 1
                   }}
@@ -1295,7 +1295,8 @@ export default function Home() {
                   {isActive && (
                     <motion.div 
                       layoutId="activeTabPill" 
-                      className="absolute inset-0 bg-white rounded-full z-0 shadow-[0_2px_8px_rgba(255,255,255,0.15)]"
+                      className="absolute inset-0 rounded-full z-0 shadow-[0_2px_8px_rgba(0,0,0,0.06)]"
+                      style={{ background: 'var(--nav-pill-active-bg)' }}
                       transition={{ type: 'spring', stiffness: 380, damping: 30 }}
                     />
                   )}
@@ -1313,19 +1314,19 @@ export default function Home() {
             <div className="relative">
               <button onClick={() => setDatasetMenuOpen(p => !p)}
                 className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition"
-                style={{background:'rgba(255,255,255,0.10)', color:'rgba(255,255,255,0.8)', border:'1px solid rgba(255,255,255,0.12)'}}>
+                style={{background:'var(--nav-button-bg)', color:'var(--nav-button-color)', border:'1px solid var(--nav-button-border)'}}>
                 <Database size={12}/>
                 <span className="max-w-[120px] truncate">{selectedDataset?.name || 'Select dataset'}</span>
                 <ChevronDown size={11} className={`transition-transform ${datasetMenuOpen ? 'rotate-180' : ''}`}/>
               </button>
               {datasetMenuOpen && (
                 <div className="absolute right-0 top-full mt-2 w-64 rounded-2xl overflow-hidden shadow-2xl z-50"
-                  style={{background:'rgba(15,15,15,0.96)', border:'1px solid rgba(255,255,255,0.10)', backdropFilter:'blur(16px)'}}>
+                  style={{background:'var(--popover)', border:'1px solid var(--border)', backdropFilter:'blur(16px)'}}>
                   <div className="p-2">
                     {datasets.map(ds => (
                       <button key={ds.id} onClick={() => { setSelectedDatasetId(ds.id); setDatasetMenuOpen(false); }}
                         className="w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl text-xs text-left transition group"
-                        style={{color: ds.id===selectedDatasetId ? 'white' : 'rgba(255,255,255,0.6)', background: ds.id===selectedDatasetId ? 'rgba(255,255,255,0.12)' : 'transparent'}}>
+                        style={{color: ds.id===selectedDatasetId ? 'var(--foreground)' : 'var(--muted-foreground)', background: ds.id===selectedDatasetId ? 'var(--secondary)' : 'transparent'}}>
                         <div className="flex items-center gap-2 min-w-0">
                           <Database size={12} style={{color:'var(--primary)'}} className="shrink-0"/>
                           <span className="truncate">{ds.name}</span>
@@ -1335,9 +1336,9 @@ export default function Home() {
                         </button>
                       </button>
                     ))}
-                    {datasets.length === 0 && <p className="text-center py-4 text-xs" style={{color:'rgba(255,255,255,0.4)'}}>No datasets</p>}
+                    {datasets.length === 0 && <p className="text-center py-4 text-xs" style={{color:'var(--muted-foreground)'}}>No datasets</p>}
                   </div>
-                  <div className="p-2 pt-0" style={{borderTop:'1px solid rgba(255,255,255,0.06)'}}>
+                  <div className="p-2 pt-0" style={{borderTop:'1px solid var(--border)'}}>
                     <label className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs cursor-pointer w-full transition" style={{color:'var(--primary)', background:'rgba(212,102,58,0.12)'}}>
                       {uploadProgress ? <Loader2 size={12} className="animate-spin"/> : <Plus size={12}/>}
                       {uploadProgress ? 'Uploading...' : 'Upload new dataset'}
@@ -1352,7 +1353,7 @@ export default function Home() {
 
             {/* User + logout */}
             <button onClick={handleLogout} title="Log Out"
-              className="p-2 rounded-full transition" style={{color:'rgba(255,255,255,0.55)', background:'rgba(255,255,255,0.08)'}}>
+              className="p-2 rounded-full transition" style={{color:'var(--nav-button-color)', background:'var(--nav-button-bg)'}}>
               <LogOut size={14}/>
             </button>
           </div>

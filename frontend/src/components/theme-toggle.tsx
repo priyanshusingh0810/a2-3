@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useTheme } from "next-themes";
-import { Moon, Sun } from "lucide-react";
+import { Moon, Sun, Laptop } from "lucide-react";
 
 export function ThemeToggle() {
   const { setTheme, theme, resolvedTheme } = useTheme();
@@ -12,22 +12,47 @@ export function ThemeToggle() {
 
   if (!mounted) return null;
 
-  const isDark = resolvedTheme === 'dark';
+  const currentTheme = theme || resolvedTheme || 'light';
+
+  const cycleTheme = () => {
+    if (currentTheme === 'light') {
+      setTheme('dark');
+    } else if (currentTheme === 'dark') {
+      setTheme('apple');
+    } else {
+      setTheme('light');
+    }
+  };
+
+  const getThemeInfo = () => {
+    switch (currentTheme) {
+      case 'light':
+        return { icon: <Sun size={15} style={{color:'var(--primary)'}} />, label: "Formula Light", next: "Dark" };
+      case 'dark':
+        return { icon: <Moon size={15} style={{color:'#60a5fa'}} />, label: "WebGL Dark", next: "Apple White" };
+      case 'apple':
+        return { icon: <Laptop size={15} style={{color:'var(--foreground)'}} />, label: "Apple White", next: "Formula Light" };
+      default:
+        return { icon: <Sun size={15} />, label: "Formula Light", next: "Dark" };
+    }
+  };
+
+  const { icon, label, next } = getThemeInfo();
 
   return (
     <button
-      onClick={() => setTheme(isDark ? "light" : "dark")}
-      className="p-2 rounded-lg transition-all"
+      onClick={cycleTheme}
+      className="p-2 rounded-lg transition-all flex items-center justify-center"
       style={{
         color: 'var(--muted-foreground)',
         background: 'transparent',
       }}
-      onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--muted)')}
+      onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--nav-button-bg)')}
       onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
       aria-label="Toggle theme"
-      title={isDark ? "Switch to light mode" : "Switch to dark mode"}
+      title={`Current: ${label}. Click to switch to ${next}.`}
     >
-      {isDark ? <Sun size={15} /> : <Moon size={15} />}
+      {icon}
     </button>
   );
 }
