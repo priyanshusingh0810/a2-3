@@ -51,6 +51,26 @@ try:
                 conn.execute(text("ALTER TABLE users ADD COLUMN llm_provider VARCHAR(50) DEFAULT 'default';"))
                 conn.execute(text("ALTER TABLE users ADD COLUMN llm_model VARCHAR(100);"))
                 conn.execute(text("ALTER TABLE users ADD COLUMN llm_api_key VARCHAR(255);"))
+
+            # Check for analysis_jobs new columns
+            new_job_cols_pg = [
+                ("statistical_report", "JSON"),
+                ("ml_report", "JSON"),
+                ("business_report", "JSON"),
+                ("research_report", "JSON"),
+                ("presentation_deck", "JSON"),
+                ("scenario_simulations", "JSON"),
+                ("explanation_mode_reports", "JSON"),
+                ("agent_run_history", "JSON"),
+            ]
+            for col_name, col_type in new_job_cols_pg:
+                has_col = conn.execute(text(
+                    f"SELECT EXISTS (SELECT 1 FROM information_schema.columns "
+                    f"WHERE table_name='analysis_jobs' AND column_name='{col_name}');"
+                )).scalar()
+                if not has_col:
+                    logger.info(f"Adding column {col_name} to analysis_jobs table...")
+                    conn.execute(text(f"ALTER TABLE analysis_jobs ADD COLUMN {col_name} {col_type};"))
         else:
             # SQLite
             res_datasets = conn.execute(text("PRAGMA table_info(datasets);")).fetchall()
@@ -72,6 +92,23 @@ try:
                 conn.execute(text("ALTER TABLE users ADD COLUMN llm_provider TEXT DEFAULT 'default';"))
                 conn.execute(text("ALTER TABLE users ADD COLUMN llm_model TEXT;"))
                 conn.execute(text("ALTER TABLE users ADD COLUMN llm_api_key TEXT;"))
+
+            res_analysis = conn.execute(text("PRAGMA table_info(analysis_jobs);")).fetchall()
+            cols_analysis = [r[1] for r in res_analysis]
+            new_job_cols_lite = [
+                ("statistical_report", "TEXT"),
+                ("ml_report", "TEXT"),
+                ("business_report", "TEXT"),
+                ("research_report", "TEXT"),
+                ("presentation_deck", "TEXT"),
+                ("scenario_simulations", "TEXT"),
+                ("explanation_mode_reports", "TEXT"),
+                ("agent_run_history", "TEXT"),
+            ]
+            for col_name, col_type in new_job_cols_lite:
+                if col_name not in cols_analysis:
+                    logger.info(f"Adding column {col_name} to analysis_jobs table...")
+                    conn.execute(text(f"ALTER TABLE analysis_jobs ADD COLUMN {col_name} {col_type};"))
 except Exception as e:
     logger.error(f"Error checking/adding columns to DB: {e}")
 

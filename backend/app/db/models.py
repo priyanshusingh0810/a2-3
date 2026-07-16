@@ -55,11 +55,20 @@ class AnalysisJob(Base):
     quality_report = Column(JSON, nullable=True) # quality, duplicates, issues
     insights = Column(JSON, nullable=True) # structured insights
     anomalies = Column(JSON, nullable=True) # detected anomalies
+    statistical_report = Column(JSON, nullable=True)
+    ml_report = Column(JSON, nullable=True)
+    business_report = Column(JSON, nullable=True)
+    research_report = Column(JSON, nullable=True)
+    presentation_deck = Column(JSON, nullable=True)
+    scenario_simulations = Column(JSON, nullable=True)
+    explanation_mode_reports = Column(JSON, nullable=True)
+    agent_run_history = Column(JSON, nullable=True)
     error_message = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     completed_at = Column(DateTime, nullable=True)
 
     dataset = relationship("Dataset", back_populates="analysis_jobs")
+
 
 
 class ChatConversation(Base):
@@ -125,3 +134,18 @@ class TokenBlocklist(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     revoked_at = Column(DateTime, default=datetime.datetime.utcnow)
     expires_at = Column(DateTime, nullable=False, index=True)  # for periodic cleanup
+
+
+class AIMemory(Base):
+    __tablename__ = "ai_memories"
+
+    id = Column(String, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    dataset_id = Column(String, ForeignKey("datasets.id"), nullable=True)
+    kpis = Column(JSON, nullable=True)
+    business_goals = Column(Text, nullable=True)
+    preferences = Column(JSON, nullable=True)
+    summary = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+

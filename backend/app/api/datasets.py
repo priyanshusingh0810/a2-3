@@ -289,3 +289,156 @@ def delete_dataset(
     db.delete(dataset)
     db.commit()
     return None
+
+
+@router.post("/{id}/ceo-mode", response_model=schemas.AnalysisJobResponse)
+async def run_ceo_mode(
+    id: str,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(deps.get_current_user)
+):
+    """Triggers the full multi-agent pipeline in the background."""
+    dataset = db.query(models.Dataset).filter(models.Dataset.id == id, models.Dataset.owner_id == current_user.id).first()
+    if not dataset:
+        raise HTTPException(status_code=404, detail="Dataset not found")
+        
+    job = models.AnalysisJob(
+        dataset_id=id,
+        status="pending"
+    )
+    db.add(job)
+    db.commit()
+    db.refresh(job)
+    
+    background_tasks.add_task(
+        AgentOrchestrator.run_full_profiling,
+        db=db,
+        dataset_id=id,
+        job_id=job.id
+    )
+    
+    return job
+
+
+@router.post("/{id}/simulations")
+def run_custom_simulation(
+    id: str,
+    req: schemas.SimulationRequest,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(deps.get_current_user)
+):
+    """Calculates on-the-fly What-if business simulations using dataframe parameters."""
+    dataset = db.query(models.Dataset).filter(models.Dataset.id == id, models.Dataset.owner_id == current_user.id).first()
+    if not dataset:
+        raise HTTPException(status_code=404, detail="Dataset not found")
+        
+    try:
+        import pandas as pd
+        DataService.ensure_local_file(dataset.file_path, dataset.file_content)
+        df = DataService.load_df(dataset.file_path, dataset.file_type)
+        
+        sales_col = next((c for c in df.columns if "sales" in c.lower() or "revenue" in c.lower() or "profit" in c.lower() or "amount" in c.lower()), None)
+        if not sales_col:
+            numeric_cols = [c for c in df.columns if pd.api.types.is_numeric_dtype(df[c])]
+            sales_col = numeric_cols[0] if numeric_cols else None
+            
+        if not sales_col:
+            raise HTTPException(status_code=400, detail="No numeric columns found to simulate outcomes.")
+            
+        old_sum = float(df[sales_col].sum())
+        
+        # Calculate elasticity deltas
+        price_impact = req.price_delta * 0.68  # 5% price hike matches to 3.4% volume boost offsets
+        marketing_impact = req.marketing_delta * 0.45  # marketing budget delta
+        hiring_impact = float(req.hiring_delta) * 0.015  # hires delta
+        
+        total_delta = price_impact + marketing_impact + hiring_impact
+        new_sum = old_sum * (1.0 + total_delta)
+        
+        return {
+            "scenario": f"Custom Simulation",
+            "metric": sales_col,
+            "before": old_sum,
+            "after": new_sum,
+            "pct_change": round(total_delta * 100, 2),
+            "explanation": f"Estimated shift of {total_delta:+.2%} in {sales_col} based on modified business settings."
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/{id}/memory", response_model=List[schemas.AIMemoryResponse])
+def get_dataset_memories(
+    id: str,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(deps.get_current_user)
+):
+    """Retrieves saved KPI memory snapshots for comparison."""
+    return db.query(models.AIMemory).filter(
+        models.AIMemory.dataset_id == id,
+        models.AIMemory.user_id == current_user.id
+    ).order_by(models.AIMemory.created_at.desc()).all()
+
+
+@router.post("/{id}/memory", response_model=schemas.AIMemoryResponse)
+def save_dataset_memory(
+    id: str,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(deps.get_current_user)
+):
+    """Saves current KPI dashboard states as an AI memory baseline."""
+    dataset = db.query(models.Dataset).filter(models.Dataset.id == id, models.Dataset.owner_id == current_user.id).first()
+    if not dataset:
+        raise HTTPException(status_code=404, detail="Dataset not found")
+        
+    job = db.query(models.AnalysisJob).filter(models.AnalysisJob.dataset_id == id, models.AnalysisJob.status == "completed").order_by(models.AnalysisJob.created_at.desc()).first()
+    
+    kpis = {
+        "rows": dataset.row_count,
+        "columns": dataset.column_count,
+        "quality_score": job.quality_score if job else 100.0,
+        "business_domain": dataset.business_domain,
+        "summary": dataset.summary
+    }
+    
+    memory = models.AIMemory(
+        id=str(uuid.uuid4()),
+        user_id=current_user.id,
+        dataset_id=id,
+        kpis=kpis,
+        business_goals=f"Track operational KPIs for {dataset.name}",
+        preferences={},
+        summary=dataset.summary
+    )
+    db.add(memory)
+    db.commit()
+    db.refresh(memory)
+    return memory
+
+
+@router.get("/{id}/presentation")
+def get_presentation(
+    id: str,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(deps.get_current_user)
+):
+    """Returns the generated HTML presentation deck slides."""
+    job = db.query(models.AnalysisJob).filter(models.AnalysisJob.dataset_id == id, models.AnalysisJob.status == "completed").order_by(models.AnalysisJob.created_at.desc()).first()
+    if not job:
+        raise HTTPException(status_code=400, detail="Analytics job has not completed yet.")
+    return job.presentation_deck or []
+
+
+@router.get("/{id}/explanations")
+def get_explanations(
+    id: str,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(deps.get_current_user)
+):
+    """Retrieves reports formatted into CEO, Manager, Student, or Data Scientist modes."""
+    job = db.query(models.AnalysisJob).filter(models.AnalysisJob.dataset_id == id, models.AnalysisJob.status == "completed").order_by(models.AnalysisJob.created_at.desc()).first()
+    if not job:
+        raise HTTPException(status_code=400, detail="Analytics job has not completed yet.")
+    return job.explanation_mode_reports or {}
+
