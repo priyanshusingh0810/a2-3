@@ -114,6 +114,11 @@ class PresentationGenerationAgent:
         })
         
         # Slide 7: External research
+        opps = research_report.get('opportunities_identified')
+        threats = research_report.get('threats_identified')
+        opp_str = opps[0] if opps and len(opps) > 0 else 'Leverage digital pipeline automations'
+        threat_str = threats[0] if threats and len(threats) > 0 else 'Overhead cost increases'
+
         slides.append({
             "id": "slide_research",
             "type": "research",
@@ -121,8 +126,8 @@ class PresentationGenerationAgent:
             "subtitle": "External events and industry headwinds impacting operations",
             "bullets": [
                 research_report.get("market_summary", "Macro economic indices are stable."),
-                f"Opportunity Indicator: {research_report.get('opportunities_identified', ['Leverage digital pipeline automations'])[0]}",
-                f"Headwind Indicator: {research_report.get('threats_identified', ['Overhead cost increases'])[0]}"
+                f"Opportunity Indicator: {opp_str}",
+                f"Headwind Indicator: {threat_str}"
             ]
         })
         

@@ -66,13 +66,15 @@ class AgentOrchestrator:
             job.agent_run_history = agent_history
             db.commit()
 
-        async def execute_agent_with_telemetry(agent_name: str, coro, timeout: float = 60.0, max_retries: int = 1):
+        async def execute_agent_with_telemetry(agent_name: str, func, *args, timeout: float = 60.0, max_retries: int = 1, **kwargs):
             """Wraps coroutine execution with timing latency logs, token tracking, retry thresholds, and timeouts."""
             publish_event(agent_name, "running", "Processing analytical target...")
             start_time = time.time()
             
             for attempt in range(max_retries + 1):
                 try:
+                    # Create a fresh coroutine instance on each attempt to prevent reuse errors
+                    coro = func(*args, **kwargs)
                     result = await asyncio.wait_for(coro, timeout=timeout)
                     elapsed = time.time() - start_time
                     latency_logs[agent_name] = round(elapsed, 3)
@@ -108,11 +110,10 @@ class AgentOrchestrator:
             # --- STAGE 1: Data Understanding (Sequential Base) ---
             understanding = await execute_agent_with_telemetry(
                 "Data Understanding Agent",
-                DataUnderstandingAgent.analyze(
-                    dataset_name=dataset.name,
-                    columns_meta=columns_meta,
-                    sample_rows=rows
-                )
+                DataUnderstandingAgent.analyze,
+                dataset_name=dataset.name,
+                columns_meta=columns_meta,
+                sample_rows=rows
             )
             dataset.business_domain = understanding.get("business_domain", "General Analytics")
             dataset.summary = understanding.get("summary", "")
@@ -126,9 +127,9 @@ class AgentOrchestrator:
 
             # --- STAGE 2: Data Quality, Completeness Profiling, and KPI Mapping (Parallel Stage) ---
             publish_event("Orchestrator", "running", "Spawning Stage 2 Parallel Agents: Cleaning, Profiling, KPI Engine...")
-            clean_task = execute_agent_with_telemetry("Data Cleaning Agent", DataCleaningAgent.analyze(df))
-            profile_task = execute_agent_with_telemetry("Data Profiling Agent", DataProfilingAgent.profile(df))
-            kpi_task = execute_agent_with_telemetry("Smart KPI Engine Agent", KPIEngineAgent.analyze(df, columns_meta, dataset.business_domain))
+            clean_task = execute_agent_with_telemetry("Data Cleaning Agent", DataCleaningAgent.analyze, df)
+            profile_task = execute_agent_with_telemetry("Data Profiling Agent", DataProfilingAgent.profile, df)
+            kpi_task = execute_agent_with_telemetry("Smart KPI Engine Agent", KPIEngineAgent.analyze, df, columns_meta, dataset.business_domain)
             
             clean_res, profile_res, kpi_res = await asyncio.gather(clean_task, profile_task, kpi_task)
             
@@ -143,10 +144,10 @@ class AgentOrchestrator:
 
             # --- STAGE 3: Statistical Checks, Predictive Models, Forecasts, Visualizations (Parallel Stage) ---
             publish_event("Orchestrator", "running", "Spawning Stage 3 Parallel Agents: Stats, ML, Forecasting, Visualization...")
-            stats_task = execute_agent_with_telemetry("Statistical Analysis Agent", StatisticalAnalysisAgent.analyze(df, columns_meta))
-            ml_task = execute_agent_with_telemetry("Machine Learning Agent", MLAgent.analyze(df, columns_meta))
-            forecast_task = execute_agent_with_telemetry("Forecasting Agent", ForecastingAgent.forecast(df, columns_meta))
-            vis_task = execute_agent_with_telemetry("Visualization Agent", VisualizationAgent.auto_generate_charts(df, columns_meta))
+            stats_task = execute_agent_with_telemetry("Statistical Analysis Agent", StatisticalAnalysisAgent.analyze, df, columns_meta)
+            ml_task = execute_agent_with_telemetry("Machine Learning Agent", MLAgent.analyze, df, columns_meta)
+            forecast_task = execute_agent_with_telemetry("Forecasting Agent", ForecastingAgent.forecast, df, columns_meta)
+            vis_task = execute_agent_with_telemetry("Visualization Agent", VisualizationAgent.auto_generate_charts, df, columns_meta)
             
             stats_res, ml_res, forecast_res, vis_res = await asyncio.gather(stats_task, ml_task, forecast_task, vis_task)
             
@@ -172,8 +173,8 @@ class AgentOrchestrator:
 
             # --- STAGE 4: Business Insights, Macro Research, Scenario Modeling (Parallel Stage) ---
             publish_event("Orchestrator", "running", "Spawning Stage 4 Parallel Agents: Narrative Insights, External Research...")
-            insights_task = execute_agent_with_telemetry("Insights Agent", InsightsAgent.generate(df, columns_meta, dataset.business_domain))
-            research_task = execute_agent_with_telemetry("External Research Agent", ExternalResearchAgent.research(dataset.business_domain))
+            insights_task = execute_agent_with_telemetry("Insights Agent", InsightsAgent.generate, df, columns_meta, dataset.business_domain)
+            research_task = execute_agent_with_telemetry("External Research Agent", ExternalResearchAgent.research, dataset.business_domain)
             
             insights_res, research_res = await asyncio.gather(insights_task, research_task)
             job.insights = insights_res
@@ -183,7 +184,10 @@ class AgentOrchestrator:
             # --- STAGE 5: Management Scorecard Recommendations (Sequential dependency on Insights) ---
             business_report = await execute_agent_with_telemetry(
                 "Business Recommendation Agent",
-                BusinessRecommendationAgent.recommend(insights_res, stats_res, ml_res)
+                BusinessRecommendationAgent.recommend,
+                insights_res,
+                stats_res,
+                ml_res
             )
             
             # Embed KPI insights details
@@ -193,9 +197,9 @@ class AgentOrchestrator:
 
             # --- STAGE 6: PPTX Presentations, Simulation grids, Multi-user explanations (Parallel Stage) ---
             publish_event("Orchestrator", "running", "Spawning Stage 6 Parallel Exporters: Presentation slides, Multi-mode explanations...")
-            presentation_task = execute_agent_with_telemetry(
-                "Presentation Generation Agent",
-                asyncio.to_thread(
+            
+            async def run_presentation():
+                return await asyncio.to_thread(
                     PresentationGenerationAgent.generate_slides,
                     dataset_name=dataset.name,
                     business_domain=dataset.business_domain,
@@ -206,7 +210,8 @@ class AgentOrchestrator:
                     business_report=business_report,
                     research_report=research_res
                 )
-            )
+                
+            presentation_task = execute_agent_with_telemetry("Presentation Generation Agent", run_presentation)
             sim_task = asyncio.to_thread(cls._run_simulations_local, df, columns_meta)
             explain_task = cls._generate_explanations_llm(dataset, insights_res, business_report, ml_res)
             
