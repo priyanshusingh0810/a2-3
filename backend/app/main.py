@@ -165,6 +165,36 @@ app = FastAPI(
     version="1.0.0"
 )
 
+import ipaddress
+from fastapi import Request
+from fastapi.responses import JSONResponse
+
+ALLOWED_IPS = [
+    ipaddress.ip_network("74.220.48.0/24", strict=False),
+    ipaddress.ip_network("74.220.56.0/24", strict=False),
+    ipaddress.ip_network("216.151.17.91/32", strict=False),
+    ipaddress.ip_network("216.151.17.92/32", strict=False),
+]
+
+@app.middleware("http")
+async def ip_whitelist_middleware(request: Request, call_next):
+    client_ip = request.client.host
+    forwarded_for = request.headers.get("x-forwarded-for")
+    if forwarded_for:
+        client_ip = forwarded_for.split(",")[0].strip()
+    
+    try:
+        ip_obj = ipaddress.ip_address(client_ip)
+        is_allowed = any(ip_obj in network for network in ALLOWED_IPS)
+    except ValueError:
+        is_allowed = False
+        
+    if not is_allowed and request.url.path != "/health":
+        logger.warning(f"Rejected request from non-whitelisted IP: {client_ip}")
+        return JSONResponse(status_code=403, content={"detail": "Access forbidden: IP not whitelisted."})
+        
+    return await call_next(request)
+
 # Configure CORS
 # In production, specify exact domain list instead of ["*"]
 app.add_middleware(
