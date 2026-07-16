@@ -9,34 +9,40 @@ interface PreviewGridProps {
 export const PreviewGrid: React.FC<PreviewGridProps> = ({ columns, rows, columnsMeta }) => {
   if (!columns || columns.length === 0) {
     return (
-      <div className="flex h-32 items-center justify-center rounded-2xl bg-slate-800/30 border border-slate-700/50">
-        <div className="text-gray-500 text-sm">No rows or columns to display.</div>
+      <div className="flex h-32 items-center justify-center rounded-2xl bg-card border border-border">
+        <div className="text-muted-foreground text-sm font-medium">No rows or columns to display.</div>
       </div>
     );
   }
 
-  const getTypeColor = (type?: string) => {
+  const getTypeBadgeClass = (type?: string) => {
     const t = type?.toLowerCase() || '';
-    if (t.includes('int') || t.includes('number') || t.includes('float') || t === 'integer') return 'text-teal-400 bg-teal-400/10 border border-teal-400/20';
-    if (t.includes('date') || t.includes('time')) return 'text-indigo-400 bg-indigo-400/10 border border-indigo-400/20';
-    if (t.includes('bool')) return 'text-amber-400 bg-amber-400/10 border border-amber-400/20';
-    return 'text-slate-400 bg-slate-400/10 border border-slate-400/20';
+    if (t.includes('int') || t.includes('number') || t.includes('float') || t === 'integer') {
+      return 'text-emerald-700 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/30';
+    }
+    if (t.includes('date') || t.includes('time')) {
+      return 'text-blue-700 bg-blue-50 dark:text-blue-400 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900/30';
+    }
+    if (t.includes('bool')) {
+      return 'text-amber-700 bg-amber-50 dark:text-amber-400 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/30';
+    }
+    return 'text-muted-foreground bg-muted border border-border';
   };
 
   return (
-    <div className="w-full overflow-hidden rounded-2xl border border-slate-700/50 bg-slate-800/30">
-      <div className="overflow-x-auto overflow-y-auto max-h-[400px]">
-        <table className="w-full text-left text-sm border-collapse">
+    <div className="w-full overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+      <div className="overflow-x-auto overflow-y-auto max-h-[450px]">
+        <table className="w-full text-left text-xs border-collapse">
           <thead>
-            <tr className="border-b border-slate-700/50 bg-slate-900 sticky top-0 z-10">
-              <th className="p-3 w-12 text-gray-500 font-medium">#</th>
+            <tr className="border-b border-border bg-muted/40 sticky top-0 z-10 backdrop-blur-sm">
+              <th className="p-3 w-12 text-muted-foreground font-semibold uppercase tracking-wider text-[10px]">#</th>
               {columns.map((col) => {
                 const type = columnsMeta?.[col]?.data_type || typeof rows[0]?.[col] || 'string';
                 return (
-                  <th key={col} className="p-3 font-semibold text-gray-200 min-w-[150px]">
-                    <div className="flex flex-col gap-1">
-                      <span>{col}</span>
-                      <span className={`text-[10px] uppercase font-mono py-0.5 px-1.5 rounded w-max ${getTypeColor(type)}`}>
+                  <th key={col} className="p-3 font-bold text-foreground min-w-[150px] border-r border-border/40 last:border-r-0">
+                    <div className="flex flex-col gap-1.5">
+                      <span className="text-sm font-semibold tracking-tight">{col}</span>
+                      <span className={`text-[9px] uppercase font-mono py-0.5 px-2 rounded-md w-max ${getTypeBadgeClass(type)}`}>
                         {type}
                       </span>
                     </div>
@@ -45,22 +51,22 @@ export const PreviewGrid: React.FC<PreviewGridProps> = ({ columns, rows, columns
               })}
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-border/60">
             {rows.map((row, idx) => (
               <tr 
                 key={idx} 
-                className="border-b border-slate-700/30 hover:bg-slate-800/40 transition-colors"
+                className="hover:bg-muted/30 transition-colors even:bg-muted/10"
               >
-                <td className="p-3 text-gray-600 font-mono text-xs">{idx + 1}</td>
+                <td className="p-3 text-muted-foreground font-mono font-medium text-center border-r border-border/40">{idx + 1}</td>
                 {columns.map((col) => {
                   const val = row[col];
                   return (
                     <td 
                       key={col} 
-                      className="p-3 text-gray-300 font-mono text-xs max-w-[300px] truncate"
+                      className="p-3 text-foreground font-mono text-[11px] max-w-[300px] truncate border-r border-border/40 last:border-r-0"
                     >
                       {val === null || val === undefined ? (
-                        <span className="text-red-400/60 italic font-sans font-medium text-[11px] bg-red-500/5 px-1.5 py-0.5 rounded">NULL</span>
+                        <span className="text-rose-600 dark:text-rose-400 italic font-sans font-semibold text-[10px] bg-rose-50 dark:bg-rose-950/20 px-1.5 py-0.5 rounded border border-rose-100 dark:border-rose-950/40">NULL</span>
                       ) : (
                         String(val)
                       )}
