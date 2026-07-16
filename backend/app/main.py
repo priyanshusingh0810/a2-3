@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.db.session import engine, Base
-from app.api import auth, datasets, chat, reports, dashboards
+from app.api import auth, datasets, chat, reports, dashboards, collaboration
 from app.services.llm_service import LLMService
 
 # Setup logger
@@ -52,6 +52,15 @@ try:
                 conn.execute(text("ALTER TABLE users ADD COLUMN llm_model VARCHAR(100);"))
                 conn.execute(text("ALTER TABLE users ADD COLUMN llm_api_key VARCHAR(255);"))
 
+            # Check for users.llm_keys
+            has_keys_col = conn.execute(text(
+                "SELECT EXISTS (SELECT 1 FROM information_schema.columns "
+                "WHERE table_name='users' AND column_name='llm_keys');"
+            )).scalar()
+            if not has_keys_col:
+                logger.info("Adding llm_keys column to users table...")
+                conn.execute(text("ALTER TABLE users ADD COLUMN llm_keys JSONB;"))
+
             # Check for analysis_jobs new columns
             new_job_cols_pg = [
                 ("statistical_report", "JSON"),
@@ -62,6 +71,9 @@ try:
                 ("scenario_simulations", "JSON"),
                 ("explanation_mode_reports", "JSON"),
                 ("agent_run_history", "JSON"),
+                ("latency_logs", "JSON"),
+                ("token_usage", "JSON"),
+                ("system_metrics", "JSON"),
             ]
             for col_name, col_type in new_job_cols_pg:
                 has_col = conn.execute(text(
@@ -71,6 +83,17 @@ try:
                 if not has_col:
                     logger.info(f"Adding column {col_name} to analysis_jobs table...")
                     conn.execute(text(f"ALTER TABLE analysis_jobs ADD COLUMN {col_name} {col_type};"))
+
+            # Check workspace_id columns in PostgreSQL
+            pg_tables = ["datasets", "chat_conversations", "dashboards", "reports"]
+            for table_name in pg_tables:
+                has_work_col = conn.execute(text(
+                    f"SELECT EXISTS (SELECT 1 FROM information_schema.columns "
+                    f"WHERE table_name='{table_name}' AND column_name='workspace_id');"
+                )).scalar()
+                if not has_work_col:
+                    logger.info(f"Adding workspace_id column to {table_name} table...")
+                    conn.execute(text(f"ALTER TABLE {table_name} ADD COLUMN workspace_id VARCHAR(50);"))
         else:
             # SQLite
             res_datasets = conn.execute(text("PRAGMA table_info(datasets);")).fetchall()
@@ -78,12 +101,18 @@ try:
             if "file_content" not in cols_datasets:
                 logger.info("Adding column file_content to datasets table...")
                 conn.execute(text("ALTER TABLE datasets ADD COLUMN file_content BLOB;"))
+            if "workspace_id" not in cols_datasets:
+                logger.info("Adding column workspace_id to datasets table...")
+                conn.execute(text("ALTER TABLE datasets ADD COLUMN workspace_id TEXT;"))
                 
             res_reports = conn.execute(text("PRAGMA table_info(reports);")).fetchall()
             cols_reports = [r[1] for r in res_reports]
             if "file_content" not in cols_reports:
                 logger.info("Adding column file_content to reports table...")
                 conn.execute(text("ALTER TABLE reports ADD COLUMN file_content BLOB;"))
+            if "workspace_id" not in cols_reports:
+                logger.info("Adding column workspace_id to reports table...")
+                conn.execute(text("ALTER TABLE reports ADD COLUMN workspace_id TEXT;"))
 
             res_users = conn.execute(text("PRAGMA table_info(users);")).fetchall()
             cols_users = [r[1] for r in res_users]
@@ -92,6 +121,21 @@ try:
                 conn.execute(text("ALTER TABLE users ADD COLUMN llm_provider TEXT DEFAULT 'default';"))
                 conn.execute(text("ALTER TABLE users ADD COLUMN llm_model TEXT;"))
                 conn.execute(text("ALTER TABLE users ADD COLUMN llm_api_key TEXT;"))
+            if "llm_keys" not in cols_users:
+                logger.info("Adding llm_keys column to users table...")
+                conn.execute(text("ALTER TABLE users ADD COLUMN llm_keys TEXT DEFAULT '{}';"))
+
+            res_chats = conn.execute(text("PRAGMA table_info(chat_conversations);")).fetchall()
+            cols_chats = [r[1] for r in res_chats]
+            if "workspace_id" not in cols_chats:
+                logger.info("Adding column workspace_id to chat_conversations table...")
+                conn.execute(text("ALTER TABLE chat_conversations ADD COLUMN workspace_id TEXT;"))
+
+            res_dashboards = conn.execute(text("PRAGMA table_info(dashboards);")).fetchall()
+            cols_dashboards = [r[1] for r in res_dashboards]
+            if "workspace_id" not in cols_dashboards:
+                logger.info("Adding column workspace_id to dashboards table...")
+                conn.execute(text("ALTER TABLE dashboards ADD COLUMN workspace_id TEXT;"))
 
             res_analysis = conn.execute(text("PRAGMA table_info(analysis_jobs);")).fetchall()
             cols_analysis = [r[1] for r in res_analysis]
@@ -104,6 +148,9 @@ try:
                 ("scenario_simulations", "TEXT"),
                 ("explanation_mode_reports", "TEXT"),
                 ("agent_run_history", "TEXT"),
+                ("latency_logs", "TEXT"),
+                ("token_usage", "TEXT"),
+                ("system_metrics", "TEXT"),
             ]
             for col_name, col_type in new_job_cols_lite:
                 if col_name not in cols_analysis:
@@ -134,6 +181,7 @@ app.include_router(datasets.router, prefix=f"{settings.API_V1_STR}/datasets", ta
 app.include_router(chat.router, prefix=f"{settings.API_V1_STR}/chat", tags=["AI Data Chat"])
 app.include_router(dashboards.router, prefix=f"{settings.API_V1_STR}/dashboards", tags=["Dashboards"])
 app.include_router(reports.router, prefix=f"{settings.API_V1_STR}/reports", tags=["Reports"])
+app.include_router(collaboration.router, prefix=f"{settings.API_V1_STR}/collaboration", tags=["Collaboration"])
 
 @app.get("/health")
 async def health_check():

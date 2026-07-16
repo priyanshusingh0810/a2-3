@@ -1,0 +1,16 @@
+Date,Category,Region,Sales,Quantity,Profit
+2026-01-01,Electronics,West,1200,3,300
+2026-01-02,Clothing,West,800,5,400
+2026-01-03,Electronics,East,1500,4,450
+2026-01-04,Home,East,600,2,120
+2026-01-05,Sports,Central,450,3,-50
+2026-01-06,Clothing,Central,950,6,475
+2026-01-07,Electronics,West,1100,2,220
+2026-01-08,Home,West,700,3,140
+2026-01-09,Sports,East,500,2,50
+2026-01-10,Clothing,East,1100,5,550
+2026-01-11,Electronics,Central,1300,3,260
+2026-01-12,Home,Central,800,4,160
+2026-01-13,Sports,West,600,4,120
+2026-01-14,Clothing,West,900,4,450
+2026-01-15,Electronics,East,1600,4,480

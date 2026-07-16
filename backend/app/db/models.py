@@ -14,6 +14,7 @@ class User(Base):
     llm_provider = Column(String, default="default")
     llm_model = Column(String, nullable=True)
     llm_api_key = Column(String, nullable=True)
+    llm_keys = Column(JSON, default=dict) # dict of provider -> api_key
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
     datasets = relationship("Dataset", back_populates="owner", cascade="all, delete-orphan")
@@ -35,6 +36,7 @@ class Dataset(Base):
     summary = Column(Text, nullable=True)
     columns_metadata = Column(JSON, nullable=True) # dict of column_name -> properties
     owner_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    workspace_id = Column(String, ForeignKey("workspaces.id"), nullable=True)
     file_content = Column(LargeBinary, nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
@@ -63,12 +65,17 @@ class AnalysisJob(Base):
     scenario_simulations = Column(JSON, nullable=True)
     explanation_mode_reports = Column(JSON, nullable=True)
     agent_run_history = Column(JSON, nullable=True)
+    
+    # Observability & Observability Metrics
+    latency_logs = Column(JSON, nullable=True) # dict of agent -> execution_seconds
+    token_usage = Column(JSON, nullable=True) # dict of input, output, and total tokens
+    system_metrics = Column(JSON, nullable=True) # dict of cpu_pct, memory_mb, etc.
+    
     error_message = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     completed_at = Column(DateTime, nullable=True)
 
     dataset = relationship("Dataset", back_populates="analysis_jobs")
-
 
 
 class ChatConversation(Base):
@@ -77,6 +84,7 @@ class ChatConversation(Base):
     id = Column(String, primary_key=True, index=True) # UUID
     dataset_id = Column(String, ForeignKey("datasets.id"), nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    workspace_id = Column(String, ForeignKey("workspaces.id"), nullable=True)
     title = Column(String, default="New Conversation")
     messages = Column(JSON, default=list) # List of chat messages (user prompt, ai reply, plotly chart config)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
@@ -90,6 +98,7 @@ class Dashboard(Base):
 
     id = Column(String, primary_key=True, index=True) # UUID
     dataset_id = Column(String, ForeignKey("datasets.id"), nullable=False)
+    workspace_id = Column(String, ForeignKey("workspaces.id"), nullable=True)
     title = Column(String, default="Analytics Dashboard")
     layout = Column(JSON, nullable=True) # dashboard widgets layout (metrics, charts configuration)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
@@ -102,6 +111,7 @@ class Report(Base):
 
     id = Column(String, primary_key=True, index=True)
     dataset_id = Column(String, ForeignKey("datasets.id"), nullable=False)
+    workspace_id = Column(String, ForeignKey("workspaces.id"), nullable=True)
     title = Column(String, nullable=False)
     file_path = Column(String, nullable=False)
     format = Column(String, nullable=False) # 'pdf', 'pptx'
@@ -149,3 +159,33 @@ class AIMemory(Base):
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
 
+
+# --- NEW WORKSPACE & COLLABORATION SCHEMAS ---
+
+class Workspace(Base):
+    __tablename__ = "workspaces"
+
+    id = Column(String, primary_key=True, index=True) # UUID
+    name = Column(String, nullable=False)
+    owner_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+
+class WorkspaceMember(Base):
+    __tablename__ = "workspace_members"
+
+    id = Column(Integer, primary_key=True, index=True)
+    workspace_id = Column(String, ForeignKey("workspaces.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    role = Column(String, default="viewer") # 'owner', 'admin', 'editor', 'viewer'
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+
+class Comment(Base):
+    __tablename__ = "comments"
+
+    id = Column(String, primary_key=True, index=True) # UUID
+    dataset_id = Column(String, ForeignKey("datasets.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    text = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)

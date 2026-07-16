@@ -213,3 +213,58 @@ class ReportingAgent:
         except Exception as e:
             logger.error(f"Error compiling PDF report: {e}")
             raise e
+
+    @classmethod
+    def generate_pptx_report(
+        cls, 
+        dataset_name: str, 
+        presentation_deck: List[Dict[str, Any]], 
+        output_path: str
+    ) -> str:
+        """Generates a professional slide deck presentation using python-pptx."""
+        try:
+            from pptx import Presentation
+            
+            prs = Presentation()
+            
+            # Slide 1: Title Slide
+            slide_layout = prs.slide_layouts[0] # Title slide layout
+            slide = prs.slides.add_slide(slide_layout)
+            
+            title = slide.shapes.title
+            subtitle = slide.placeholders[1]
+            
+            title.text = f"Executive Presentation Briefing"
+            subtitle.text = f"Dataset: {dataset_name}\nCreated autonomously by A3 platform"
+            
+            # Slides from presentation_deck
+            for s in presentation_deck:
+                slide_layout = prs.slide_layouts[1] # Title and Content layout
+                slide = prs.slides.add_slide(slide_layout)
+                
+                # Title
+                slide.shapes.title.text = s.get("title", "Insight Slide")
+                
+                # Content placeholder
+                content_placeholder = slide.placeholders[1]
+                
+                text_parts = []
+                if s.get("subtitle"):
+                    text_parts.append(f"Focus Area: {s['subtitle']}\n")
+                    
+                bullets = s.get("bullets", [])
+                if bullets:
+                    for b in bullets:
+                        text_parts.append(f"• {b}")
+                else:
+                    metrics = s.get("metrics", [])
+                    for m in metrics:
+                        text_parts.append(f"• {m.get('label')}: {m.get('value')}")
+                        
+                content_placeholder.text = "\n".join(text_parts)
+                
+            prs.save(output_path)
+            return output_path
+        except Exception as e:
+            logger.error(f"Error compiling PPTX report: {e}")
+            raise e

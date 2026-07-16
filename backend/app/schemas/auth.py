@@ -19,15 +19,17 @@ class UserResponse(UserBase):
     llm_provider: str
     llm_model: Optional[str] = None
     llm_api_key: Optional[str] = None
+    llm_keys: Optional[dict] = None
     created_at: datetime
 
     class Config:
         from_attributes = True
 
 class LLMSettingsUpdate(BaseModel):
-    llm_provider: str = Field(..., description="LLM provider name: 'default', 'gemini', 'openai', 'ollama', 'mock'")
+    llm_provider: str = Field(..., description="LLM provider name: 'default', 'gemini', 'openai', 'ollama', 'mock', 'anthropic', 'deepseek', 'mistral'")
     llm_model: Optional[str] = Field(None, description="Model name")
-    llm_api_key: Optional[str] = Field(None, description="API Key (provide raw key to update, masked key to keep current, or empty to clear)")
+    llm_api_key: Optional[str] = Field(None, description="API Key")
+    llm_keys: Optional[dict] = Field(None, description="Dictionary of provider keys")
 
 class Token(BaseModel):
     access_token: str

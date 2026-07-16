@@ -1,12 +1,13 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import Link from 'next/link';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Database, Upload, MessageSquare, LineChart, FileText, LayoutDashboard, 
   Trash2, LogOut, Loader2, Sparkles, RefreshCw, Send, CheckCircle2, 
   AlertTriangle, Shield, Check, Calendar, TrendingUp, HelpCircle, Download,
-  Settings, Sliders, Bookmark, Users, Layers, Activity, ChevronRight, Play, Award
+  Settings, Sliders, Bookmark, Users, Layers, Activity, ChevronRight, Play, Award,
+  Search, Bell, ChevronDown, AlignLeft, Grid, Info, Clock, AlertCircle, Plus, Terminal, Cpu
 } from 'lucide-react';
 import api from '@/lib/api';
 import PreviewGrid from '@/components/preview-grid';
@@ -14,13 +15,15 @@ import ChartRenderer from '@/components/chart-renderer';
 import { Component as SignInCard } from '@/components/ui/sign-in-card-2';
 import { SignUpCard } from '@/components/ui/sign-up-card';
 import { ForgotPasswordCard } from '@/components/ui/forgot-password-card';
+import { Toast } from '@/components/ui/toast';
+import { CommandPalette } from '@/components/ui/command-palette';
 
 type ActiveTab = 'dashboard' | 'datasets' | 'chat' | 'forecast' | 'reports' | 'simulations' | 'memory' | 'workspace' | 'templates' | 'settings';
 
 export default function Home() {
   // --- AUTHENTICATION STATE ---
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [authMode, setAuthMode] = useState<'login' | 'register' | 'forgot-password'>('login');
+  const [authMode, setAuthMode] = useState<'landing' | 'login' | 'register' | 'forgot-password'>('landing');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
@@ -31,7 +34,7 @@ export default function Home() {
   const [googleLoading, setGoogleLoading] = useState(false);
 
   // --- WORKSPACE STATES ---
-  const [activeTab, setActiveTab] = useState<ActiveTab>('datasets');
+  const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
   const [datasets, setDatasets] = useState<any[]>([]);
   const [selectedDatasetId, setSelectedDatasetId] = useState<string | null>(null);
   const [selectedDataset, setSelectedDataset] = useState<any>(null);
@@ -66,52 +69,95 @@ export default function Home() {
   // --- REPORT GENERATION STATES ---
   const [reportGenerating, setReportGenerating] = useState(false);
 
-  // --- LLM CONFIG/SETTINGS STATES ---
-  const [llmProvider, setLlmProvider] = useState<'default' | 'gemini' | 'openai' | 'ollama' | 'mock'>('default');
+  // --- MULTI-LLM PROVIDER KEYS (PHASE 2) ---
+  const [llmProvider, setLlmProvider] = useState<string>('default');
   const [llmModel, setLlmModel] = useState('');
   const [llmApiKey, setLlmApiKey] = useState('');
+  const [llmKeys, setLlmKeys] = useState<Record<string, string>>({
+    gemini: '', openai: '', anthropic: '', deepseek: '', mistral: ''
+  });
   const [settingsLoading, setSettingsLoading] = useState(false);
-  const [settingsMessage, setSettingsMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
-  // --- NEW ADVANCED STATES ---
-  // What-if Simulations
-  const [simPrice, setSimPrice] = useState<number>(0); // price delta (-20 to +20)
-  const [simMarketing, setSimMarketing] = useState<number>(0); // marketing budget delta
+  // --- WHAT-IF SIMULATIONS ---
+  const [simPrice, setSimPrice] = useState<number>(0);
+  const [simMarketing, setSimMarketing] = useState<number>(0);
   const [simHires, setSimHires] = useState<number>(0);
   const [simResult, setSimResult] = useState<any>(null);
   const [simLoading, setSimLoading] = useState<boolean>(false);
 
-  // AI Memory list
+  // --- AI MEMORY SNAPSHOTS ---
   const [memories, setMemories] = useState<any[]>([]);
   const [memoryLoading, setMemoryLoading] = useState<boolean>(false);
 
-  // Multiple Explanation Modes
+  // --- COLLABORATION WORKSPACES & COMMENTS (PHASE 2) ---
+  const [workspaces, setWorkspaces] = useState<any[]>([]);
+  const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>(null);
+  const [newWorkspaceName, setNewWorkspaceName] = useState('');
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteRole, setInviteRole] = useState('viewer');
+  const [workspaceMembers, setWorkspaceMembers] = useState<any[]>([]);
+  const [comments, setComments] = useState<any[]>([]);
+  const [newCommentText, setNewCommentText] = useState('');
+
+  // --- EXPLANATION TRANSLATION STYLES ---
   const [explanationMode, setExplanationMode] = useState<'CEO' | 'Manager' | 'Data Scientist' | 'Student'>('CEO');
   const [explanations, setExplanations] = useState<any>(null);
+
+  // --- DEVELOPER HUD / SYSTEM OBSERVABILITY (PHASE 2) ---
+  const [developerModeActive, setDeveloperModeActive] = useState<boolean>(false);
 
   // Presentation Slider index
   const [activeSlideIdx, setActiveSlideIdx] = useState<number>(0);
 
-  // Quick NL search input from welcome hero
+  // Quick NL search input
   const [quickSearchQuery, setQuickSearchQuery] = useState<string>('');
+
+  // Drag-and-drop file upload states
+  const [dragActive, setDragActive] = useState<boolean>(false);
+
+  // Collapsible sidebar state
+  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
+
+  // Command palette state
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState<boolean>(false);
+
+  // Toast Notification state
+  const [toast, setToast] = useState<{ type: 'success' | 'warning' | 'error' | 'info'; message: string } | null>(null);
+
+  const showToast = (type: 'success' | 'warning' | 'error' | 'info', message: string) => {
+    setToast({ type, message });
+  };
+
+  // Keyboard shortcut Ctrl+K listener
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        setCommandPaletteOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
     setSettingsLoading(true);
-    setSettingsMessage(null);
     try {
       const res = await api.put('/auth/llm-settings', {
         llm_provider: llmProvider,
         llm_model: llmModel || null,
-        llm_api_key: llmApiKey || null
+        llm_api_key: llmApiKey || null,
+        llm_keys: llmKeys
       });
       setUser(res.data);
       setLlmProvider(res.data.llm_provider || 'default');
       setLlmModel(res.data.llm_model || '');
       setLlmApiKey(res.data.llm_api_key || '');
-      setSettingsMessage({ type: 'success', text: 'LLM Settings updated successfully!' });
+      setLlmKeys(res.data.llm_keys || {});
+      showToast('success', 'Enterprise AI Model configurations updated!');
     } catch (err: any) {
-      setSettingsMessage({ type: 'error', text: err.response?.data?.detail || 'Failed to update LLM settings.' });
+      showToast('error', err.response?.data?.detail || 'Failed to update settings.');
     } finally {
       setSettingsLoading(false);
     }
@@ -142,12 +188,14 @@ export default function Home() {
   useEffect(() => {
     if (isAuthenticated) {
       fetchDatasets();
+      fetchWorkspaces();
     }
   }, [isAuthenticated]);
 
   useEffect(() => {
     if (selectedDatasetId) {
       fetchDatasetDetails(selectedDatasetId);
+      fetchComments(selectedDatasetId);
       setChatMessages([]);
       setActiveConversationId(null);
       setSimResult(null);
@@ -159,8 +207,15 @@ export default function Home() {
       setReports([]);
       setMemories([]);
       setExplanations(null);
+      setComments([]);
     }
   }, [selectedDatasetId]);
+
+  useEffect(() => {
+    if (activeWorkspaceId) {
+      fetchWorkspaceMembers(activeWorkspaceId);
+    }
+  }, [activeWorkspaceId]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -197,6 +252,7 @@ export default function Home() {
         setLlmProvider(res.data.llm_provider || 'default');
         setLlmModel(res.data.llm_model || '');
         setLlmApiKey(res.data.llm_api_key || '');
+        setLlmKeys(res.data.llm_keys || {});
       }
     } catch (err) {
       localStorage.removeItem('a3_access_token');
@@ -214,6 +270,7 @@ export default function Home() {
         localStorage.setItem('a3_access_token', res.data.access_token);
         localStorage.setItem('a3_refresh_token', res.data.refresh_token);
         await fetchCurrentUser();
+        showToast('success', 'Logged in successfully!');
       } else if (authMode === 'register') {
         if (password !== confirmPassword) {
           setAuthError("Passwords do not match");
@@ -225,9 +282,10 @@ export default function Home() {
         localStorage.setItem('a3_access_token', res.data.access_token);
         localStorage.setItem('a3_refresh_token', res.data.refresh_token);
         await fetchCurrentUser();
+        showToast('success', 'Registration completed successfully!');
       }
     } catch (err: any) {
-      setAuthError(err.response?.data?.detail || 'Authentication failed. Please check credentials.');
+      setAuthError(err.response?.data?.detail || 'Authentication failed.');
     } finally {
       setAuthLoading(false);
     }
@@ -244,7 +302,7 @@ export default function Home() {
     try {
       const google = (window as any).google;
       if (!google || !google.accounts || !google.accounts.oauth2) {
-        throw new Error('Google Identity Services script failed to load.');
+        throw new Error('Google OAuth script missing.');
       }
       const client = google.accounts.oauth2.initTokenClient({
         client_id: clientId,
@@ -256,8 +314,9 @@ export default function Home() {
               localStorage.setItem('a3_access_token', res.data.access_token);
               localStorage.setItem('a3_refresh_token', res.data.refresh_token);
               await fetchCurrentUser();
+              showToast('success', 'Logged in with Google.');
             } catch (err: any) {
-              setAuthError(err.response?.data?.detail || 'Google authentication failed.');
+              setAuthError(err.response?.data?.detail || 'Google auth failed.');
             } finally {
               setGoogleLoading(false);
             }
@@ -286,6 +345,7 @@ export default function Home() {
     setUser(null);
     setSelectedDatasetId(null);
     setSelectedDataset(null);
+    showToast('info', 'Logged out.');
   };
 
   const fetchDatasets = async () => {
@@ -338,16 +398,14 @@ export default function Home() {
       setAnalysisJob(res.data);
       if (res.data.status === 'completed') {
         fetchDatasetDetails(selectedDatasetId);
+        showToast('success', 'Autonomous data profiling completed!');
       }
     } catch (err) {
       console.error('Error polling job status', err);
     }
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  const handleFileUpload = async (file: File) => {
     const formData = new FormData();
     formData.append('file', file);
     setUploadProgress(true);
@@ -358,8 +416,9 @@ export default function Home() {
       await fetchDatasets();
       setSelectedDatasetId(res.data.id);
       setActiveTab('datasets');
+      showToast('success', `File ${file.name} uploaded successfully!`);
     } catch (err: any) {
-      alert(err.response?.data?.detail || 'Failed to parse file.');
+      showToast('error', err.response?.data?.detail || 'Failed to parse file.');
     } finally {
       setUploadProgress(false);
     }
@@ -371,8 +430,9 @@ export default function Home() {
       await api.delete(`/datasets/${id}`);
       setSelectedDatasetId(null);
       await fetchDatasets();
+      showToast('info', 'Dataset deleted.');
     } catch (err) {
-      alert('Failed to delete dataset');
+      showToast('error', 'Failed to delete dataset.');
     }
   };
 
@@ -381,32 +441,30 @@ export default function Home() {
     setCleaningLoading(true);
     try {
       const res = await api.post(`/datasets/${selectedDatasetId}/clean`, cleaningOptions);
-      alert('Cleaning completed! Cleaned dataset registered.');
+      showToast('success', 'Data cleaning completed! Cleaned copy registered.');
       await fetchDatasets();
       setSelectedDatasetId(res.data.id);
     } catch (err) {
-      alert('Failed to run cleaning operations.');
+      showToast('error', 'Failed to execute data cleaning.');
     } finally {
       setCleaningLoading(false);
     }
   };
 
-  // --- NEW AGENT TRIGGER: CEO MODE ---
   const handleTriggerCeoMode = async () => {
     if (!selectedDatasetId) return;
     setGlobalLoading(true);
     try {
       const res = await api.post(`/datasets/${selectedDatasetId}/ceo-mode`);
       setAnalysisJob(res.data);
-      alert('CEO Mode initialized! Multi-Agent orchestration running in background.');
+      showToast('info', 'CEO Mode initialized. Orchestrating parallel agents in background.');
     } catch (err: any) {
-      alert(err.response?.data?.detail || 'Failed to trigger CEO Mode.');
+      showToast('error', err.response?.data?.detail || 'Failed to trigger CEO Mode.');
     } finally {
       setGlobalLoading(false);
     }
   };
 
-  // --- SCENARIO SIMULATOR ACTIONS ---
   const handleRunSimulation = async () => {
     if (!selectedDatasetId) return;
     setSimLoading(true);
@@ -417,14 +475,14 @@ export default function Home() {
         hiring_delta: simHires
       });
       setSimResult(res.data);
+      showToast('success', 'Simulation recalculation finished.');
     } catch (err) {
-      alert('Failed to run custom What-if simulation.');
+      showToast('error', 'Failed to run What-if simulation.');
     } finally {
       setSimLoading(false);
     }
   };
 
-  // --- AI MEMORY ACTIONS ---
   const handleSaveMemory = async () => {
     if (!selectedDatasetId) return;
     setMemoryLoading(true);
@@ -432,11 +490,88 @@ export default function Home() {
       await api.post(`/datasets/${selectedDatasetId}/memory`);
       const res = await api.get(`/datasets/${selectedDatasetId}/memory`);
       setMemories(res.data);
-      alert('KPI baseline saved to AI Memory.');
+      showToast('success', 'Current dashboard state archived in AI memory.');
     } catch (err) {
-      alert('Failed to save KPI baseline.');
+      showToast('error', 'Failed to archive memory.');
     } finally {
       setMemoryLoading(false);
+    }
+  };
+
+  // --- COLLABORATION HANDLERS (PHASE 2) ---
+  const fetchWorkspaces = async () => {
+    try {
+      const res = await api.get('/collaboration/workspaces');
+      setWorkspaces(res.data);
+      if (res.data.length > 0 && !activeWorkspaceId) {
+        setActiveWorkspaceId(res.data[0].id);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleCreateWorkspace = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newWorkspaceName.trim()) return;
+    try {
+      const res = await api.post('/collaboration/workspaces', { name: newWorkspaceName });
+      setWorkspaces(prev => [...prev, res.data]);
+      setActiveWorkspaceId(res.data.id);
+      setNewWorkspaceName('');
+      showToast('success', `Workspace '${res.data.name}' created!`);
+    } catch (err) {
+      showToast('error', 'Failed to create workspace.');
+    }
+  };
+
+  const handleInviteMember = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inviteEmail.trim() || !activeWorkspaceId) return;
+    try {
+      await api.post(`/collaboration/workspaces/${activeWorkspaceId}/invite`, {
+        email: inviteEmail,
+        role: inviteRole
+      });
+      showToast('success', `Invitation sent to ${inviteEmail}.`);
+      setInviteEmail('');
+      fetchWorkspaceMembers(activeWorkspaceId);
+    } catch (err: any) {
+      showToast('error', err.response?.data?.detail || 'Invitation failed.');
+    }
+  };
+
+  const fetchWorkspaceMembers = async (id: string) => {
+    try {
+      const res = await api.get(`/collaboration/workspaces/${id}/members`);
+      setWorkspaceMembers(res.data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const fetchComments = async (datasetId: string) => {
+    try {
+      const res = await api.get(`/collaboration/comments/${datasetId}`);
+      setComments(res.data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handlePostComment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCommentText.trim() || !selectedDatasetId) return;
+    try {
+      const res = await api.post('/collaboration/comments', {
+        dataset_id: selectedDatasetId,
+        text: newCommentText
+      });
+      setComments(prev => [...prev, res.data]);
+      setNewCommentText('');
+      showToast('success', 'Comment posted.');
+    } catch (err) {
+      showToast('error', 'Failed to post comment.');
     }
   };
 
@@ -486,169 +621,161 @@ export default function Home() {
     } catch (err: any) {
       setChatMessages(prev => [
         ...prev, 
-        { role: 'assistant', content: `Error: ${err.response?.data?.detail || 'Failed to compile query.'}` }
+        { role: 'assistant', content: `Error: ${err.response?.data?.detail || 'Failed to resolve chat query.'}` }
       ]);
     } finally {
       setChatLoading(false);
     }
   };
 
-  // Execute quick search query from hero
-  const handleQuickSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!quickSearchQuery.trim()) return;
-    setActiveTab('chat');
-    handleChatSubmit(undefined, quickSearchQuery);
-    setQuickSearchQuery('');
-  };
-
-  // --- REPORT ACTIONS ---
-  const handleGenerateReport = async () => {
+  const handleGenerateReport = async (format: string = "pdf") => {
     if (!selectedDatasetId) return;
     setReportGenerating(true);
     try {
-      await api.post(`/reports/generate?dataset_id=${selectedDatasetId}`);
+      await api.post(`/reports/generate?dataset_id=${selectedDatasetId}&format=${format}`);
       const res = await api.get(`/reports/list?dataset_id=${selectedDatasetId}`);
       setReports(res.data);
-      alert('Executive report PDF compiled successfully.');
+      showToast('success', `${format.toUpperCase()} executive briefing generated successfully.`);
     } catch (err: any) {
-      alert(err.response?.data?.detail || 'Failed to generate PDF.');
+      showToast('error', err.response?.data?.detail || 'Failed to compile report.');
     } finally {
       setReportGenerating(false);
     }
   };
 
-  const handleDownloadReport = async (reportId: string, title: string) => {
+  const handleDownloadReport = async (reportId: string, title: string, format: string) => {
     try {
       const res = await api.get(`/reports/download/${reportId}`, { responseType: 'blob' });
-      const blob = new Blob([res.data], { type: 'application/pdf' });
+      const mime = format === "pptx" ? "application/vnd.openxmlformats-officedocument.presentationml.presentation" : "application/pdf";
+      const blob = new Blob([res.data], { type: mime });
       const link = document.createElement('a');
       link.href = window.URL.createObjectURL(blob);
-      link.download = `${title.replace(/\s+/g, '_')}.pdf`;
+      link.download = `${title.replace(/\s+/g, '_')}.${format}`;
       link.click();
     } catch (err) {
-      alert('Failed to download PDF.');
+      showToast('error', 'Download link failed.');
     }
   };
 
-  // --- RENDERING SUB-PANELS ---
-  
-  // Dashboard Widget Renderer
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleFileUpload(e.dataTransfer.files[0]);
+    }
+  };
+
+  // --- SKELETON LOADERS FOR DAMP EFFECT ---
+  const renderDashboardSkeletons = () => {
+    return (
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="glass-panel p-5 rounded-xl space-y-3 h-24">
+              <div className="skeleton-line h-3 w-16" />
+              <div className="skeleton-line h-6 w-28" />
+            </div>
+          ))}
+        </div>
+        <div className="glass-panel p-6 rounded-xl space-y-4">
+          <div className="skeleton-line h-4 w-40" />
+          <div className="grid grid-cols-3 gap-4">
+            <div className="skeleton-line h-20 rounded-lg" />
+            <div className="skeleton-line h-20 rounded-lg" />
+            <div className="skeleton-line h-20 rounded-lg" />
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // --- MAIN WIDGETS RENDERING ---
   const renderDashboardWidgets = () => {
     if (!dashboards || !dashboards.layout) return (
-      <div className="text-center py-16 bg-slate-900/40 rounded-2xl border border-slate-800 text-xs text-slate-500 select-none">
-        No dashboard config generated. Please upload a dataset and complete multi-agent profiling.
+      <div className="glass-panel p-8 rounded-xl text-center py-16 flex flex-col items-center justify-center text-slate-500 border-dashed">
+        <Database size={24} className="text-slate-600 mb-3" />
+        <p className="text-xs">No overview generated. Upload a dataset to compile dashboards.</p>
       </div>
     );
 
     const kpiWidgets = dashboards.layout.filter((w: any) => w.type === 'kpi');
     const chartWidgets = dashboards.layout.filter((w: any) => w.type === 'chart');
 
+    // Smart KPI suggestions from Phase 2
+    const smartKpis = analysisJob?.business_report?.smart_kpis;
+
     return (
-      <div className="space-y-8 animate-fade-in">
-        {/* KPI Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+      <div className="space-y-6 animate-fade-in">
+        {/* KPIs Row */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {kpiWidgets.map((kpi: any) => (
-            <div key={kpi.id} className="glass-panel p-5 rounded-2xl flex items-center justify-between shadow-lg relative overflow-hidden group">
-              <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300"></div>
+            <div key={kpi.id} className="glass-panel p-5 rounded-xl flex items-center justify-between">
               <div>
-                <p className="text-slate-400 text-[10px] uppercase font-bold tracking-wider">{kpi.title}</p>
-                <h3 className="section-heading text-3xl mt-1 text-white">{kpi.config.value}</h3>
-                <span className="text-[10px] text-slate-500 font-medium">{kpi.config.label}</span>
+                <p className="text-slate-500 text-[10px] uppercase font-bold tracking-wider">{kpi.title}</p>
+                <h3 className="section-heading text-2xl mt-1 text-white font-mono">{kpi.config.value}</h3>
               </div>
-              <div className="p-3 bg-indigo-500/10 rounded-xl text-indigo-400 border border-indigo-500/10 group-hover:scale-105 transition-transform duration-200">
-                {kpi.id.includes('quality') ? <Shield size={18} /> : <Database size={18} />}
+              <div className="p-2.5 bg-indigo-500/10 rounded-lg text-indigo-400 border border-indigo-500/10">
+                {kpi.id.includes('quality') ? <Shield size={16} /> : <Database size={16} />}
               </div>
             </div>
           ))}
-          <div className="glass-panel p-5 rounded-2xl flex items-center justify-between shadow-lg relative overflow-hidden group">
-            <div className="absolute inset-0 bg-gradient-to-r from-teal-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300"></div>
-            <div>
-              <p className="text-slate-400 text-[10px] uppercase font-bold tracking-wider">Business Domain</p>
-              <h3 className="section-heading text-xl mt-1.5 text-white truncate max-w-[150px]">
-                {selectedDataset?.business_domain || 'General'}
-              </h3>
-              <span className="text-[9px] text-teal-400 font-mono font-bold uppercase tracking-wider">AI Classified</span>
+          
+          {smartKpis?.growth_multiplier && (
+            <div className="glass-panel p-5 rounded-xl flex items-center justify-between bg-gradient-to-br from-indigo-950/20 to-slate-950">
+              <div>
+                <p className="text-slate-500 text-[10px] uppercase font-bold tracking-wider">Growth Potential</p>
+                <h3 className="section-heading text-2xl mt-1 text-teal-400 font-mono">+{smartKpis.growth_multiplier}%</h3>
+              </div>
+              <div className="p-2.5 bg-teal-500/10 rounded-lg text-teal-400 border border-teal-500/10">
+                <TrendingUp size={16} />
+              </div>
             </div>
-            <div className="p-3 bg-teal-500/10 rounded-xl text-teal-400 border border-teal-500/10 group-hover:scale-105 transition-transform duration-200">
-              <Sparkles size={18} />
-            </div>
-          </div>
-          <div className="glass-panel p-5 rounded-2xl flex items-center justify-between shadow-lg relative overflow-hidden group">
-            <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300"></div>
-            <div>
-              <p className="text-slate-400 text-[10px] uppercase font-bold tracking-wider">File Format</p>
-              <h3 className="section-heading text-3xl mt-1 text-white uppercase">{selectedDataset?.file_type}</h3>
-              <span className="text-[10px] text-slate-500 font-medium">{(selectedDataset?.file_size / 1024).toFixed(1)} KB size</span>
-            </div>
-            <div className="p-3 bg-purple-500/10 rounded-xl text-purple-400 border border-purple-500/10 group-hover:scale-105 transition-transform duration-200">
-              <FileText size={18} />
-            </div>
-          </div>
+          )}
         </div>
 
-        {/* Dataset Health Score section */}
-        {analysisJob?.quality_score !== undefined && (
-          <div className="glass-panel p-6 rounded-2xl shadow-xl">
-            <h3 className="section-heading text-lg text-white mb-5 flex items-center gap-2">
-              <Activity size={18} className="text-indigo-400" />
-              Dataset Health Scorecard
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="bg-slate-950/60 p-5 rounded-xl border border-slate-900 flex items-center gap-4">
-                <div className="w-16 h-16 rounded-full border-4 border-indigo-500/20 border-t-indigo-500 flex items-center justify-center font-bold text-lg text-white select-none">
-                  {analysisJob.quality_score}%
-                </div>
-                <div>
-                  <p className="text-slate-400 text-xs font-bold uppercase">Overall Quality</p>
-                  <p className="text-[10px] text-slate-500 mt-0.5">Weighted completeness and duplicate penalties.</p>
-                </div>
-              </div>
-              <div className="bg-slate-950/60 p-5 rounded-xl border border-slate-900 flex items-center gap-4">
-                <div className="w-16 h-16 rounded-full border-4 border-teal-500/20 border-t-teal-500 flex items-center justify-center font-bold text-lg text-white select-none">
-                  {analysisJob.quality_report?.completeness_score || 100}%
-                </div>
-                <div>
-                  <p className="text-slate-400 text-xs font-bold uppercase">Completeness Index</p>
-                  <p className="text-[10px] text-slate-500 mt-0.5">Ratio of non-empty data cells in rows.</p>
-                </div>
-              </div>
-              <div className="bg-slate-950/60 p-5 rounded-xl border border-slate-900 flex items-center gap-4">
-                <div className="w-16 h-16 rounded-full border-4 border-purple-500/20 border-t-purple-500 flex items-center justify-center font-bold text-lg text-white select-none">
-                  {analysisJob.quality_report?.consistency_score || 100}%
-                </div>
-                <div>
-                  <p className="text-slate-400 text-xs font-bold uppercase">Consistency Index</p>
-                  <p className="text-[10px] text-slate-500 mt-0.5">Outlier spikes and range sanity check.</p>
-                </div>
-              </div>
+        {/* Dynamic Smart KPI engine block */}
+        {smartKpis && (
+          <div className="glass-panel p-5 rounded-xl space-y-4">
+            <div>
+              <h3 className="section-heading text-sm text-slate-200 flex items-center gap-2">
+                <Layers size={15} className="text-teal-400" />
+                Smart KPI Engine Diagnoses
+              </h3>
+              <p className="text-[10px] text-slate-500 mt-0.5">Auto-detected metric scorecards and recommended targets.</p>
             </div>
-          </div>
-        )}
-
-        {/* Auto Insights Panel */}
-        {analysisJob?.insights && (
-          <div className="glass-panel p-6 rounded-2xl shadow-xl">
-            <h3 className="section-heading text-lg text-white mb-4 flex items-center gap-2">
-              <Sparkles size={18} className="text-teal-400 animate-pulse" />
-              Auto Insight Engine
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <div className="space-y-3">
-                <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Key Insights</span>
-                {analysisJob.insights.key_findings?.map((item: string, idx: number) => (
-                  <div key={idx} className="bg-slate-950/50 p-4 rounded-xl border border-slate-900 text-xs text-slate-300 leading-relaxed flex items-start gap-2.5">
-                    <span className="text-teal-400 font-bold shrink-0 mt-0.5">•</span>
-                    <span>{item}</span>
-                  </div>
-                ))}
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <span className="text-[10px] text-slate-500 font-bold uppercase block select-none">Detected Performance Targets</span>
+                {Object.keys(smartKpis.detected_kpis).length > 0 ? (
+                  Object.entries(smartKpis.detected_kpis).map(([kpiName, value]: [string, any]) => (
+                    <div key={kpiName} className="bg-slate-900/40 p-2.5 rounded border border-slate-850 flex items-center justify-between text-xs">
+                      <span className="font-semibold text-slate-300 capitalize">{kpiName} ({value.mapped_column})</span>
+                      <span className="font-mono text-teal-400 font-bold">${value.total.toLocaleString()}</span>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-xs text-slate-550 italic">No standard KPI headers detected directly from column labels.</p>
+                )}
               </div>
-              <div className="space-y-3">
-                <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Business Opportunities</span>
-                {analysisJob.insights.business_opportunities?.map((item: string, idx: number) => (
-                  <div key={idx} className="bg-slate-950/50 p-4 rounded-xl border border-slate-900 text-xs text-slate-300 leading-relaxed flex items-start gap-2.5">
-                    <span className="text-indigo-400 font-bold shrink-0 mt-0.5">✓</span>
-                    <span>{item}</span>
+              
+              <div className="space-y-2">
+                <span className="text-[10px] text-slate-500 font-bold uppercase block select-none">KPI Recommendations & Logic formulas</span>
+                {smartKpis.recommendations?.map((rec: string, idx: number) => (
+                  <div key={idx} className="bg-slate-900/20 p-2.5 rounded border border-slate-850/60 text-xs text-slate-400 leading-normal flex items-start gap-2">
+                    <span className="text-indigo-400 shrink-0 font-bold">•</span>
+                    <span>{rec}</span>
                   </div>
                 ))}
               </div>
@@ -656,12 +783,12 @@ export default function Home() {
           </div>
         )}
 
-        {/* Explanatory Widgets */}
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        {/* Plotly widgets */}
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
           {chartWidgets.map((widget: any) => (
-            <div key={widget.id} className="glass-panel p-5 rounded-2xl flex flex-col justify-between shadow-xl">
-              <div className="mb-4">
-                <h4 className="section-heading text-base text-white">{widget.title}</h4>
+            <div key={widget.id} className="glass-panel p-5 rounded-xl flex flex-col justify-between">
+              <div className="mb-3">
+                <h4 className="section-heading text-sm text-slate-200">{widget.title}</h4>
               </div>
               <div className="w-full flex-grow">
                 <ChartRenderer plotlyJson={widget.config} />
@@ -673,36 +800,33 @@ export default function Home() {
     );
   };
 
-  // Datasets Library & Preview tab
+  // Datasets overview
   const renderDatasetsOverview = () => {
     if (!selectedDataset) return (
-      <div className="text-center py-16 bg-slate-900/40 rounded-2xl border border-slate-800 text-xs text-slate-500 select-none">
-        No active datasets found. Please upload a dataset.
+      <div className="glass-panel p-10 rounded-xl text-center py-20 flex flex-col items-center justify-center text-slate-500 border-dashed">
+        <Database size={32} className="text-slate-700 mb-3" />
+        <h4 className="section-heading text-sm text-white">Upload Area Empty</h4>
       </div>
     );
 
     return (
-      <div className="space-y-8 animate-fade-in">
-        {/* Dataset Summary & Multi-Explanation card */}
-        <div className="glass-panel p-6 rounded-2xl bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950/20 relative shadow-2xl">
-          <div className="flex items-center justify-between flex-wrap gap-4 border-b border-slate-800/80 pb-4 mb-4">
+      <div className="space-y-6">
+        <div className="glass-panel p-6 rounded-xl bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950/5 relative">
+          <div className="flex justify-between items-start flex-wrap gap-4 border-b border-slate-800 pb-4 mb-4">
             <div>
-              <span className="bg-indigo-500/10 text-indigo-400 text-[10px] px-3 py-1 rounded-full font-bold border border-indigo-500/20 uppercase tracking-wider select-none">
+              <span className="bg-indigo-500/10 text-indigo-400 text-[10px] px-2.5 py-0.5 rounded-full font-bold border border-indigo-500/20 uppercase tracking-wider select-none">
                 {selectedDataset.business_domain || 'General Analytics'}
               </span>
-              <h2 className="section-heading text-2xl text-white mt-2">{selectedDataset.name}</h2>
+              <h2 className="section-heading text-xl text-white mt-1.5">{selectedDataset.name}</h2>
             </div>
-            {/* Explanation mode buttons */}
             {explanations && (
-              <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800">
+              <div className="flex bg-slate-950 p-1 rounded-lg border border-slate-800 text-[10px]">
                 {(['CEO', 'Manager', 'Data Scientist', 'Student'] as const).map((mode) => (
                   <button
                     key={mode}
                     onClick={() => setExplanationMode(mode)}
-                    className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all ${
-                      explanationMode === mode 
-                        ? 'bg-indigo-600 text-white shadow-md' 
-                        : 'text-slate-500 hover:text-slate-300'
+                    className={`px-3 py-1 rounded-md transition font-bold ${
+                      explanationMode === mode ? 'bg-indigo-600 text-white' : 'text-slate-500 hover:text-slate-300'
                     }`}
                   >
                     {mode}
@@ -711,58 +835,92 @@ export default function Home() {
               </div>
             )}
           </div>
-          
-          <div className="min-h-[60px] text-slate-300 text-xs md:text-sm leading-relaxed transition-opacity duration-300">
+          <div className="text-xs text-slate-300 leading-relaxed font-sans min-h-[40px]">
             {explanations && explanations[explanationMode] ? (
               <p className="italic font-medium">"{explanations[explanationMode]}"</p>
             ) : (
-              <p>{selectedDataset.summary || 'Summary drafting in progress...'}</p>
+              <p>{selectedDataset.summary || 'Summary is compiling...'}</p>
             )}
           </div>
         </div>
 
-        {/* Cleaning Action Plan Dashboard */}
+        {/* Discussions Comments thread for shared workspaces (PHASE 2) */}
+        <div className="glass-panel p-5 rounded-xl space-y-4">
+          <div>
+            <h3 className="section-heading text-sm text-white flex items-center gap-2">
+              <MessageSquare size={15} className="text-indigo-400" />
+              Dataset Discussion & Collaboration Feed
+            </h3>
+            <p className="text-[10px] text-slate-500">Post remarks or coordinate data cleaning directives with team members.</p>
+          </div>
+          <div className="space-y-3 overflow-y-auto max-h-[180px] pr-1">
+            {comments.length > 0 ? (
+              comments.map((c) => (
+                <div key={c.id} className="bg-slate-900/40 p-3 rounded-lg border border-slate-850 text-xs">
+                  <div className="flex items-center justify-between text-[10px] text-slate-500 mb-1 font-mono">
+                    <span className="font-semibold text-slate-400">{c.user_email}</span>
+                    <span>{new Date(c.created_at).toLocaleTimeString()}</span>
+                  </div>
+                  <p className="text-slate-300">{c.text}</p>
+                </div>
+              ))
+            ) : (
+              <p className="text-xs text-slate-600 italic select-none">No feedback remarks posted. Start discussion below.</p>
+            )}
+          </div>
+          <form onSubmit={handlePostComment} className="flex gap-2">
+            <input
+              type="text"
+              value={newCommentText}
+              onChange={e => setNewCommentText(e.target.value)}
+              placeholder="Post team feedback note..."
+              className="input-clean text-xs flex-grow py-1.5 focus:outline-none"
+            />
+            <button type="submit" className="bg-indigo-600 hover:bg-indigo-550 text-white font-bold py-1.5 px-4 rounded-lg text-xs shadow-md shrink-0">
+              Comment
+            </button>
+          </form>
+        </div>
+
+        {/* Cleaning Scorecard */}
         {analysisJob?.quality_report && (
-          <div className="glass-panel p-6 rounded-2xl shadow-xl">
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-800/50 pb-5 mb-5">
+          <div className="glass-panel p-5 rounded-xl space-y-4">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-800 pb-4">
               <div>
-                <h3 className="section-heading text-base flex items-center gap-2 text-white">
-                  <AlertTriangle className="text-amber-500" size={18} />
-                  Actionable Data Cleaning Plan
+                <h3 className="section-heading text-sm flex items-center gap-2 text-white">
+                  <AlertTriangle className="text-amber-500" size={16} />
+                  Cleaning Directives
                 </h3>
-                <p className="text-[11px] text-slate-400 mt-0.5">Customize cleaning parameters to run clean commands on dataset copies.</p>
               </div>
-              <div className="flex flex-wrap items-center gap-4 text-[10px]">
-                <label className="flex items-center gap-2 cursor-pointer text-slate-400 select-none">
+              <div className="flex items-center gap-3.5 text-[10px]">
+                <label className="flex items-center gap-1.5 cursor-pointer text-slate-400 select-none">
                   <input type="checkbox" checked={cleaningOptions.remove_duplicates} onChange={e => setCleaningOptions(prev => ({ ...prev, remove_duplicates: e.target.checked }))} className="accent-indigo-500 rounded h-3.5 w-3.5 cursor-pointer"/>
-                  Dedup Rows
+                  Deduplicate
                 </label>
-                <label className="flex items-center gap-2 cursor-pointer text-slate-400 select-none">
+                <label className="flex items-center gap-1.5 cursor-pointer text-slate-400 select-none">
                   <input type="checkbox" checked={cleaningOptions.impute_missing} onChange={e => setCleaningOptions(prev => ({ ...prev, impute_missing: e.target.checked }))} className="accent-indigo-500 rounded h-3.5 w-3.5 cursor-pointer"/>
                   Impute Nulls
                 </label>
-                <button onClick={handleAutoClean} disabled={cleaningLoading} className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-1.5 px-3 rounded-lg flex items-center gap-1 shadow-md">
-                  {cleaningLoading ? <Loader2 className="animate-spin" size={12} /> : <RefreshCw size={12} />}
-                  Auto Clean
+                <button onClick={handleAutoClean} disabled={cleaningLoading} className="bg-indigo-650 hover:bg-indigo-550 text-white font-bold py-1 px-3 rounded text-[10px] flex items-center gap-1">
+                  {cleaningLoading ? <Loader2 className="animate-spin" size={10} /> : <RefreshCw size={10} />}
+                  Clean Copy
                 </button>
               </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <div className="space-y-2 max-h-[180px] overflow-y-auto pr-1">
-                <span className="text-[10px] text-slate-500 uppercase font-bold">Issues Flagged</span>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+              <div className="space-y-1.5 max-h-[140px] overflow-y-auto pr-1">
+                <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Identified Warnings</span>
                 {analysisJob.quality_report.issues?.map((iss: any, idx: number) => (
-                  <div key={idx} className="bg-slate-950/60 p-2.5 rounded-lg border border-slate-900 text-[11px] text-slate-300 leading-normal flex items-start gap-2.5">
-                    <span className={`px-1.5 py-0.5 rounded text-[8px] uppercase font-bold shrink-0 ${
-                      iss.severity === 'high' ? 'bg-red-500/10 text-red-400 border border-red-500/20' : 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
-                    }`}>{iss.severity}</span>
+                  <div key={idx} className="bg-slate-900/50 p-2 rounded border border-slate-850 flex items-start gap-2 leading-relaxed">
+                    <AlertCircle size={12} className="text-red-400 shrink-0 mt-0.5" />
                     <span>{iss.message}</span>
                   </div>
                 ))}
               </div>
-              <div className="space-y-2 max-h-[180px] overflow-y-auto pr-1">
-                <span className="text-[10px] text-slate-500 uppercase font-bold">Cleaning Plan Steps</span>
+              <div className="space-y-1.5 max-h-[140px] overflow-y-auto pr-1">
+                <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Tactical Recommendations</span>
                 {analysisJob.quality_report.actionable_plan?.map((step: string, idx: number) => (
-                  <div key={idx} className="bg-slate-950/30 p-2.5 rounded-lg border border-slate-900/40 text-[11px] text-slate-300 leading-normal flex items-start gap-2">
+                  <div key={idx} className="bg-slate-900/20 p-2 rounded border border-slate-850/50 flex items-start gap-1.5 text-slate-400 leading-relaxed">
                     <span className="text-indigo-400 font-bold shrink-0">•</span>
                     <span>{step}</span>
                   </div>
@@ -772,13 +930,13 @@ export default function Home() {
           </div>
         )}
 
-        {/* Data Grid Preview section */}
+        {/* Data Grid Preview */}
         {previewData && (
-          <div className="space-y-3">
-            <h3 className="section-heading text-lg text-white flex items-center gap-2">
-              <FileText size={18} className="text-teal-400" />
-              Raw Data Grid Preview
-              <span className="text-xs text-slate-500 font-normal">({selectedDataset.row_count} rows total)</span>
+          <div className="space-y-2.5">
+            <h3 className="section-heading text-sm text-slate-200 flex items-center gap-2 select-none">
+              <FileText size={15} className="text-teal-400" />
+              Raw Data Preview
+              <span className="text-[10px] text-slate-500 font-normal">({selectedDataset.row_count} total observations)</span>
             </h3>
             <PreviewGrid 
               columns={previewData.columns} 
@@ -791,112 +949,75 @@ export default function Home() {
     );
   };
 
-  // Scenario Simulator Tab
+  // What-if simulator
   const renderScenarioSimulator = () => {
     return (
-      <div className="glass-panel p-6 rounded-2xl shadow-xl space-y-6 animate-fade-in">
+      <div className="glass-panel p-5 rounded-xl shadow-lg space-y-6 animate-fade-in">
         <div>
-          <h3 className="section-heading text-lg flex items-center gap-2 text-white">
-            <Sliders className="text-indigo-400" size={20} />
-            What-if Scenario Simulator
+          <h3 className="section-heading text-sm flex items-center gap-2 text-white">
+            <Sliders className="text-indigo-400" size={16} />
+            What-if Scenario Engine
           </h3>
-          <p className="text-xs text-slate-400 mt-1">Modify pricing adjustments, marketing expenditures, and hires to evaluate forecasted business shifts.</p>
+          <p className="text-[10px] text-slate-400 mt-0.5">Drag modifiers to gauge mathematical revenue/margin elasticity offsets.</p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-1 space-y-5 bg-slate-950/60 p-5 rounded-xl border border-slate-900">
-            {/* Price Delta Slider */}
-            <div className="space-y-2">
-              <div className="flex justify-between text-xs text-slate-300 font-semibold">
-                <span>Pricing Adjustment</span>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+          <div className="lg:col-span-1 space-y-4 bg-slate-950/60 p-4.5 rounded-lg border border-slate-900 text-xs">
+            <div className="space-y-1.5">
+              <div className="flex justify-between font-semibold">
+                <span className="text-slate-300">Price Modifier</span>
                 <span className="text-indigo-400 font-mono font-bold">{simPrice >= 0 ? '+' : ''}{simPrice}%</span>
               </div>
-              <input 
-                type="range" min="-20" max="20" value={simPrice} 
-                onChange={(e) => setSimPrice(parseInt(e.target.value))} 
-                className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-600"
-              />
-              <div className="flex justify-between text-[9px] text-slate-500">
-                <span>-20% Drop</span>
-                <span>Baseline</span>
-                <span>+20% Hike</span>
-              </div>
+              <input type="range" min="-20" max="20" value={simPrice} onChange={(e) => setSimPrice(parseInt(e.target.value))} className="w-full h-1 bg-slate-800 rounded-lg cursor-pointer accent-indigo-600"/>
             </div>
 
-            {/* Marketing Budget Delta Slider */}
-            <div className="space-y-2">
-              <div className="flex justify-between text-xs text-slate-300 font-semibold">
-                <span>Marketing Spend Delta</span>
+            <div className="space-y-1.5">
+              <div className="flex justify-between font-semibold">
+                <span className="text-slate-300">Marketing Delta</span>
                 <span className="text-teal-400 font-mono font-bold">{simMarketing >= 0 ? '+' : ''}{simMarketing}%</span>
               </div>
-              <input 
-                type="range" min="-30" max="30" value={simMarketing} 
-                onChange={(e) => setSimMarketing(parseInt(e.target.value))} 
-                className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-teal-600"
-              />
-              <div className="flex justify-between text-[9px] text-slate-500">
-                <span>-30% Budget Cut</span>
-                <span>Baseline</span>
-                <span>+30% Budget Hike</span>
-              </div>
+              <input type="range" min="-30" max="30" value={simMarketing} onChange={(e) => setSimMarketing(parseInt(e.target.value))} className="w-full h-1 bg-slate-800 rounded-lg cursor-pointer accent-teal-600"/>
             </div>
 
-            {/* Hiring delta */}
-            <div className="space-y-2">
-              <div className="flex justify-between text-xs text-slate-300 font-semibold">
-                <span>Additional Team Resources</span>
-                <span className="text-purple-400 font-mono font-bold">{simHires >= 0 ? '+' : ''}{simHires} Hires</span>
+            <div className="space-y-1.5">
+              <div className="flex justify-between font-semibold">
+                <span className="text-slate-300">New Resources Allocation</span>
+                <span className="text-purple-400 font-mono font-bold">+{simHires} Hires</span>
               </div>
-              <input 
-                type="range" min="0" max="10" value={simHires} 
-                onChange={(e) => setSimHires(parseInt(e.target.value))} 
-                className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-purple-600"
-              />
-              <div className="flex justify-between text-[9px] text-slate-500">
-                <span>No hires</span>
-                <span>+10 hires</span>
-              </div>
+              <input type="range" min="0" max="10" value={simHires} onChange={(e) => setSimHires(parseInt(e.target.value))} className="w-full h-1 bg-slate-800 rounded-lg cursor-pointer accent-purple-600"/>
             </div>
 
-            <button
-              onClick={handleRunSimulation}
-              disabled={simLoading}
-              className="btn-primary w-full py-2.5 text-xs font-semibold justify-center shadow-lg"
-            >
-              {simLoading ? <Loader2 className="animate-spin" size={14} /> : <Play size={14} />}
-              Calculate What-if Outcomes
+            <button onClick={handleRunSimulation} disabled={simLoading} className="btn-primary w-full py-2 text-xs font-semibold justify-center shadow-lg">
+              {simLoading ? <Loader2 className="animate-spin" size={12} /> : <Play size={12} />}
+              Compute Modifiers
             </button>
           </div>
 
-          <div className="lg:col-span-2 flex flex-col justify-center space-y-4">
+          <div className="lg:col-span-2 flex flex-col justify-center">
             {simResult ? (
-              <div className="bg-indigo-950/10 border border-indigo-500/10 p-6 rounded-xl space-y-4 shadow-inner">
-                <div className="flex items-center justify-between border-b border-slate-850 pb-3">
-                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider select-none">Predicted Shift Summary</span>
-                  <span className={`text-xs px-2.5 py-0.5 rounded-full font-bold font-mono border ${
-                    simResult.pct_change >= 0 
-                      ? 'bg-teal-500/10 text-teal-400 border-teal-500/20' 
-                      : 'bg-red-500/10 text-red-400 border-red-500/20'
-                  }`}>
-                    {simResult.pct_change >= 0 ? '+' : ''}{simResult.pct_change}% Impact
-                  </span>
+              <div className="bg-indigo-950/10 border border-indigo-500/10 p-5 rounded-lg space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-850 pb-2 text-[10px]">
+                  <span className="text-slate-400 uppercase font-bold">Simulated Projection</span>
+                  <span className={`font-mono font-bold px-2 py-0.5 rounded border ${
+                    simResult.pct_change >= 0 ? 'bg-teal-500/10 text-teal-400 border-teal-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'
+                  }`}>{simResult.pct_change >= 0 ? '+' : ''}{simResult.pct_change}% shift</span>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-950">
-                    <p className="text-[9px] text-slate-400 uppercase font-bold">Baseline {simResult.metric}</p>
-                    <p className="text-2xl font-mono font-bold text-slate-300 mt-1">${simResult.before.toLocaleString()}</p>
+                  <div className="bg-slate-900/50 p-3.5 rounded-lg border border-slate-950">
+                    <span className="text-[9px] text-slate-500 font-bold uppercase">Baseline Total</span>
+                    <p className="text-xl font-mono font-bold text-slate-300 mt-1">${simResult.before.toLocaleString()}</p>
                   </div>
-                  <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-950">
-                    <p className="text-[9px] text-slate-400 uppercase font-bold">Simulated {simResult.metric}</p>
-                    <p className="text-2xl font-mono font-bold text-white mt-1">${simResult.after.toLocaleString()}</p>
+                  <div className="bg-slate-900/50 p-3.5 rounded-lg border border-slate-950">
+                    <span className="text-[9px] text-slate-500 font-bold uppercase">Projected Shift</span>
+                    <p className="text-xl font-mono font-bold text-white mt-1">${simResult.after.toLocaleString()}</p>
                   </div>
                 </div>
-                <p className="text-xs text-slate-300 leading-relaxed italic">"{simResult.explanation}"</p>
+                <p className="text-xs text-slate-300 italic font-sans">"{simResult.explanation}"</p>
               </div>
             ) : (
-              <div className="bg-slate-900/30 p-6 rounded-xl border border-slate-900 text-center py-12 flex flex-col items-center justify-center text-slate-500">
-                <Sliders size={28} className="text-slate-700 mb-3" />
-                <p className="text-xs">Adjust sliders on the left and trigger calculation to display business projections.</p>
+              <div className="bg-slate-900/30 p-6 rounded-lg border border-slate-900 text-center py-10 flex flex-col items-center justify-center text-slate-500">
+                <Sliders size={24} className="text-slate-700 mb-2" />
+                <p className="text-xs">Adjust sliders on the left and trigger run to display What-if metrics.</p>
               </div>
             )}
           </div>
@@ -905,58 +1026,54 @@ export default function Home() {
     );
   };
 
-  // AI Memory Comparison Tab
+  // AI Memory baseline Snapshots
   const renderAIMemory = () => {
     return (
-      <div className="glass-panel p-6 rounded-2xl shadow-xl space-y-6 animate-fade-in">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800/80 pb-4">
+      <div className="glass-panel p-5 rounded-xl shadow-lg space-y-5 animate-fade-in">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-3">
           <div>
-            <h3 className="section-heading text-lg flex items-center gap-2 text-white">
-              <Bookmark className="text-purple-400" size={20} />
-              AI Memory Snapshot Baseline
+            <h3 className="section-heading text-sm flex items-center gap-2 text-white">
+              <Bookmark className="text-purple-400" size={16} />
+              AI Memory Snapshot Repository
             </h3>
-            <p className="text-xs text-slate-400 mt-0.5">Review performance baselines and verify operational trends compared with previous analyses.</p>
+            <p className="text-[10px] text-slate-400 mt-0.5">Audit KPI snapshot registries and verify timeline drift metrics.</p>
           </div>
-          <button
-            onClick={handleSaveMemory}
-            disabled={memoryLoading || !selectedDatasetId}
-            className="bg-purple-600 hover:bg-purple-500 text-white font-bold py-1.5 px-3 rounded-lg text-xs flex items-center gap-1.5 shadow-md"
-          >
-            {memoryLoading ? <Loader2 className="animate-spin" size={12} /> : <Bookmark size={12} />}
+          <button onClick={handleSaveMemory} disabled={memoryLoading || !selectedDatasetId} className="bg-purple-600 hover:bg-purple-550 text-white font-bold py-1 px-3 rounded text-[10px] flex items-center gap-1">
+            {memoryLoading ? <Loader2 className="animate-spin" size={10} /> : <Bookmark size={10} />}
             Capture Snapshot
           </button>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-3">
           {memories.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs border-collapse">
+            <div className="overflow-x-auto text-[11px]">
+              <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="border-b border-slate-800 text-slate-400">
-                    <th className="py-3 px-4 uppercase font-bold tracking-wider">Date Captured</th>
-                    <th className="py-3 px-4 uppercase font-bold tracking-wider">Business Goal</th>
-                    <th className="py-3 px-4 uppercase font-bold tracking-wider">Quality score</th>
-                    <th className="py-3 px-4 uppercase font-bold tracking-wider">Dimensions</th>
+                  <tr className="border-b border-slate-850 text-slate-500 font-bold uppercase">
+                    <th className="py-2.5 px-3">Date Archived</th>
+                    <th className="py-2.5 px-3">Target Objective</th>
+                    <th className="py-2.5 px-3">Completeness</th>
+                    <th className="py-2.5 px-3">Dataset Dimensions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-850 text-slate-300">
+                <tbody className="divide-y divide-slate-900 text-slate-300">
                   {memories.map((mem) => (
                     <tr key={mem.id} className="hover:bg-slate-900/30">
-                      <td className="py-3 px-4 font-medium flex items-center gap-2">
-                        <Calendar size={13} className="text-slate-500" />
+                      <td className="py-2.5 px-3 flex items-center gap-2">
+                        <Calendar size={12} className="text-slate-500" />
                         {new Date(mem.created_at).toLocaleDateString()}
                       </td>
-                      <td className="py-3 px-4">{mem.business_goals}</td>
-                      <td className="py-3 px-4 font-mono font-bold text-teal-400">{mem.kpis?.quality_score}%</td>
-                      <td className="py-3 px-4 font-mono text-[11px]">{mem.kpis?.rows} rows × {mem.kpis?.columns} cols</td>
+                      <td className="py-2.5 px-3">{mem.business_goals}</td>
+                      <td className="py-2.5 px-3 font-mono font-bold text-teal-400">{mem.kpis?.quality_score}%</td>
+                      <td className="py-2.5 px-3 font-mono text-[10px] text-slate-400">{mem.kpis?.rows} rows × {mem.kpis?.columns} cols</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
           ) : (
-            <div className="text-center py-12 bg-slate-900/40 rounded-xl border border-slate-900 text-xs text-slate-500 select-none">
-              No performance baselines captured. Click 'Capture Snapshot' to save dashboard metrics.
+            <div className="text-center py-10 bg-slate-900/40 rounded-lg border border-slate-900 text-xs text-slate-500 select-none">
+              No snapshot histories registered. Click 'Capture Snapshot' to freeze current metrics.
             </div>
           )}
         </div>
@@ -964,35 +1081,35 @@ export default function Home() {
     );
   };
 
-  // Industry Templates list Tab
+  // Industry Templates
   const renderIndustryTemplates = () => {
     const templates = [
-      { title: "Retail Sales Audit", domain: "Retail & E-commerce", description: "Audits sales registers, highlights top categories, spots negative margins, and forecasts checkout trends." },
-      { title: "Financial Transactions Ledger", domain: "Banking & Finance", description: "Performs correlation check on investment metrics, maps outlier transfers, and suggests asset plans." },
-      { title: "Patient Log Diagnostics", domain: "Healthcare & Medicine", description: "Details consult distributions, assesses wait time outliers, and builds scheduling recommendations." },
-      { title: "SaaS Subscriber Churn", domain: "SaaS Technology", description: "Calculates user session decay, groups customer profiles via K-means, and flags cancel priorities." },
-      { title: "HR Productivity Scorecard", domain: "Human Resources", description: "Inspects task completion speeds, runs employee workload balance tests, and structures hiring recommendations." }
+      { title: "Retail Margins Audit", domain: "Retail & E-commerce", description: "Performs sales register auditing, spots negative profitability margin outliers, and tracks conversions." },
+      { title: "Financial Transactions Ledger", domain: "Banking & Finance", description: "Runs correlation checks on corporate indices, reviews cash flows, and checks portfolios." },
+      { title: "Patient Log Wait Times", domain: "Healthcare & Medicine", description: "Inspects clinical wait boundaries, lists admission rates, and builds resource suggestions." },
+      { title: "SaaS Subscriber Churn Model", domain: "SaaS Technology", description: "Groups consumer cohorts using K-Means, audits weekly usage rates, and details churn indicators." },
+      { title: "HR Task Speed Scorecard", domain: "Human Resources", description: "Measures resource speed milestones, highlights workflow locks, and details hiring plans." }
     ];
 
     return (
-      <div className="glass-panel p-6 rounded-2xl shadow-xl space-y-6 animate-fade-in">
+      <div className="glass-panel p-5 rounded-xl shadow-lg space-y-5 animate-fade-in">
         <div>
-          <h3 className="section-heading text-lg flex items-center gap-2 text-white">
-            <Layers className="text-teal-400" size={20} />
+          <h3 className="section-heading text-sm flex items-center gap-2 text-white">
+            <Layers className="text-teal-400" size={16} />
             Industry Analysis Templates
           </h3>
-          <p className="text-xs text-slate-400 mt-0.5">Kickstart operational reports using pre-configured target metrics, templates, and agent checklists.</p>
+          <p className="text-[10px] text-slate-400 mt-0.5">Initialize agent pipelines with industry-standard target headers.</p>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {templates.map((temp, idx) => (
-            <div key={idx} className="bg-slate-950/60 p-5 rounded-2xl border border-slate-900 hover:border-slate-800 transition flex flex-col justify-between group cursor-pointer shadow-md">
+            <div key={idx} className="bg-slate-950/60 p-4 rounded-xl border border-slate-900 hover:border-slate-800 transition flex flex-col justify-between group cursor-pointer">
               <div>
-                <span className="text-[9px] uppercase font-bold text-teal-400 bg-teal-500/10 border border-teal-500/20 px-2 py-0.5 rounded-md">{temp.domain}</span>
-                <h4 className="section-heading text-sm text-slate-200 mt-3 group-hover:text-white transition">{temp.title}</h4>
-                <p className="text-xs text-slate-400 mt-2 leading-relaxed">{temp.description}</p>
+                <span className="text-[9px] uppercase font-bold text-teal-400 bg-teal-500/10 border border-teal-500/20 px-2 py-0.5 rounded">{temp.domain}</span>
+                <h4 className="section-heading text-xs text-slate-200 mt-3 group-hover:text-white transition">{temp.title}</h4>
+                <p className="text-[11px] text-slate-400 mt-1.5 leading-relaxed">{temp.description}</p>
               </div>
-              <div className="flex items-center gap-1 text-[10px] text-slate-500 font-bold mt-4 font-mono group-hover:text-teal-400 transition">
-                Apply Template <ChevronRight size={12} />
+              <div className="flex items-center gap-1 text-[9px] text-slate-500 font-bold mt-4 font-mono group-hover:text-teal-400 transition select-none">
+                Apply Template <ChevronRight size={10} />
               </div>
             </div>
           ))}
@@ -1001,54 +1118,45 @@ export default function Home() {
     );
   };
 
-  // Briefing slides center
+  // Briefing slide viewer
   const renderPresentationSlides = () => {
     const slides = analysisJob?.presentation_deck || [];
     if (slides.length === 0) return null;
     const activeSlide = slides[activeSlideIdx];
 
     return (
-      <div className="glass-panel p-6 rounded-2xl shadow-xl space-y-6 animate-fade-in border-t-2 border-t-indigo-500/40">
-        <div className="flex items-center justify-between border-b border-slate-850 pb-3">
+      <div className="glass-panel p-5 rounded-xl shadow-xl space-y-5 animate-fade-in border-t-2 border-t-indigo-500/40">
+        <div className="flex items-center justify-between border-b border-slate-850 pb-2">
           <div>
-            <h3 className="section-heading text-base flex items-center gap-2 text-white">
-              <Award className="text-indigo-400 animate-bounce" size={18} />
-              Briefing Slides Center
+            <h3 className="section-heading text-sm flex items-center gap-2 text-white">
+              <Award className="text-indigo-400" size={16} />
+              Executive Slides Briefing
             </h3>
-            <p className="text-[10px] text-slate-500">Autonomous slide deck briefing compiled for executive review.</p>
+            <p className="text-[9px] text-slate-500">Autonomous board briefing deck.</p>
           </div>
-          <div className="flex items-center bg-slate-950 p-1 rounded-lg border border-slate-900 text-xs">
-            <button 
-              disabled={activeSlideIdx === 0} 
-              onClick={() => setActiveSlideIdx(p => p - 1)}
-              className="px-2 py-1 text-slate-400 hover:text-white disabled:opacity-40"
-            >
-              ◄ Previous
+          <div className="flex items-center bg-slate-950 p-1 rounded-lg border border-slate-900 text-[10px] font-mono">
+            <button disabled={activeSlideIdx === 0} onClick={() => setActiveSlideIdx(p => p - 1)} className="px-2 text-slate-400 hover:text-white disabled:opacity-30">
+              ◄ Prev
             </button>
-            <span className="px-3 text-slate-300 font-bold">{activeSlideIdx + 1} / {slides.length}</span>
-            <button 
-              disabled={activeSlideIdx === slides.length - 1} 
-              onClick={() => setActiveSlideIdx(p => p + 1)}
-              className="px-2 py-1 text-slate-400 hover:text-white disabled:opacity-40"
-            >
+            <span className="px-2.5 text-slate-300 font-bold">{activeSlideIdx + 1} / {slides.length}</span>
+            <button disabled={activeSlideIdx === slides.length - 1} onClick={() => setActiveSlideIdx(p => p + 1)} className="px-2 text-slate-400 hover:text-white disabled:opacity-30">
               Next ►
             </button>
           </div>
         </div>
 
-        {/* Slide view */}
-        <div className="bg-slate-950/60 p-8 rounded-2xl border border-slate-900 min-h-[300px] flex flex-col justify-between shadow-inner relative overflow-hidden transition-all duration-300">
-          <div className="absolute top-0 right-0 p-3 text-[10px] uppercase font-bold text-slate-600 tracking-widest select-none">
-            Slide Type: {activeSlide.type}
+        <div className="bg-slate-950/60 p-6.5 rounded-xl border border-slate-900 min-h-[260px] flex flex-col justify-between shadow-inner relative">
+          <div className="absolute top-0 right-0 p-2 text-[9px] uppercase font-bold text-slate-600 tracking-wider">
+            {activeSlide.type}
           </div>
           <div>
-            <span className="text-[9px] uppercase font-bold text-indigo-400 tracking-wider font-mono">{activeSlide.subtitle}</span>
-            <h2 className="section-heading text-xl md:text-2xl text-white mt-1 border-b border-slate-900 pb-3">{activeSlide.title}</h2>
+            <span className="text-[9px] uppercase font-bold text-indigo-400 tracking-wider font-mono block mb-1">{activeSlide.subtitle}</span>
+            <h2 className="section-heading text-lg text-white border-b border-slate-900 pb-2">{activeSlide.title}</h2>
             
             {activeSlide.bullets && (
-              <ul className="mt-5 space-y-3">
+              <ul className="mt-4 space-y-2">
                 {activeSlide.bullets.map((b: string, i: number) => (
-                  <li key={i} className="text-xs text-slate-300 leading-relaxed flex items-start gap-2.5">
+                  <li key={i} className="text-xs text-slate-300 leading-relaxed flex items-start gap-2">
                     <span className="text-indigo-500 shrink-0 mt-0.5">•</span>
                     <span>{b}</span>
                   </li>
@@ -1057,93 +1165,87 @@ export default function Home() {
             )}
 
             {activeSlide.metrics && (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-6">
+              <div className="grid grid-cols-3 gap-3 mt-5">
                 {activeSlide.metrics.map((m: any, i: number) => (
-                  <div key={i} className="bg-slate-900/60 p-4 rounded-xl border border-slate-850">
-                    <span className="text-[10px] text-slate-500 font-bold uppercase">{m.label}</span>
-                    <p className="text-lg font-mono font-bold text-slate-200 mt-1">{m.value}</p>
+                  <div key={i} className="bg-slate-900/60 p-3.5 rounded-lg border border-slate-850 text-center">
+                    <span className="text-[9px] text-slate-500 font-bold uppercase block">{m.label}</span>
+                    <p className="text-sm font-mono font-bold text-slate-200 mt-0.5">{m.value}</p>
                   </div>
                 ))}
               </div>
             )}
           </div>
-          <div className="mt-8 text-[9px] text-slate-500 flex justify-between border-t border-slate-900 pt-3 select-none">
-            <span>A3 Autonomous Presentation Engine</span>
-            <span>Private & Confidential</span>
+          <div className="mt-6 text-[9px] text-slate-600 flex justify-between border-t border-slate-900 pt-2 select-none">
+            <span>A3 Slide briefing center</span>
+            <span>Internal Confidential</span>
           </div>
         </div>
       </div>
     );
   };
 
-  // --- RENDERING CHAT PLAYGROUND ---
+  // Split-layout AI Analyst
   const renderChatPlayground = () => {
     return (
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-[calc(100vh-160px)] animate-fade-in">
-        <div className="lg:col-span-1 glass-panel rounded-2xl p-5 flex flex-col justify-between shadow-xl">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-5 h-[calc(100vh-170px)] animate-fade-in">
+        <div className="lg:col-span-1 glass-panel rounded-xl p-4.5 flex flex-col justify-between shadow-lg">
           <div className="space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h4 className="section-heading text-xs uppercase font-bold text-slate-400">Conversations</h4>
+            <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
+              <h4 className="section-heading text-[10px] uppercase font-bold text-slate-400">History Threads</h4>
               <button 
                 onClick={() => {
                   setActiveConversationId(null);
                   setChatMessages([]);
                 }}
-                className="text-[10px] bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 px-2 py-1 rounded-md transition border border-indigo-500/15 font-semibold"
+                className="text-[9px] bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 px-2 py-1 rounded border border-indigo-500/15 font-semibold"
               >
-                + New
+                + New Thread
               </button>
             </div>
-            <div className="space-y-1.5 overflow-y-auto max-h-[350px]">
+            <div className="space-y-1 overflow-y-auto max-h-[320px] pr-1">
               {conversations.length > 0 ? (
                 conversations.map((conv) => (
                   <button
                     key={conv.id}
                     onClick={() => loadConversation(conv.id)}
-                    className={`w-full text-left p-2.5 rounded-xl text-xs truncate transition flex items-center gap-2.5 ${
+                    className={`w-full text-left p-2 rounded-lg text-xs truncate transition flex items-center gap-2 ${
                       activeConversationId === conv.id 
-                        ? 'bg-indigo-650 text-white font-semibold shadow-md' 
+                        ? 'bg-indigo-650 text-white font-semibold' 
                         : 'text-slate-400 hover:bg-slate-900 hover:text-slate-200'
                     }`}
                   >
-                    <MessageSquare size={13} />
+                    <MessageSquare size={12} />
                     {conv.title}
                   </button>
                 ))
               ) : (
-                <div className="text-center text-xs text-slate-500 py-8 select-none">No past conversations</div>
+                <div className="text-center text-xs text-slate-600 py-6 select-none">No chat histories.</div>
               )}
             </div>
           </div>
-          <div className="bg-slate-950/60 p-3.5 rounded-xl border border-slate-900 text-[10px] text-slate-500 flex items-start gap-2 select-none">
-            <HelpCircle className="text-indigo-400 shrink-0 mt-0.5" size={13} />
-            <span>AI processes queries by generating sandboxed Python scripts locally. Data never leaves your platform workspace.</span>
+          <div className="bg-slate-950/60 p-3 rounded-lg border border-slate-900 text-[10px] text-slate-500 flex items-start gap-2 leading-relaxed select-none">
+            <Info className="text-indigo-400 shrink-0 mt-0.5" size={12} />
+            <span>AI translates questions into sandboxed Python scripts locally. Data stays completely on-device.</span>
           </div>
         </div>
 
-        <div className="lg:col-span-3 glass-panel rounded-2xl flex flex-col justify-between overflow-hidden shadow-xl">
-          <div className="flex-grow p-5 overflow-y-auto space-y-4 max-h-[calc(100vh-270px)] bg-slate-950/10">
+        <div className="lg:col-span-3 glass-panel rounded-xl flex flex-col justify-between overflow-hidden shadow-lg">
+          <div className="flex-grow p-4.5 overflow-y-auto space-y-4 max-h-[calc(100vh-270px)] bg-slate-950/10">
             {chatMessages.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full text-center max-w-md mx-auto pt-6">
-                <div className="p-3 bg-indigo-500/10 text-indigo-400 rounded-full mb-4 border border-indigo-500/10">
-                  <MessageSquare size={26} />
+              <div className="flex flex-col items-center justify-center h-full text-center max-w-sm mx-auto pt-4">
+                <div className="p-2.5 bg-indigo-500/10 text-indigo-400 rounded-full mb-3 border border-indigo-500/10">
+                  <MessageSquare size={22} />
                 </div>
-                <h3 className="section-heading text-lg text-white">Autonomous AI Data Chat</h3>
-                <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-                  Type questions in simple English. The AI analyst writes Python aggregations, executes them locally in the secure sandbox, and generates Plotly widgets.
+                <h3 className="section-heading text-base text-white">AI Data Chat Playground</h3>
+                <p className="text-xs text-slate-400 mt-1 leading-normal">
+                  Ask conversational questions in plain English. The AI agent compiles code sandboxes to query and chart.
                 </p>
-                <div className="grid grid-cols-2 gap-2 mt-6 w-full text-left">
-                  <button onClick={() => handleChatSubmit(undefined, "Show Sales distribution by Region")} className="p-3 bg-slate-950/60 hover:bg-slate-900 border border-slate-900 rounded-xl text-xs text-slate-300 transition leading-relaxed">
+                <div className="grid grid-cols-2 gap-2 mt-5 w-full text-left">
+                  <button onClick={() => handleChatSubmit(undefined, "Show Sales distribution by Region")} className="p-2.5 bg-slate-950/60 hover:bg-slate-900 border border-slate-900 rounded-lg text-[11px] text-slate-300 transition leading-normal">
                     "Show Sales by Region"
                   </button>
-                  <button onClick={() => handleChatSubmit(undefined, "What are the top 5 product categories?")} className="p-3 bg-slate-950/60 hover:bg-slate-900 border border-slate-900 rounded-xl text-xs text-slate-300 transition leading-relaxed">
-                    "What are the top 5 product categories?"
-                  </button>
-                  <button onClick={() => handleChatSubmit(undefined, "Identify outlier records in numerical columns")} className="p-3 bg-slate-950/60 hover:bg-slate-900 border border-slate-900 rounded-xl text-xs text-slate-300 transition leading-relaxed">
-                    "Identify outlier rows"
-                  </button>
-                  <button onClick={() => handleChatSubmit(undefined, "Is there a correlation between columns?")} className="p-3 bg-slate-950/60 hover:bg-slate-900 border border-slate-900 rounded-xl text-xs text-slate-300 transition leading-relaxed">
-                    "Correlation check"
+                  <button onClick={() => handleChatSubmit(undefined, "What are the top 5 product categories?")} className="p-2.5 bg-slate-950/60 hover:bg-slate-900 border border-slate-900 rounded-lg text-[11px] text-slate-300 transition leading-normal">
+                    "What are the top categories?"
                   </button>
                 </div>
               </div>
@@ -1153,15 +1255,15 @@ export default function Home() {
                   key={idx} 
                   className={`flex flex-col max-w-[85%] ${msg.role === 'user' ? 'ml-auto items-end' : 'mr-auto items-start'}`}
                 >
-                  <div className={`p-3.5 rounded-2xl text-xs leading-relaxed ${
+                  <div className={`p-3 rounded-xl text-xs leading-relaxed ${
                     msg.role === 'user' 
-                      ? 'bg-indigo-650 text-white rounded-br-none shadow-md' 
-                      : 'bg-slate-900/60 border border-slate-800 text-slate-200 rounded-bl-none shadow-sm'
+                      ? 'bg-indigo-650 text-white rounded-br-none' 
+                      : 'bg-slate-900/60 border border-slate-800 text-slate-200 rounded-bl-none'
                   }`}>
                     {msg.content}
                   </div>
                   {msg.chart && (
-                    <div className="w-[300px] sm:w-[420px] md:w-[550px] glass-panel p-4 rounded-2xl mt-2.5">
+                    <div className="w-[280px] sm:w-[380px] md:w-[480px] glass-panel p-3.5 rounded-xl mt-2">
                       <ChartRenderer plotlyJson={msg.chart} />
                     </div>
                   )}
@@ -1169,28 +1271,24 @@ export default function Home() {
               ))
             )}
             {chatLoading && (
-              <div className="flex items-center gap-2 text-xs text-slate-400 bg-slate-900/60 py-2.5 px-4 rounded-xl border border-slate-800 w-max animate-pulse">
-                <Loader2 className="animate-spin text-indigo-400" size={13} />
-                <span>AI analyst coding data script...</span>
+              <div className="flex items-center gap-2 text-xs text-slate-400 bg-slate-900/60 py-2 px-3 rounded-lg border border-slate-800 w-max animate-pulse">
+                <Loader2 className="animate-spin text-indigo-400" size={12} />
+                <span>Agent compiles pandas script...</span>
               </div>
             )}
             <div ref={chatEndRef} />
           </div>
 
-          <form onSubmit={handleChatSubmit} className="p-3.5 bg-slate-950 border-t border-slate-850 flex gap-2.5">
+          <form onSubmit={handleChatSubmit} className="p-3 bg-slate-950 border-t border-slate-850 flex gap-2">
             <input
               type="text"
               value={chatInput}
               onChange={e => setChatInput(e.target.value)}
-              placeholder="Ask A3 a dataset question (e.g., 'Show highest revenue state.')"
-              className="input-clean flex-grow py-2.5 px-3 text-xs placeholder:text-slate-500 focus:outline-none"
+              placeholder="Ask a data question..."
+              className="input-clean flex-grow py-2 px-3 text-xs focus:outline-none"
             />
-            <button
-              type="submit"
-              disabled={chatLoading}
-              className="btn-primary py-2.5 px-4 select-none shrink-0 flex items-center justify-center shadow-md disabled:opacity-50"
-            >
-              <Send size={13} />
+            <button type="submit" disabled={chatLoading} className="btn-primary py-2 px-3.5 select-none shrink-0 flex items-center justify-center shadow-md disabled:opacity-50">
+              <Send size={12} />
             </button>
           </form>
         </div>
@@ -1202,209 +1300,320 @@ export default function Home() {
   const renderForecasting = () => {
     const hasForecast = analysisJob?.insights?.forecast_chart !== undefined;
     return (
-      <div className="glass-panel p-6 rounded-2xl space-y-6 shadow-xl animate-fade-in">
+      <div className="glass-panel p-5 rounded-xl space-y-5 shadow-xl animate-fade-in">
         <div>
-          <h3 className="section-heading text-lg flex items-center gap-2.5 text-white">
-            <LineChart className="text-teal-400" size={20} />
-            Auto Time-Series Trend Forecaster
+          <h3 className="section-heading text-sm flex items-center gap-2 text-white">
+            <LineChart className="text-teal-400" size={16} />
+            Auto Time-Series Forecaster
           </h3>
-          <p className="text-xs text-slate-400 mt-1">A3 fits polynomial regression curves locally to compute seasonal trend indicators.</p>
+          <p className="text-[10px] text-slate-400 mt-0.5">Fits seasonal regression trendlines locally on date columns.</p>
         </div>
 
         {hasForecast ? (
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-            <div className="xl:col-span-2 glass-panel p-4 rounded-xl">
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
+            <div className="xl:col-span-2 glass-panel p-3 rounded-lg">
               <ChartRenderer plotlyJson={analysisJob.insights.forecast_chart} />
             </div>
-            <div className="xl:col-span-1 space-y-4 flex flex-col justify-center">
-              <div className="bg-teal-500/5 border border-teal-500/10 p-4.5 rounded-2xl">
-                <h4 className="text-xs uppercase text-teal-400 font-bold font-mono tracking-wider mb-2 flex items-center gap-1.5 select-none">
-                  <TrendingUp size={13} /> Predictive Trend Commentary
+            <div className="xl:col-span-1 space-y-3 flex flex-col justify-center">
+              <div className="bg-teal-500/5 border border-teal-500/10 p-4 rounded-xl">
+                <h4 className="text-[10px] uppercase text-teal-400 font-bold font-mono tracking-wider mb-2 flex items-center gap-1 select-none">
+                  <TrendingUp size={12} /> Forecast Commentary
                 </h4>
-                <p className="text-xs text-slate-300 leading-relaxed italic">
-                  "{analysisJob.insights.forecast_commentary || 'Trend is stable according to models.'}"
+                <p className="text-xs text-slate-300 leading-relaxed italic font-sans">
+                  "{analysisJob.insights.forecast_commentary || 'Trend is stable.'}"
                 </p>
-              </div>
-              <div className="bg-slate-950/60 p-4.5 border border-slate-900 rounded-2xl space-y-2 text-xs text-slate-500">
-                <p className="text-white font-semibold font-sans">Model Details:</p>
-                <p>• Type: Polynomial Ridge Regression (2nd degree)</p>
-                <p>• Periodicity: Auto resampled timeframe scale</p>
-                <p>• Cost: 100% Local / On-Device execution</p>
               </div>
             </div>
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center py-12 text-center max-w-md mx-auto">
-            <div className="p-3 bg-teal-500/10 text-teal-400 rounded-full mb-4 border border-teal-500/10">
-              <LineChart size={24} />
+          <div className="flex flex-col items-center justify-center py-10 text-center max-w-sm mx-auto">
+            <div className="p-2.5 bg-teal-500/10 text-teal-400 rounded-full mb-3 border border-teal-500/10">
+              <LineChart size={20} />
             </div>
-            <h4 className="section-heading text-sm text-white">No Forecast Compiled</h4>
-            <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-              Temporal forecaster requires a valid date index column (e.g. 'Date', 'Created_At') and numeric metric. Verify data headers inside datasets tab.
-            </p>
+            <h4 className="section-heading text-xs text-white">No Forecast Available</h4>
           </div>
         )}
       </div>
     );
   };
 
-  // PDF report builder
+  // Reports Brief Exporter (PDF + PPTX exports)
   const renderReports = () => {
     return (
-      <div className="space-y-8 animate-fade-in">
-        <div className="glass-panel p-6 rounded-2xl space-y-6 shadow-xl">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-850 pb-5">
+      <div className="space-y-6 animate-fade-in">
+        <div className="glass-panel p-5 rounded-xl space-y-5 shadow-lg">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-850 pb-4">
             <div>
-              <h3 className="section-heading text-lg flex items-center gap-2 text-white">
-                <FileText className="text-purple-400" size={20} />
-                Executive PDF Report Center
+              <h3 className="section-heading text-sm flex items-center gap-2 text-white">
+                <FileText className="text-purple-400" size={16} />
+                Executive Brief compilation
               </h3>
-              <p className="text-xs text-slate-400 mt-0.5">Compile dataset metrics, statistical correlation logs, and recommendation scorecards.</p>
+              <p className="text-[10px] text-slate-400 mt-0.5">Bundle data health grids, correlation indexes, and recommendations into printable briefs.</p>
             </div>
-            <button
-              onClick={handleGenerateReport}
-              disabled={reportGenerating || analysisJob?.status !== 'completed'}
-              className="bg-purple-600 hover:bg-purple-500 text-white font-bold py-2 px-4 rounded-lg text-xs flex items-center gap-1.5 shadow-md disabled:opacity-50 disabled:pointer-events-none"
-            >
-              {reportGenerating ? <Loader2 className="animate-spin" size={12} /> : <FileText size={12} />}
-              Generate PDF
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => handleGenerateReport("pdf")}
+                disabled={reportGenerating || analysisJob?.status !== 'completed'}
+                className="bg-purple-600 hover:bg-purple-550 text-white font-bold py-1.5 px-3 rounded text-[10px] flex items-center gap-1 shadow-md disabled:opacity-50"
+              >
+                Compile PDF
+              </button>
+              <button
+                onClick={() => handleGenerateReport("pptx")}
+                disabled={reportGenerating || analysisJob?.status !== 'completed'}
+                className="bg-indigo-600 hover:bg-indigo-550 text-white font-bold py-1.5 px-3 rounded text-[10px] flex items-center gap-1 shadow-md disabled:opacity-50"
+              >
+                Compile PPTX Slides
+              </button>
+            </div>
           </div>
 
-          <div className="space-y-3">
-            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider select-none">Compiled Reports</span>
+          <div className="space-y-2">
+            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider select-none">Compiled Briefs Archive</span>
             {reports.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {reports.map((rep) => (
-                  <div key={rep.id} className="bg-slate-950/60 border border-slate-900 p-4 rounded-xl flex items-center justify-between shadow-md">
+                  <div key={rep.id} className="bg-slate-950/60 border border-slate-900 p-3 rounded-lg flex items-center justify-between shadow-md">
                     <div className="space-y-1 min-w-0">
-                      <h4 className="section-heading text-xs text-slate-200 truncate max-w-[200px]">{rep.title}</h4>
-                      <p className="text-[10px] text-slate-500 flex items-center gap-1">
-                        <Calendar size={11} />
-                        {new Date(rep.created_at).toLocaleDateString()}
+                      <h4 className="section-heading text-[11px] text-slate-200 truncate max-w-[170px]">{rep.title}</h4>
+                      <p className="text-[9px] text-slate-500 flex items-center gap-1 font-mono uppercase">
+                        {rep.format} • {new Date(rep.created_at).toLocaleDateString()}
                       </p>
                     </div>
                     <button
-                      onClick={() => handleDownloadReport(rep.id, rep.title)}
-                      className="p-2.5 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 rounded-lg border border-indigo-500/15"
+                      onClick={() => handleDownloadReport(rep.id, rep.title, rep.format)}
+                      className="p-2 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 rounded-md border border-indigo-500/15"
                     >
-                      <Download size={13} />
+                      <Download size={11} />
                     </button>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="text-center py-10 bg-slate-900/40 rounded-xl border border-slate-900 border-dashed text-xs text-slate-500 select-none">
-                No reports compiled. Trigger 'Generate PDF' above to create reports.
+              <div className="text-center py-8 bg-slate-900/40 rounded-lg border border-slate-900 border-dashed text-xs text-slate-500 select-none">
+                No printable briefs compiled. Trigger formats compile above.
               </div>
             )}
           </div>
         </div>
 
-        {/* Presentation slide deck rendering */}
         {analysisJob?.presentation_deck && renderPresentationSlides()}
       </div>
     );
   };
 
+  // Redesigned Settings with Multi-LLM provider fields (PHASE 2)
   const renderSettings = () => {
     return (
-      <div className="glass-panel p-6 rounded-2xl max-w-xl mx-auto space-y-5 shadow-xl animate-fade-in">
+      <div className="glass-panel p-5 rounded-xl max-w-md mx-auto space-y-4 shadow-xl animate-fade-in">
         <div>
-          <h3 className="section-heading text-lg flex items-center gap-2 text-white">
-            <Settings className="text-indigo-400" size={20} />
-            AI Analyst Routing Settings
+          <h3 className="section-heading text-sm flex items-center gap-2 text-white">
+            <Settings className="text-indigo-400" size={16} />
+            AI Model & Workspace Settings
           </h3>
-          <p className="text-xs text-slate-400 mt-0.5">Configure system default configurations or manage API keys for model endpoints.</p>
+          <p className="text-[10px] text-slate-400 mt-0.5">Route model settings or manage custom API keys.</p>
         </div>
 
         <form onSubmit={handleSaveSettings} className="space-y-4">
-          {settingsMessage && (
-            <div className={`p-3.5 rounded-lg text-xs flex items-center gap-2 ${
-              settingsMessage.type === 'success' ? 'bg-teal-500/10 border border-teal-500/20 text-teal-400' : 'bg-red-500/10 border border-red-500/20 text-red-400'
-            }`}>
-              {settingsMessage.type === 'success' ? <CheckCircle2 size={14} /> : <AlertTriangle size={14} />}
-              <span>{settingsMessage.text}</span>
-            </div>
-          )}
-
-          <div className="space-y-1.5">
-            <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">LLM Provider</label>
+          <div className="space-y-1">
+            <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Default LLM Provider</label>
             <select
               value={llmProvider}
               onChange={e => {
-                const prov = e.target.value as any;
+                const prov = e.target.value;
                 setLlmProvider(prov);
                 if (prov === 'default') setLlmModel('');
                 else if (prov === 'gemini') setLlmModel('gemini-2.5-flash');
                 else if (prov === 'openai') setLlmModel('gpt-4o-mini');
                 else if (prov === 'ollama') setLlmModel('qwen2.5:latest');
-                else if (prov === 'mock') setLlmModel('');
+                else if (prov === 'anthropic') setLlmModel('claude-3-5-sonnet-20240620');
+                else if (prov === 'deepseek') setLlmModel('deepseek-chat');
+                else if (prov === 'mistral') setLlmModel('mistral-tiny');
               }}
-              className="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 focus:outline-none rounded-xl p-2.5 text-xs text-white"
+              className="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 focus:outline-none rounded p-2 text-xs text-white"
             >
               <option value="default">System Default (Gemini/Ollama/Mock)</option>
               <option value="gemini">Google Gemini API</option>
               <option value="openai">OpenAI API</option>
+              <option value="anthropic">Anthropic Claude API</option>
+              <option value="deepseek">DeepSeek AI API</option>
+              <option value="mistral">Mistral AI API</option>
               <option value="ollama">Local Ollama</option>
               <option value="mock">Local Heuristic Mock</option>
             </select>
           </div>
 
-          {llmProvider !== 'default' && llmProvider !== 'mock' && (
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Model Name</label>
-              <input
-                type="text"
-                value={llmModel}
-                onChange={e => setLlmModel(e.target.value)}
-                placeholder="Model identifier name"
-                className="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 focus:outline-none rounded-xl p-2.5 text-xs text-white"
-              />
-            </div>
-          )}
-
-          {llmProvider !== 'default' && llmProvider !== 'ollama' && llmProvider !== 'mock' && (
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Custom API Key</label>
+          <div className="border-t border-slate-900 pt-3 space-y-3">
+            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Custom Provider Keys</span>
+            
+            {/* Gemini Key */}
+            <div className="space-y-1">
+              <label className="text-[8px] font-bold text-slate-400 uppercase block">Gemini API Key</label>
               <input
                 type="password"
-                value={llmApiKey}
-                onChange={e => setLlmApiKey(e.target.value)}
-                placeholder="Enter provider API key"
-                className="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 focus:outline-none rounded-xl p-2.5 text-xs text-white"
+                value={llmKeys.gemini || ''}
+                onChange={e => setLlmKeys((prev: any) => ({ ...prev, gemini: e.target.value }))}
+                placeholder="Google Gemini API Key"
+                className="w-full bg-slate-950 border border-slate-850 focus:border-indigo-500 focus:outline-none rounded px-2.5 py-1.5 text-xs text-white"
               />
             </div>
-          )}
 
-          <button type="submit" disabled={settingsLoading} className="btn-primary w-full py-2.5 text-xs font-semibold justify-center shadow-lg">
-            {settingsLoading ? <Loader2 className="animate-spin" size={14} /> : null}
-            Save AI Configuration
+            {/* OpenAI Key */}
+            <div className="space-y-1">
+              <label className="text-[8px] font-bold text-slate-400 uppercase block">OpenAI API Key</label>
+              <input
+                type="password"
+                value={llmKeys.openai || ''}
+                onChange={e => setLlmKeys((prev: any) => ({ ...prev, openai: e.target.value }))}
+                placeholder="OpenAI GPT API Key"
+                className="w-full bg-slate-950 border border-slate-850 focus:border-indigo-500 focus:outline-none rounded px-2.5 py-1.5 text-xs text-white"
+              />
+            </div>
+
+            {/* Claude Key */}
+            <div className="space-y-1">
+              <label className="text-[8px] font-bold text-slate-400 uppercase block">Anthropic Claude Key</label>
+              <input
+                type="password"
+                value={llmKeys.anthropic || ''}
+                onChange={e => setLlmKeys((prev: any) => ({ ...prev, anthropic: e.target.value }))}
+                placeholder="Claude API Key"
+                className="w-full bg-slate-950 border border-slate-850 focus:border-indigo-500 focus:outline-none rounded px-2.5 py-1.5 text-xs text-white"
+              />
+            </div>
+            
+            {/* DeepSeek Key */}
+            <div className="space-y-1">
+              <label className="text-[8px] font-bold text-slate-400 uppercase block">DeepSeek Key</label>
+              <input
+                type="password"
+                value={llmKeys.deepseek || ''}
+                onChange={e => setLlmKeys((prev: any) => ({ ...prev, deepseek: e.target.value }))}
+                placeholder="DeepSeek API Key"
+                className="w-full bg-slate-950 border border-slate-850 focus:border-indigo-500 focus:outline-none rounded px-2.5 py-1.5 text-xs text-white"
+              />
+            </div>
+          </div>
+
+          <button type="submit" disabled={settingsLoading} className="btn-primary w-full py-2 text-xs font-semibold justify-center shadow-lg">
+            {settingsLoading ? <Loader2 className="animate-spin" size={12} /> : null}
+            Save Settings
           </button>
         </form>
       </div>
     );
   };
 
-  // --- RENDERING WORKSPACE PLACEHOLDER ---
+  // Shared workspaces collaboration screen (PHASE 2)
   const renderWorkspace = () => {
     return (
-      <div className="glass-panel p-6 rounded-2xl shadow-xl text-center py-16 flex flex-col items-center justify-center space-y-4 animate-fade-in">
-        <div className="p-3 bg-indigo-500/10 text-indigo-400 rounded-full border border-indigo-500/10">
-          <Users size={24} />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 animate-fade-in">
+        {/* Left creation panel */}
+        <div className="lg:col-span-1 glass-panel p-5 rounded-xl space-y-5">
+          <div>
+            <h3 className="section-heading text-sm text-white">Create Teams Workspace</h3>
+            <p className="text-[10px] text-slate-500 mt-0.5">Partition datasets and coordinate multi-user roles.</p>
+          </div>
+          <form onSubmit={handleCreateWorkspace} className="space-y-3">
+            <input
+              type="text"
+              value={newWorkspaceName}
+              onChange={e => setNewWorkspaceName(e.target.value)}
+              placeholder="Enter workspace name..."
+              className="input-clean text-xs py-2 focus:outline-none"
+            />
+            <button type="submit" className="btn-primary w-full justify-center py-2 text-xs font-semibold">
+              <Plus size={13} /> Create Workspace
+            </button>
+          </form>
+
+          {workspaces.length > 0 && (
+            <div className="space-y-1.5 border-t border-slate-900 pt-3">
+              <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider block">Your Workspaces</span>
+              {workspaces.map((w) => (
+                <button
+                  key={w.id}
+                  onClick={() => setActiveWorkspaceId(w.id)}
+                  className={`w-full text-left p-2 rounded-lg text-xs truncate transition ${
+                    activeWorkspaceId === w.id ? 'bg-indigo-650 text-white font-semibold' : 'text-slate-400 hover:bg-slate-900'
+                  }`}
+                >
+                  {w.name} ({w.user_role})
+                </button>
+              ))}
+            </div>
+          )}
         </div>
-        <h3 className="section-heading text-lg text-white">Team Shared Workspace</h3>
-        <p className="text-xs text-slate-400 max-w-sm leading-relaxed">Collaborate with fellow analysts. Share datasets, reports, and AI briefings instantly. This placeholder workspace is design-ready for multi-user integration.</p>
+
+        {/* Right workspace invite & members panel */}
+        <div className="lg:col-span-2 glass-panel p-5 rounded-xl space-y-6">
+          {activeWorkspaceId ? (
+            <div className="space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-850 pb-3">
+                <div>
+                  <h3 className="section-heading text-sm text-white">Invite Teammate</h3>
+                  <p className="text-[10px] text-slate-400 mt-0.5">Grant write/view access credentials to team members.</p>
+                </div>
+              </div>
+              <form onSubmit={handleInviteMember} className="flex gap-2 flex-wrap sm:flex-nowrap">
+                <input
+                  type="email"
+                  value={inviteEmail}
+                  onChange={e => setInviteEmail(e.target.value)}
+                  placeholder="Enter email address..."
+                  className="input-clean text-xs py-1.5 focus:outline-none flex-grow"
+                />
+                <select
+                  value={inviteRole}
+                  onChange={e => setInviteRole(e.target.value)}
+                  className="bg-slate-950 border border-slate-800 rounded px-3 py-1.5 text-xs text-slate-200 focus:outline-none"
+                >
+                  <option value="viewer">Viewer</option>
+                  <option value="editor">Editor</option>
+                  <option value="admin">Admin</option>
+                </select>
+                <button type="submit" className="bg-indigo-600 hover:bg-indigo-550 text-white font-bold py-1.5 px-4 rounded-lg text-xs shadow-md shrink-0">
+                  Invite
+                </button>
+              </form>
+
+              <div className="space-y-2">
+                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Workspace Members</span>
+                <div className="overflow-x-auto text-[11px]">
+                  <table className="w-full text-left">
+                    <thead>
+                      <tr className="border-b border-slate-850 text-slate-500 font-bold uppercase">
+                        <th className="py-2 px-1">Teammate</th>
+                        <th className="py-2 px-1">Role Permission</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-900 text-slate-300">
+                      {workspaceMembers.map((m, i) => (
+                        <tr key={i}>
+                          <td className="py-2 px-1 font-semibold">{m.email}</td>
+                          <td className="py-2 px-1 font-mono text-cyan-400 capitalize">{m.role}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-12 text-slate-500 text-xs select-none">
+              No active workspace selected. Choose or create one on the left.
+            </div>
+          )}
+        </div>
       </div>
     );
   };
 
-  // --- RENDERING RIGHT ACTIVITY PANEL (AGENT HUB) ---
+  // --- RENDERING RIGHT TIMELINE AGENT PANEL ---
   const renderRightAgentPanel = () => {
     const isRunning = analysisJob?.status === 'pending' || analysisJob?.status === 'running';
     const hasReport = analysisJob?.business_report !== undefined && analysisJob?.business_report !== null;
     
-    // Find active agent name based on logs
     let activeAgent = "Orchestrator Agent";
     if (analysisJob?.agent_run_history && analysisJob.agent_run_history.length > 0) {
       const runningLogs = analysisJob.agent_run_history.filter((l: any) => l.status === 'running');
@@ -1419,79 +1628,126 @@ export default function Home() {
     }
 
     return (
-      <aside className="w-80 border-l border-slate-700/50 bg-slate-900/90 flex flex-col shrink-0 h-screen sticky top-0 overflow-y-auto p-5 space-y-6">
-        {/* Pulse header */}
-        <div className="border-b border-slate-800 pb-4">
-          <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider select-none">Active Agent status</span>
-          <div className="flex items-center gap-3 mt-1.5">
-            <div className={`p-1.5 rounded-lg border ${isRunning ? 'bg-teal-500/10 text-teal-400 border-teal-500/20' : 'bg-slate-800 text-slate-400 border-slate-700'}`}>
-              <Activity className={isRunning ? 'animate-pulse' : ''} size={15} />
-            </div>
-            <div className="min-w-0">
-              <h4 className="section-heading text-xs text-white truncate">{isRunning ? activeAgent : (analysisJob?.status === 'completed' ? 'Agent Pipeline Idle' : 'Ready to Analyze')}</h4>
-              <span className="text-[9px] text-slate-500 font-mono font-medium">{isRunning ? 'Running Tasks...' : 'Idle'}</span>
-            </div>
+      <motion.aside
+        animate={{ width: 320 }}
+        className="w-80 border-l border-slate-800 bg-slate-950/80 flex flex-col shrink-0 h-screen sticky top-0 overflow-y-auto p-4 space-y-5"
+      >
+        <div className="border-b border-slate-900 pb-3 flex items-center justify-between">
+          <div>
+            <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider block">Agent Pipeline Status</span>
+            <h4 className="section-heading text-[11px] text-slate-200 truncate mt-0.5">{isRunning ? activeAgent : (analysisJob?.status === 'completed' ? 'Pipeline Sleeping' : 'Pipeline Idle')}</h4>
           </div>
+          <button 
+            onClick={() => setDeveloperModeActive(!developerModeActive)}
+            title="Toggle Developer HUD Telemetry" 
+            className={`p-1.5 rounded transition ${developerModeActive ? 'bg-indigo-600 text-white' : 'text-slate-500 hover:text-slate-200'}`}
+          >
+            <Terminal size={13} />
+          </button>
         </div>
 
-        {/* Timeline Log */}
-        <div className="space-y-3">
-          <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider select-none">Agent Task Checklist</span>
-          <div className="space-y-3 overflow-y-auto max-h-[220px] pr-1">
+        {/* --- HIDDEN DEVELOPER MODE OBSERVABILITY GRAPH (PHASE 2) --- */}
+        {developerModeActive && (
+          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="bg-slate-950 border border-slate-850 p-3.5 rounded-xl space-y-3 shadow-inner font-mono text-[9px] leading-relaxed">
+            <span className="text-teal-400 font-bold uppercase tracking-wider block flex items-center gap-1">
+              <Cpu size={10} /> Observability Telemetry
+            </span>
+            <div className="space-y-1 text-slate-400">
+              <p>• Queue Status: <span className="text-teal-400 font-bold">Idle</span></p>
+              {analysisJob?.latency_logs && (
+                <div className="border-t border-slate-900 pt-1.5 space-y-0.5">
+                  <span className="text-[8px] text-slate-500 font-bold uppercase block">Agent Latency Logs (Seconds)</span>
+                  {Object.entries(analysisJob.latency_logs).map(([agent, seconds]: [string, any]) => (
+                    <div key={agent} className="flex justify-between">
+                      <span className="truncate max-w-[140px]">{agent}</span>
+                      <span className="text-slate-350">{seconds}s</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {analysisJob?.token_usage && (
+                <div className="border-t border-slate-900 pt-1.5 space-y-0.5">
+                  <span className="text-[8px] text-slate-500 font-bold uppercase block">Token Consumption</span>
+                  <div className="flex justify-between">
+                    <span>Input / Output:</span>
+                    <span>{analysisJob.token_usage.input_tokens} / {analysisJob.token_usage.output_tokens}</span>
+                  </div>
+                  <div className="flex justify-between text-teal-400 font-bold">
+                    <span>Total:</span>
+                    <span>{analysisJob.token_usage.total_tokens}</span>
+                  </div>
+                </div>
+              )}
+              {analysisJob?.system_metrics && (
+                <div className="border-t border-slate-900 pt-1.5 space-y-0.5">
+                  <span className="text-[8px] text-slate-500 font-bold uppercase block">Process metrics</span>
+                  <div className="flex justify-between">
+                    <span>Memory Usage:</span>
+                    <span>{analysisJob.system_metrics.memory_mb} MB</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>CPU Load:</span>
+                    <span>{analysisJob.system_metrics.cpu_percent}%</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+
+        <div className="space-y-2.5">
+          <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider block">Execution logs</span>
+          <div className="space-y-2.5 overflow-y-auto max-h-[220px] pr-1 font-sans">
             {analysisJob?.agent_run_history && analysisJob.agent_run_history.length > 0 ? (
               analysisJob.agent_run_history.map((log: any, idx: number) => (
-                <div key={idx} className="flex gap-2.5 items-start text-[11px]">
-                  <div className={`shrink-0 w-2 h-2 rounded-full mt-1.5 ${
+                <div key={idx} className="flex gap-2 items-start text-[10px] leading-tight">
+                  <div className={`shrink-0 w-1.5 h-1.5 rounded-full mt-1 ${
                     log.status === 'completed' ? 'bg-teal-500' : (log.status === 'failed' ? 'bg-red-500' : 'bg-indigo-500 animate-ping')
                   }`}></div>
                   <div className="min-w-0">
-                    <span className="font-bold text-slate-300 block">{log.agent}</span>
-                    <span className="text-slate-500 leading-tight block mt-0.5">{log.message}</span>
+                    <span className="font-semibold text-slate-300 block">{log.agent}</span>
+                    <span className="text-slate-500 mt-0.5 block">{log.message}</span>
                   </div>
                 </div>
               ))
             ) : (
-              <div className="text-[10px] text-slate-600 italic py-4">No tasks executed in this session. Click 'CEO Mode' to initiate.</div>
+              <div className="text-[10px] text-slate-650 italic py-2">No logging history. Click 'CEO Mode' to trigger.</div>
             )}
           </div>
         </div>
 
-        {/* Decision Engine scorecard */}
+        {/* Decision scorecard cards info */}
         {hasReport && analysisJob.business_report && (
-          <div className="bg-slate-950/60 p-4.5 rounded-2xl border border-slate-900 space-y-4 shadow-md">
-            <div className="flex items-center justify-between border-b border-slate-850 pb-2.5">
-              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider select-none">Decision Scorecard</span>
-              <span className={`text-[9px] font-bold px-2 py-0.5 rounded uppercase border ${
-                analysisJob.business_report.risk_level === 'Low' ? 'bg-teal-500/10 text-teal-400 border-teal-500/20' : 
-                (analysisJob.business_report.risk_level === 'High' ? 'bg-red-500/10 text-red-400 border-red-500/20' : 'bg-amber-500/10 text-amber-400 border-amber-500/20')
-              }`}>{analysisJob.business_report.risk_level} Risk</span>
+          <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-850 space-y-4 shadow-md text-xs">
+            <div className="flex items-center justify-between border-b border-slate-850 pb-2 text-[9px]">
+              <span className="text-slate-400 font-bold uppercase">Decision Scorecard</span>
+              <span className="font-bold px-1.5 py-0.2 rounded border bg-teal-500/10 text-teal-400 border-teal-500/20">{analysisJob.business_report.risk_level}</span>
             </div>
             
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-slate-900/50 p-3 rounded-xl border border-slate-850 text-center">
-                <span className="text-[9px] text-slate-500 font-bold uppercase">ROI</span>
-                <p className="font-mono text-xs font-bold text-slate-200 mt-0.5">{analysisJob.business_report.expected_roi}</p>
+            {analysisJob.business_report.executive_summary && (
+              <div className="space-y-1">
+                <span className="text-[8px] text-slate-500 font-bold uppercase tracking-wider block">Executive Summary</span>
+                <p className="text-[10px] text-slate-300 leading-relaxed italic">"{analysisJob.business_report.executive_summary}"</p>
               </div>
-              <div className="bg-slate-900/50 p-3 rounded-xl border border-slate-850 text-center">
-                <span className="text-[9px] text-slate-500 font-bold uppercase">Confidence</span>
-                <p className="font-mono text-xs font-bold text-slate-200 mt-0.5">{analysisJob.business_report.confidence_score}%</p>
+            )}
+
+            <div className="grid grid-cols-2 gap-2 border-t border-slate-900 pt-2.5">
+              <div className="bg-slate-950 p-2 rounded-lg text-center">
+                <span className="text-[8px] text-slate-500 font-bold uppercase block">ROI</span>
+                <span className="font-mono text-[10px] font-bold text-slate-300 mt-0.5 block">{analysisJob.business_report.expected_roi}</span>
+              </div>
+              <div className="bg-slate-950 p-2 rounded-lg text-center">
+                <span className="text-[8px] text-slate-500 font-bold uppercase block">Confidence</span>
+                <span className="font-mono text-[10px] font-bold text-slate-300 mt-0.5 block">{analysisJob.business_report.confidence_score}%</span>
               </div>
             </div>
 
-            <div className="space-y-1.5">
-              <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider block">Priority Score ({analysisJob.business_report.priority_score}/100)</span>
-              <div className="w-full bg-slate-900 h-1.5 rounded-full overflow-hidden">
-                <div className="bg-gradient-to-r from-indigo-500 to-purple-500 h-full" style={{ width: `${analysisJob.business_report.priority_score}%` }}></div>
-              </div>
-              <p className="text-[10px] text-slate-400 mt-1 italic">"{analysisJob.business_report.priority_reason}"</p>
-            </div>
-
-            {analysisJob.business_report.action_plan && (
-              <div className="space-y-2 border-t border-slate-850 pt-3">
-                <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider block">Action Plan Checklist</span>
-                {analysisJob.business_report.action_plan.map((act: string, idx: number) => (
-                  <div key={idx} className="flex gap-2 text-[10px] text-slate-300 leading-normal">
-                    <span className="text-teal-400 font-boldshrink-0">✓</span>
+            {analysisJob.business_report.implementation_roadmap && (
+              <div className="space-y-1.5 border-t border-slate-850 pt-2.5">
+                <span className="text-[8px] text-slate-500 font-bold uppercase tracking-wider block">Implementation Roadmap</span>
+                {analysisJob.business_report.implementation_roadmap.map((act: string, idx: number) => (
+                  <div key={idx} className="flex gap-2 text-[10px] text-slate-400 leading-normal">
+                    <span className="text-teal-400 font-bold shrink-0">✓</span>
                     <span>{act}</span>
                   </div>
                 ))}
@@ -1499,14 +1755,119 @@ export default function Home() {
             )}
           </div>
         )}
-      </aside>
+      </motion.aside>
     );
   };
 
-  // --- MAIN AUTH SCREEN RENDERING ---
-  if (!isAuthenticated) {
+  // --- PREMIUM SAAS LANDING PAGE REDESIGN ---
+  const renderLandingPage = () => {
     return (
-      <div className="min-h-screen w-screen relative overflow-hidden flex items-center justify-center bg-slate-950">
+      <div className="min-h-screen w-screen bg-[#09090B] text-slate-200 overflow-y-auto selection:bg-indigo-500/30 grid-bg relative">
+        {/* Sticky Header */}
+        <header className="sticky top-0 bg-[#09090B]/80 backdrop-blur-md border-b border-slate-900 py-4 px-6 md:px-12 flex justify-between items-center z-55">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 bg-indigo-600 rounded-lg text-white">
+              <Sparkles size={16} />
+            </div>
+            <span className="section-heading text-base font-bold text-white tracking-tight">A3 Analyst</span>
+          </div>
+          <div className="flex items-center gap-4">
+            <button onClick={() => setAuthMode('login')} className="text-xs text-slate-400 hover:text-white transition">Sign In</button>
+            <button onClick={() => setAuthMode('register')} className="btn-primary py-1.5 px-4 text-xs shadow-lg">Start Free</button>
+          </div>
+        </header>
+
+        {/* Hero Section */}
+        <section className="text-center py-20 px-4 max-w-3xl mx-auto space-y-6">
+          <span className="bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[10px] px-3.5 py-1 rounded-full font-bold uppercase tracking-widest block w-max mx-auto select-none">
+            Introducing A3 Enterprise
+          </span>
+          <h1 className="section-heading text-4xl sm:text-5xl text-white font-extrabold tracking-tight leading-tight">
+            Autonomous Business Intelligence <br/>
+            <span className="bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">Driven by AI Agent Teams</span>
+          </h1>
+          <p className="text-sm text-slate-400 max-w-lg mx-auto leading-relaxed">
+            Upload files, state goals, and let specialized agents profile, validate quality, fit ML models, and write slides.
+          </p>
+          <div className="flex justify-center gap-4 pt-4">
+            <button onClick={() => setAuthMode('register')} className="btn-primary py-2.5 px-6 text-sm shadow-xl font-bold">
+              Analyze in 1-Click
+            </button>
+            <a href="#features" className="btn-ghost py-2.5 px-6 text-sm hover:border-slate-800 transition">
+              Show Details
+            </a>
+          </div>
+        </section>
+
+        {/* Pricing Matrix */}
+        <section className="py-16 max-w-5xl mx-auto px-6 space-y-10 border-t border-slate-900/60" id="pricing">
+          <div className="text-center space-y-2">
+            <h2 className="section-heading text-2xl text-white">SaaS Subscriptions Plans</h2>
+            <p className="text-xs text-slate-500">Scale metrics storage or add multi-user sharing.</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Free */}
+            <div className="glass-panel p-6.5 rounded-2xl flex flex-col justify-between h-96 relative">
+              <div>
+                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Personal Developer</span>
+                <h3 className="section-heading text-lg text-white mt-2">Free Sandbox</h3>
+                <p className="text-2xl font-mono text-white mt-4">$0 <span className="text-xs text-slate-500">/ forever</span></p>
+                <ul className="text-xs text-slate-400 mt-6 space-y-2">
+                  <li>• Max 2 uploads per day</li>
+                  <li>• Local Ollama model fallback</li>
+                  <li>• PDF report downloads</li>
+                </ul>
+              </div>
+              <button onClick={() => setAuthMode('register')} className="btn-ghost w-full py-2 text-xs font-semibold justify-center">Get Sandbox</button>
+            </div>
+
+            {/* Pro */}
+            <div className="glass-panel p-6.5 rounded-2xl flex flex-col justify-between h-96 border-indigo-500/25 relative bg-gradient-to-b from-indigo-950/5 to-slate-950">
+              <span className="absolute top-3.5 right-3.5 text-[8px] uppercase bg-indigo-500 text-white px-2 py-0.5 rounded-full font-bold select-none">Recommended</span>
+              <div>
+                <span className="text-[10px] text-indigo-400 font-bold uppercase tracking-wider block">Elite Analyst</span>
+                <h3 className="section-heading text-lg text-white mt-2">Professional</h3>
+                <p className="text-2xl font-mono text-white mt-4">$79 <span className="text-xs text-slate-500">/ month</span></p>
+                <ul className="text-xs text-slate-350 mt-6 space-y-2">
+                  <li>• Unlimited datasets profiling</li>
+                  <li>• Gemini, OpenAI & Claude routers</li>
+                  <li>• Scenario what-if engine runs</li>
+                  <li>• PPTX slides slide briefings</li>
+                </ul>
+              </div>
+              <button onClick={() => setAuthMode('register')} className="btn-primary w-full py-2 text-xs font-semibold justify-center shadow-lg">Start Free Trial</button>
+            </div>
+
+            {/* Enterprise */}
+            <div className="glass-panel p-6.5 rounded-2xl flex flex-col justify-between h-96 relative">
+              <div>
+                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Global Corporate</span>
+                <h3 className="section-heading text-lg text-white mt-2">Enterprise</h3>
+                <p className="text-xl font-mono text-white mt-4">Contact Sales</p>
+                <ul className="text-xs text-slate-400 mt-6 space-y-2">
+                  <li>• Dedicated parallel staging queues</li>
+                  <li>• System observability telemetry</li>
+                  <li>• Workspace role permissions</li>
+                  <li>• Custom dedicated support</li>
+                </ul>
+              </div>
+              <button onClick={() => setAuthMode('register')} className="btn-ghost w-full py-2 text-xs font-semibold justify-center">Schedule Demo</button>
+            </div>
+          </div>
+        </section>
+
+        {/* Footer */}
+        <footer className="border-t border-slate-900/60 py-8 px-6 text-center text-[10px] text-slate-650 select-none">
+          <p>© {new Date().getFullYear()} A3 Autonomous Data Analyst Corporation. All rights reserved.</p>
+        </footer>
+      </div>
+    );
+  };
+
+  if (!isAuthenticated) {
+    if (authMode === 'landing') return renderLandingPage();
+    return (
+      <div className="min-h-screen w-screen relative overflow-hidden flex items-center justify-center bg-[#09090B] grid-bg">
         {authMode === 'login' && (
           <SignInCard
             emailProp={email} setEmailProp={setEmail} passwordProp={password} setPasswordProp={setPassword}
@@ -1535,260 +1896,241 @@ export default function Home() {
     );
   }
 
-  // --- AUTHENTICATED APP SCREEN ---
+  // --- AUTHENTICATED SaaS FRAMEWORK SCREEN ---
   return (
     <div className="min-h-screen flex grid-bg">
-      {/* LEFT NAVIGATION SIDEBAR */}
-      <aside className="w-64 border-r border-slate-700/50 bg-slate-900/95 flex flex-col justify-between shrink-0 h-screen sticky top-0 overflow-y-auto">
-        <div className="p-5 flex flex-col gap-6 overflow-hidden">
-          {/* Logo */}
-          <div className="flex items-center gap-2.5 px-1">
-            <div className="p-2 bg-indigo-650 rounded-xl text-white shadow-md">
-              <Sparkles size={16} />
-            </div>
-            <span className="section-heading text-base text-white">A3 <span className="text-indigo-400 text-xs font-semibold uppercase tracking-wider font-mono">Analyst</span></span>
+      
+      {/* COLLAPSIBLE SIDEBAR CONTAINER */}
+      <motion.aside
+        animate={{ width: sidebarCollapsed ? 64 : 240 }}
+        transition={{ type: 'spring', stiffness: 280, damping: 26 }}
+        className="border-r border-slate-800 bg-slate-950/80 flex flex-col justify-between shrink-0 h-screen sticky top-0 overflow-y-auto z-50 animate-fade-in"
+      >
+        <div className="p-4 flex flex-col gap-6 overflow-hidden">
+          <div className="flex items-center justify-between border-b border-slate-900 pb-4">
+            {!sidebarCollapsed && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-2">
+                <div className="p-1.5 bg-indigo-600 rounded-lg text-white shadow">
+                  <Sparkles size={14} />
+                </div>
+                <span className="section-heading text-sm text-white">A3 <span className="text-indigo-400 text-xs font-mono font-semibold">Analyst</span></span>
+              </motion.div>
+            )}
+            <button onClick={() => setSidebarCollapsed(!sidebarCollapsed)} className="p-1 rounded-md text-slate-500 hover:text-white hover:bg-slate-900 transition mx-auto">
+              <AlignLeft size={15} />
+            </button>
           </div>
 
-          {/* Navigation Items (10 tabs) */}
           <nav className="space-y-1">
-            <button
-              onClick={() => setActiveTab('dashboard')}
-              disabled={!selectedDatasetId || analysisJob?.status !== 'completed'}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition disabled:opacity-30 disabled:cursor-not-allowed ${
-                activeTab === 'dashboard' ? 'bg-indigo-500/12 text-indigo-400 border border-indigo-500/20' : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
-              }`}
-            >
-              <LayoutDashboard size={15} />
-              Insight Dashboard
-            </button>
-            <button
-              onClick={() => setActiveTab('datasets')}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition ${
-                activeTab === 'datasets' ? 'bg-indigo-500/12 text-indigo-400 border border-indigo-500/20' : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
-              }`}
-            >
-              <Database size={15} />
-              Datasets Library
-            </button>
-            <button
-              onClick={() => setActiveTab('chat')}
-              disabled={!selectedDatasetId || analysisJob?.status !== 'completed'}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition disabled:opacity-30 disabled:cursor-not-allowed ${
-                activeTab === 'chat' ? 'bg-indigo-500/12 text-indigo-400 border border-indigo-500/20' : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
-              }`}
-            >
-              <MessageSquare size={15} />
-              AI Analyst Chat
-            </button>
-            <button
-              onClick={() => setActiveTab('forecast')}
-              disabled={!selectedDatasetId || analysisJob?.status !== 'completed'}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition disabled:opacity-30 disabled:cursor-not-allowed ${
-                activeTab === 'forecast' ? 'bg-indigo-500/12 text-indigo-400 border border-indigo-500/20' : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
-              }`}
-            >
-              <LineChart size={15} />
-              Trend Forecasting
-            </button>
-            <button
-              onClick={() => setActiveTab('reports')}
-              disabled={!selectedDatasetId || analysisJob?.status !== 'completed'}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition disabled:opacity-30 disabled:cursor-not-allowed ${
-                activeTab === 'reports' ? 'bg-indigo-500/12 text-indigo-400 border border-indigo-500/20' : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
-              }`}
-            >
-              <FileText size={15} />
-              Document Reports
-            </button>
-            <button
-              onClick={() => setActiveTab('simulations')}
-              disabled={!selectedDatasetId || analysisJob?.status !== 'completed'}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition disabled:opacity-30 disabled:cursor-not-allowed ${
-                activeTab === 'simulations' ? 'bg-indigo-500/12 text-indigo-400 border border-indigo-500/20' : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
-              }`}
-            >
-              <Sliders size={15} />
-              Scenario Simulator
-            </button>
-            <button
-              onClick={() => setActiveTab('memory')}
-              disabled={!selectedDatasetId}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition disabled:opacity-30 disabled:cursor-not-allowed ${
-                activeTab === 'memory' ? 'bg-indigo-500/12 text-indigo-400 border border-indigo-500/20' : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
-              }`}
-            >
-              <Bookmark size={15} />
-              AI Memory
-            </button>
-            <button
-              onClick={() => setActiveTab('workspace')}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition ${
-                activeTab === 'workspace' ? 'bg-indigo-500/12 text-indigo-400 border border-indigo-500/20' : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
-              }`}
-            >
-              <Users size={15} />
-              Team Workspace
-            </button>
-            <button
-              onClick={() => setActiveTab('templates')}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition ${
-                activeTab === 'templates' ? 'bg-indigo-500/12 text-indigo-400 border border-indigo-500/20' : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
-              }`}
-            >
-              <Layers size={15} />
-              Industry Templates
-            </button>
-            <button
-              onClick={() => setActiveTab('settings')}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition ${
-                activeTab === 'settings' ? 'bg-indigo-500/12 text-indigo-400 border border-indigo-500/20' : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
-              }`}
-            >
-              <Settings size={15} />
-              AI Settings
-            </button>
+            {([
+              { id: 'dashboard', label: 'Insight Dashboard', icon: <LayoutDashboard size={14} /> },
+              { id: 'datasets', label: 'Datasets Library', icon: <Database size={14} /> },
+              { id: 'chat', label: 'AI Analyst Chat', icon: <MessageSquare size={14} /> },
+              { id: 'forecast', label: 'Trend Forecasting', icon: <LineChart size={14} /> },
+              { id: 'reports', label: 'Document Reports', icon: <FileText size={14} /> },
+              { id: 'simulations', label: 'Scenario Simulator', icon: <Sliders size={14} /> },
+              { id: 'memory', label: 'AI Memory Snapshots', icon: <Bookmark size={14} /> },
+              { id: 'workspace', label: 'Team Shared spaces', icon: <Users size={14} /> },
+              { id: 'templates', label: 'Industry Templates', icon: <Layers size={14} /> },
+              { id: 'settings', label: 'AI settings', icon: <Settings size={14} /> }
+            ] as const).map((tab) => {
+              const isActive = activeTab === tab.id;
+              const disabled = (tab.id !== 'datasets' && tab.id !== 'settings' && tab.id !== 'templates' && tab.id !== 'workspace') && (!selectedDatasetId || analysisJob?.status !== 'completed');
+              
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => !disabled && setActiveTab(tab.id)}
+                  disabled={disabled}
+                  title={tab.label}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold transition relative disabled:opacity-20 disabled:cursor-not-allowed ${
+                    isActive ? 'bg-indigo-650 text-white font-semibold' : 'text-slate-400 hover:bg-slate-900 hover:text-slate-200'
+                  }`}
+                >
+                  <span className="shrink-0">{tab.icon}</span>
+                  {!sidebarCollapsed && <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="truncate">{tab.label}</motion.span>}
+                  {isActive && !sidebarCollapsed && (
+                    <motion.div layoutId="active_tab_dot" className="absolute right-3 w-1.5 h-1.5 bg-indigo-400 rounded-full" />
+                  )}
+                </button>
+              );
+            })}
           </nav>
 
-          {/* Active datasets list */}
-          <div className="space-y-2 flex-grow overflow-hidden flex flex-col border-t border-slate-800 pt-4">
-            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider px-1">Datasets list</span>
-            <div className="space-y-1 overflow-y-auto pr-1 flex-grow">
-              {datasets.map((ds) => (
-                <div 
-                  key={ds.id}
-                  className={`group flex items-center justify-between p-2 rounded-xl text-xs transition cursor-pointer ${
-                    selectedDatasetId === ds.id 
-                      ? 'bg-slate-800/60 border border-slate-700/60 text-white font-medium' 
-                      : 'text-slate-400 hover:bg-slate-800/40 hover:text-slate-200'
-                  }`}
-                  onClick={() => setSelectedDatasetId(ds.id)}
-                >
-                  <div className="flex items-center gap-2 min-w-0 flex-grow">
-                    <Database size={13} className={selectedDatasetId === ds.id ? 'text-indigo-400' : 'text-slate-500'} />
-                    <span className="truncate">{ds.name}</span>
+          {!sidebarCollapsed && datasets.length > 0 && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-2 border-t border-slate-900 pt-4 flex-grow overflow-hidden flex flex-col">
+              <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider block">Loaded Datasets</span>
+              <div className="space-y-1 overflow-y-auto flex-grow pr-1">
+                {datasets.map((ds) => (
+                  <div key={ds.id} onClick={() => setSelectedDatasetId(ds.id)} className={`group flex items-center justify-between p-2 rounded-lg text-xs transition cursor-pointer ${
+                    selectedDatasetId === ds.id ? 'bg-slate-900 border border-slate-800 text-white font-medium' : 'text-slate-500 hover:bg-slate-900 hover:text-slate-300'
+                  }`}>
+                    <div className="flex items-center gap-2 min-w-0 flex-grow">
+                      <Database size={12} className={selectedDatasetId === ds.id ? 'text-indigo-400' : 'text-slate-600'} />
+                      <span className="truncate">{ds.name}</span>
+                    </div>
+                    <button onClick={(e) => { e.stopPropagation(); deleteDataset(ds.id); }} className="opacity-0 group-hover:opacity-100 hover:text-red-400 transition p-0.5 rounded">
+                      <Trash2 size={11} />
+                    </button>
                   </div>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      deleteDataset(ds.id);
-                    }}
-                    className="opacity-0 group-hover:opacity-100 hover:text-red-400 p-0.5 rounded transition"
-                  >
-                    <Trash2 size={12} />
-                  </button>
-                </div>
-              ))}
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </div>
+
+        <div className="p-3 border-t border-slate-900 bg-slate-950 flex items-center justify-between overflow-hidden">
+          {!sidebarCollapsed ? (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="min-w-0 flex-1 pr-2">
+              <p className="text-[10px] font-semibold text-slate-300 truncate">{user?.email}</p>
+              <span className="text-[8px] bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 font-mono py-0.2 px-1 rounded uppercase font-bold tracking-wider mt-0.5 block w-max">
+                {user?.role}
+              </span>
+            </motion.div>
+          ) : (
+            <div className="p-1 rounded-full bg-slate-900 text-indigo-400 border border-slate-850 mx-auto select-none font-bold text-xs uppercase w-7 h-7 flex items-center justify-center shrink-0">
+              {user?.email?.[0]}
             </div>
-          </div>
+          )}
+          {!sidebarCollapsed && (
+            <button onClick={handleLogout} className="text-slate-500 hover:text-red-400 p-1.5 hover:bg-red-500/5 rounded-lg transition" title="Log Out">
+              <LogOut size={13} />
+            </button>
+          )}
         </div>
+      </motion.aside>
 
-        {/* User logout section */}
-        <div className="p-4 border-t border-slate-700/50 bg-slate-900 flex items-center justify-between">
-          <div className="min-w-0 flex-1 pr-2">
-            <p className="text-xs font-semibold text-slate-200 truncate">{user?.email}</p>
-            <span className="text-[9px] bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 font-mono py-0.5 px-1.5 rounded uppercase font-bold tracking-wider">
-              {user?.role}
-            </span>
-          </div>
-          <button 
-            onClick={handleLogout}
-            className="text-slate-500 hover:text-red-400 p-2 hover:bg-red-500/8 rounded-lg transition"
-            title="Log Out"
-          >
-            <LogOut size={15} />
-          </button>
-        </div>
-      </aside>
-
-      {/* MAIN CONTENT WORKSPACE CONTAINER */}
-      <main className="flex-grow p-6 overflow-y-auto max-h-screen">
-        {/* Welcome Banner / Search Header */}
-        <header className="glass-panel p-6 rounded-2xl bg-gradient-to-r from-slate-900 via-indigo-950/20 to-slate-900 border border-slate-800/80 mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 shadow-xl">
-          <div className="space-y-1 max-w-xl">
-            <h1 className="section-heading text-xl md:text-2xl text-white flex items-center gap-2">
-              Autonomous Analyst Briefing Center
-            </h1>
-            <p className="text-xs text-slate-400">
-              Run statistical checking, predictive model runs, and download compiled executive briefs in one place.
-            </p>
-            {/* Quick Ask bar */}
-            <form onSubmit={handleQuickSearchSubmit} className="flex gap-2 mt-4 max-w-md">
-              <input
-                type="text"
-                value={quickSearchQuery}
-                onChange={e => setQuickSearchQuery(e.target.value)}
-                placeholder="Ask A3 (e.g. 'Show highest revenue state.')"
-                className="bg-slate-950/60 border border-slate-800/80 focus:border-indigo-500 focus:outline-none rounded-lg px-3 py-1.5 text-xs text-white placeholder:text-slate-500 flex-grow"
-              />
-              <button type="submit" className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-1.5 px-3 rounded-lg text-xs shadow-md">
-                Ask
-              </button>
-            </form>
+      {/* CENTER WORKSPACE & NAVBAR */}
+      <div className="flex-grow flex flex-col min-w-0 h-screen overflow-hidden">
+        <header className="sticky top-0 z-40 bg-slate-950/80 backdrop-blur-md border-b border-slate-800 px-6 py-3.5 flex items-center justify-between gap-4 shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5 bg-slate-900/60 border border-slate-850 px-2.5 py-1.5 rounded-lg text-xs text-slate-200 select-none cursor-pointer hover:border-slate-800">
+              <span className="font-bold">Enterprise Shared Space</span>
+              <ChevronDown size={12} className="text-slate-500" />
+            </div>
+            
+            <button 
+              onClick={() => setCommandPaletteOpen(true)}
+              className="hidden sm:flex items-center gap-2 bg-slate-950 border border-slate-850 hover:border-slate-800 rounded-lg px-3 py-1.5 text-[11px] text-slate-500 text-left w-56 transition-all"
+            >
+              <Search size={12} />
+              <span className="flex-grow select-none">Quick Command Search...</span>
+              <span className="text-[9px] bg-slate-900 border border-slate-850 px-1 py-0.2 rounded font-mono">Ctrl+K</span>
+            </button>
           </div>
 
-          <div className="flex items-center gap-3 self-stretch md:self-auto justify-end">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2.5 bg-slate-900/40 border border-slate-850 px-3 py-1 rounded-full text-[10px] text-slate-400 select-none">
+              <div className="w-1.5 h-1.5 bg-success rounded-full animate-ping shrink-0" />
+              <span>A3 Engine Online</span>
+            </div>
+
+            <button className="p-2 text-slate-400 hover:text-white bg-slate-900/50 border border-slate-850 hover:border-slate-800 rounded-xl transition relative">
+              <Bell size={13} />
+              <span className="absolute top-1.5 right-1.5 w-1 h-1 bg-indigo-500 rounded-full" />
+            </button>
+
             {selectedDatasetId && (
               <button
                 onClick={handleTriggerCeoMode}
-                className="bg-gradient-to-r from-indigo-650 to-purple-650 hover:from-indigo-600 hover:to-purple-600 text-white font-bold py-2 px-4 rounded-xl text-xs flex items-center gap-1.5 shadow-lg select-none"
+                className="bg-gradient-to-r from-indigo-650 to-purple-650 hover:from-indigo-600 hover:to-purple-600 text-white font-bold py-1.5 px-3.5 rounded-xl text-xs flex items-center gap-1 shadow-lg"
               >
-                <Sparkles size={14} className="animate-spin" />
+                <Sparkles size={12} className="animate-spin" />
                 CEO Mode
               </button>
-            )}
-            {uploadProgress ? (
-              <div className="flex items-center gap-2 text-xs text-slate-400 bg-slate-800/50 border border-slate-700/50 px-4 py-2 rounded-lg">
-                <Loader2 className="animate-spin text-indigo-400" size={13} />
-                <span>Uploading...</span>
-              </div>
-            ) : (
-              <label className="btn-primary cursor-pointer text-xs select-none py-2 px-4 rounded-xl">
-                <Upload size={13} />
-                <span>Upload Dataset</span>
-                <input type="file" accept=".csv,.xlsx,.xls,.json" onChange={handleFileUpload} className="hidden" />
-              </label>
             )}
           </div>
         </header>
 
-        {/* Global Loading Spinner */}
-        {globalLoading ? (
-          <div className="flex h-64 items-center justify-center">
-            <div className="flex flex-col items-center gap-2">
-              <Loader2 className="animate-spin text-indigo-500" size={28} />
-              <p className="text-xs text-slate-500 font-semibold animate-pulse">Running Agent Checklist...</p>
+        <main className="flex-grow p-6 overflow-y-auto max-h-[calc(100vh-60px)]">
+          {globalLoading ? renderDashboardSkeletons() : (
+            <div>
+              {selectedDatasetId && analysisJob && (analysisJob.status === 'pending' || analysisJob.status === 'running') && (
+                <div className="bg-indigo-600/10 border border-indigo-500/15 p-5 rounded-2xl text-center mb-6 flex flex-col items-center justify-center gap-2">
+                  <Loader2 className="animate-spin text-indigo-400" size={20} />
+                  <h3 className="text-xs font-bold text-white uppercase tracking-wider">Multi-Agent Parallel Pipeline In Progress</h3>
+                  <p className="text-xs text-slate-400 max-w-sm">
+                    Asynchronous stages are scanning variables. Telemetry HUD and dashboard will update on-the-fly.
+                  </p>
+                </div>
+              )}
+
+              {activeTab === 'dashboard' && (
+                <div className="space-y-6">
+                  <div className="glass-panel p-6 rounded-2xl bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 border border-slate-800 relative overflow-hidden shadow-2xl">
+                    <div className="space-y-1.5 max-w-xl">
+                      <span className="text-[10px] text-indigo-400 font-bold uppercase tracking-widest font-mono select-none">Analyst Framework active</span>
+                      <h1 className="section-heading text-2xl text-white">Welcome back, Data Architect</h1>
+                      <p className="text-xs text-slate-400">
+                        Describe business objectives, run seasonal forecasting models, or export presentation slide decks in one click.
+                      </p>
+                    </div>
+
+                    <div 
+                      onDragEnter={handleDrag}
+                      onDragOver={handleDrag}
+                      onDragLeave={handleDrag}
+                      onDrop={handleDrop}
+                      className={`mt-6 border border-dashed rounded-xl p-6 text-center transition-all ${
+                        dragActive ? 'border-cyan-500 bg-cyan-500/5' : 'border-slate-800 hover:border-slate-700/80 bg-slate-950/40'
+                      }`}
+                    >
+                      {uploadProgress ? (
+                        <div className="flex flex-col items-center justify-center gap-2 py-4">
+                          <Loader2 className="animate-spin text-indigo-500" size={24} />
+                          <p className="text-xs text-slate-400 font-bold">Streaming uploaded file registers...</p>
+                        </div>
+                      ) : (
+                        <label className="flex flex-col items-center justify-center gap-2.5 cursor-pointer">
+                          <Upload size={22} className="text-slate-500" />
+                          <p className="text-xs text-slate-300 font-semibold leading-normal">
+                            Drag & drop CSV/Excel here, or <span className="text-indigo-400 hover:underline">browse files</span>
+                          </p>
+                          <input type="file" accept=".csv,.xlsx,.xls,.json" onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0])} className="hidden" />
+                        </label>
+                      )}
+                    </div>
+                  </div>
+
+                  {renderDashboardWidgets()}
+                </div>
+              )}
+
+              {activeTab === 'datasets' && renderDatasetsOverview()}
+              {activeTab === 'chat' && renderChatPlayground()}
+              {activeTab === 'forecast' && renderForecasting()}
+              {activeTab === 'reports' && renderReports()}
+              {activeTab === 'simulations' && renderScenarioSimulator()}
+              {activeTab === 'memory' && renderAIMemory()}
+              {activeTab === 'workspace' && renderWorkspace()}
+              {activeTab === 'templates' && renderIndustryTemplates()}
+              {activeTab === 'settings' && renderSettings()}
             </div>
-          </div>
-        ) : (
-          <div>
-            {/* Show warning if analysis job is running */}
-            {selectedDatasetId && analysisJob && (analysisJob.status === 'pending' || analysisJob.status === 'running') && (
-              <div className="bg-indigo-600/10 border border-indigo-500/15 p-5 rounded-2xl text-center mb-6 flex flex-col items-center justify-center gap-2">
-                <Loader2 className="animate-spin text-indigo-400" size={22} />
-                <h3 className="text-xs font-bold text-white uppercase tracking-wider">Multi-Agent Profiling In Progress</h3>
-                <p className="text-xs text-slate-400 max-w-sm">
-                  Agents (Understanding, Cleaning, Profiling, Stats, ML, Forecasting, Recommendation, Research) are analyzing files. Dashboard metrics will auto-refresh.
-                </p>
-              </div>
-            )}
+          )}
+        </main>
+      </div>
 
-            {/* TAB SCREENS */}
-            {activeTab === 'dashboard' && renderDashboardWidgets()}
-            {activeTab === 'datasets' && renderDatasetsOverview()}
-            {activeTab === 'chat' && renderChatPlayground()}
-            {activeTab === 'forecast' && renderForecasting()}
-            {activeTab === 'reports' && renderReports()}
-            {activeTab === 'simulations' && renderScenarioSimulator()}
-            {activeTab === 'memory' && renderAIMemory()}
-            {activeTab === 'workspace' && renderWorkspace()}
-            {activeTab === 'templates' && renderIndustryTemplates()}
-            {activeTab === 'settings' && renderSettings()}
-          </div>
-        )}
-      </main>
-
-      {/* RIGHT ACTIVITY PANEL (AGENT HUB) */}
       {renderRightAgentPanel()}
+
+      <CommandPalette
+        isOpen={commandPaletteOpen}
+        onClose={() => setCommandPaletteOpen(false)}
+        datasets={datasets}
+        onSelectDataset={(id) => setSelectedDatasetId(id)}
+        onNavigate={(tab) => setActiveTab(tab)}
+        onRunCeoMode={handleTriggerCeoMode}
+      />
+
+      <AnimatePresence>
+        {toast && (
+          <Toast
+            type={toast.type}
+            message={toast.message}
+            onClose={() => setToast(null)}
+          />
+        )}
+      </AnimatePresence>
+
     </div>
   );
 }

@@ -28,7 +28,7 @@ class LLMService:
         json_mode: bool = False,
         system_prompt: Optional[str] = None
     ) -> str:
-        """Calls the LLM provider (Context-aware or fallback) or Mock engine."""
+        """Calls the LLM provider, utilizing a priority queue for sequential fallbacks on failure."""
         
         # Retrieve user-specific config from ContextVar
         config = user_llm_config.get()
@@ -37,10 +37,12 @@ class LLMService:
             provider = config.get("llm_provider") or "default"
             model = config.get("llm_model")
             api_key = config.get("llm_api_key")
+            llm_keys = config.get("llm_keys") or {}
         else:
             provider = settings.LLM_PROVIDER or "default"
             model = None
             api_key = settings.GEMINI_API_KEY
+            llm_keys = {}
 
         # Handle system-wide default configuration
         if provider == "default":
@@ -54,41 +56,67 @@ class LLMService:
                 else:
                     provider = "ollama"
 
-        # Ensure we have defaults for models if not specified
-        if provider == "gemini":
-            model = model or "gemini-2.5-flash"
-        elif provider == "openai":
-            model = model or "gpt-4o-mini"
-        elif provider == "ollama":
-            model = model or settings.OLLAMA_MODEL
+        # Build list of providers to try sequentially (Priority Queue)
+        tried = set()
+        providers_queue = []
 
-        logger.info(f"Routing LLM request to provider: '{provider}', model: '{model}'")
+        # 1. Selected Provider first
+        if provider != "default":
+            providers_queue.append((provider, model, api_key))
+            tried.add(provider)
 
-        if provider == "mock":
-            return cls._get_mock_fallback(messages, json_mode, system_prompt)
+        # 2. Sequential fallback candidates list
+        fallbacks = [
+            ("gemini", "gemini-2.5-flash", llm_keys.get("gemini") or (api_key if provider == "gemini" else settings.GEMINI_API_KEY)),
+            ("openai", "gpt-4o-mini", llm_keys.get("openai") or (api_key if provider == "openai" else None)),
+            ("anthropic", "claude-3-5-sonnet-20240620", llm_keys.get("anthropic")),
+            ("deepseek", "deepseek-chat", llm_keys.get("deepseek")),
+            ("mistral", "mistral-tiny", llm_keys.get("mistral")),
+            ("ollama", settings.OLLAMA_MODEL, None),
+            ("mock", "mock-model", None)
+        ]
 
-        # Call the selected provider
-        try:
-            if provider == "gemini":
-                if not api_key:
-                    raise ValueError("Gemini API key is not configured.")
-                return await cls._call_gemini(messages, model, api_key, json_mode, system_prompt)
-            
-            elif provider == "openai":
-                if not api_key:
-                    raise ValueError("OpenAI API key is not configured.")
-                return await cls._call_openai(messages, model, api_key, json_mode, system_prompt)
-            
-            elif provider == "ollama":
-                return await cls._call_ollama(messages, model, json_mode, system_prompt)
-                
-            else:
-                logger.warning(f"Unknown LLM provider '{provider}', falling back to mock.")
-                return cls._get_mock_fallback(messages, json_mode, system_prompt)
-                
-        except Exception as e:
-            logger.error(f"Error calling LLM provider '{provider}': {e}. Falling back to mock.")
-            return cls._get_mock_fallback(messages, json_mode, system_prompt)
+        for p, m, k in fallbacks:
+            if p not in tried:
+                providers_queue.append((p, m, k))
+
+        last_error = None
+        for p, m, k in providers_queue:
+            logger.info(f"Attempting LLM call on provider: '{p}', model: '{m}'")
+            try:
+                if p == "mock":
+                    return cls._get_mock_fallback(messages, json_mode, system_prompt)
+                elif p == "gemini":
+                    if not k:
+                        raise ValueError("Gemini API key missing.")
+                    return await cls._call_gemini(messages, m, k, json_mode, system_prompt)
+                elif p == "openai":
+                    if not k:
+                        raise ValueError("OpenAI API key missing.")
+                    return await cls._call_openai(messages, m, k, json_mode, system_prompt)
+                elif p == "anthropic":
+                    if not k:
+                        raise ValueError("Anthropic API key missing.")
+                    return await cls._call_anthropic(messages, m, k, json_mode, system_prompt)
+                elif p == "deepseek":
+                    if not k:
+                        raise ValueError("DeepSeek API key missing.")
+                    return await cls._call_deepseek(messages, m, k, json_mode, system_prompt)
+                elif p == "mistral":
+                    if not k:
+                        raise ValueError("Mistral API key missing.")
+                    return await cls._call_mistral(messages, m, k, json_mode, system_prompt)
+                elif p == "ollama":
+                    if not await cls.check_ollama_status():
+                        raise ValueError("Local Ollama service offline.")
+                    return await cls._call_ollama(messages, m, json_mode, system_prompt)
+            except Exception as e:
+                logger.warning(f"Provider '{p}' failed: {e}. Trying next provider in fallback queue.")
+                last_error = e
+
+        # Final heuristic fallback
+        logger.error(f"All LLM providers failed. Last exception: {last_error}. Falling back to heuristics mock.")
+        return cls._get_mock_fallback(messages, json_mode, system_prompt)
 
     @classmethod
     def _get_mock_fallback(
@@ -214,6 +242,147 @@ class LLMService:
                 raise ValueError(f"OpenAI API returned status code {response.status_code}: {response.text}")
 
     @classmethod
+    async def _call_anthropic(
+        cls,
+        messages: List[Dict[str, str]],
+        model: str,
+        api_key: str,
+        json_mode: bool,
+        system_prompt: Optional[str]
+    ) -> str:
+        url = "https://api.anthropic.com/v1/messages"
+        headers = {
+            "x-api-key": api_key,
+            "anthropic-version": "2023-06-01",
+            "content-type": "application/json"
+        }
+        
+        anthropic_messages = []
+        for msg in messages:
+            role = msg.get("role")
+            content = msg.get("content", "")
+            if role == "model":
+                role = "assistant"
+            anthropic_messages.append({"role": role, "content": content})
+            
+        payload = {
+            "model": model,
+            "messages": anthropic_messages,
+            "max_tokens": 4096,
+            "temperature": 0.2
+        }
+        if system_prompt:
+            payload["system"] = system_prompt
+            
+        if json_mode:
+            payload["messages"][-1]["content"] += "\nReturn your response strictly as a JSON object."
+            
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            response = await client.post(url, headers=headers, json=payload)
+            if response.status_code == 200:
+                data = response.json()
+                try:
+                    return data["content"][0]["text"]
+                except (KeyError, IndexError) as e:
+                    logger.error(f"Failed to parse Claude response: {data}. Error: {e}")
+                    raise ValueError("Invalid response format from Anthropic Claude API")
+            else:
+                logger.error(f"Anthropic Claude API error: Status {response.status_code}, Body: {response.text}")
+                raise ValueError(f"Anthropic Claude API returned status code {response.status_code}: {response.text}")
+
+    @classmethod
+    async def _call_deepseek(
+        cls,
+        messages: List[Dict[str, str]],
+        model: str,
+        api_key: str,
+        json_mode: bool,
+        system_prompt: Optional[str]
+    ) -> str:
+        url = "https://api.deepseek.com/chat/completions"
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {api_key}"
+        }
+        formatted_messages = []
+        if system_prompt:
+            formatted_messages.append({"role": "system", "content": system_prompt})
+        
+        for msg in messages:
+            role = msg.get("role")
+            content = msg.get("content", "")
+            if role == "model":
+                role = "assistant"
+            formatted_messages.append({"role": role, "content": content})
+            
+        payload = {
+            "model": model,
+            "messages": formatted_messages,
+            "temperature": 0.2
+        }
+        if json_mode:
+            payload["response_format"] = {"type": "json_object"}
+            
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            response = await client.post(url, headers=headers, json=payload)
+            if response.status_code == 200:
+                data = response.json()
+                try:
+                    return data["choices"][0]["message"]["content"]
+                except (KeyError, IndexError) as e:
+                    logger.error(f"Failed to parse DeepSeek response: {data}. Error: {e}")
+                    raise ValueError("Invalid response format from DeepSeek API")
+            else:
+                logger.error(f"DeepSeek API error: Status {response.status_code}, Body: {response.text}")
+                raise ValueError(f"DeepSeek API returned status code {response.status_code}: {response.text}")
+
+    @classmethod
+    async def _call_mistral(
+        cls,
+        messages: List[Dict[str, str]],
+        model: str,
+        api_key: str,
+        json_mode: bool,
+        system_prompt: Optional[str]
+    ) -> str:
+        url = "https://api.mistral.ai/v1/chat/completions"
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {api_key}"
+        }
+        formatted_messages = []
+        if system_prompt:
+            formatted_messages.append({"role": "system", "content": system_prompt})
+        
+        for msg in messages:
+            role = msg.get("role")
+            content = msg.get("content", "")
+            if role == "model":
+                role = "assistant"
+            formatted_messages.append({"role": role, "content": content})
+            
+        payload = {
+            "model": model,
+            "messages": formatted_messages,
+            "temperature": 0.2
+        }
+        if json_mode:
+            payload["response_format"] = {"type": "json_object"}
+            
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            response = await client.post(url, headers=headers, json=payload)
+            if response.status_code == 200:
+                data = response.json()
+                try:
+                    return data["choices"][0]["message"]["content"]
+                except (KeyError, IndexError) as e:
+                    logger.error(f"Failed to parse Mistral response: {data}. Error: {e}")
+                    raise ValueError("Invalid response format from Mistral API")
+            else:
+                logger.error(f"Mistral API error: Status {response.status_code}, Body: {response.text}")
+                raise ValueError(f"Mistral API returned status code {response.status_code}: {response.text}")
+
+    @classmethod
     async def _call_ollama(
         cls,
         messages: List[Dict[str, str]],
@@ -254,7 +423,6 @@ class LLMService:
         import re
         user_msg = next((m["content"] for m in reversed(messages) if m["role"] == "user"), "")
         
-        # Try to extract the user's question from the prompt template
         question = "general query"
         match = re.search(r'answer this question:\s*"(.*?)"', user_msg)
         if match:
@@ -267,7 +435,6 @@ class LLMService:
         safe_question = question.replace('"', '\\"').replace('\n', ' ')
         
         code = f"""```python
-# Dynamic Mock AI code generator
 import pandas as pd
 import numpy as np
 
@@ -333,7 +500,6 @@ for col in df.columns:
         col_region = col
         break
 
-# 1. Assignment / Owner query
 if col_assignee and ("assign" in query or "who" in query or "individual" in query or "person" in query or "whom" in query):
     counts = df[col_assignee].value_counts()
     total_individuals = len(counts)
@@ -363,7 +529,6 @@ if col_assignee and ("assign" in query or "who" in query or "individual" in quer
     result_text = ans
     result_chart = chart_data
 
-# 2. Progress / Status query
 elif col_status and ("progress" in query or "status" in query or "complete" in query or "productivity" in query):
     is_numeric_status = pd.api.types.is_numeric_dtype(df[col_status])
     if is_numeric_status:
@@ -413,7 +578,6 @@ elif col_status and ("progress" in query or "status" in query or "complete" in q
     result_text = ans
     result_chart = chart_data
 
-# 3. Sales / Region query
 elif col_sales and col_region:
     grouped = df.groupby(col_region)[col_sales].sum().reset_index()
     top_grouped = grouped.sort_values(by=col_sales, ascending=False)
@@ -437,7 +601,6 @@ elif col_sales and col_region:
     result_text = ans
     result_chart = chart_data
 
-# 4. Fallback / general aggregate
 else:
     total_cols = len(df.columns)
     total_rows = len(df)
@@ -457,11 +620,9 @@ else:
 ```"""
         return code
 
-
     @classmethod
     def _get_mock_response(cls, messages: List[Dict[str, str]], json_mode: bool) -> str:
         """Generates standard analytical mock responses based on templates/heuristics."""
-        # Retrieve user query
         user_msg = next((m["content"] for m in reversed(messages) if m["role"] == "user"), "")
         user_msg_lower = user_msg.lower()
 
@@ -537,7 +698,6 @@ else:
             return "Key Finding: Electronics represents the highest sales volume, but Clothing shows the highest average profit margin."
 
         # 5. GENERAL DATA Q&A (Fallback)
-        # Check if the query is a common business query
         if "region" in user_msg_lower:
             fig_data = {
                 "data": [{"x": ["West", "East", "Central", "South"], "y": [45000, 38000, 29000, 18000], "type": "bar", "marker": {"color": "#6366f1"}}],
@@ -562,7 +722,6 @@ else:
                 })
             return "The top products are Laptops and Smartphones."
 
-        # Default fallback
         if json_mode:
             return json.dumps({
                 "answer": "I have successfully analyzed the dataset and retrieved the matching metrics. Let me know if you would like me to plot this trend.",

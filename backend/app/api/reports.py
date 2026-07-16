@@ -17,10 +17,11 @@ logger = logging.getLogger("a3.api.reports")
 @router.post("/generate", status_code=status.HTTP_201_CREATED)
 def generate_report(
     dataset_id: str,
+    format: str = "pdf",
     db: Session = Depends(get_db),
     current_user: models.User = Depends(deps.get_current_user)
 ):
-    """Compiles metadata, quality indices, and AI insights to build a downloadable PDF report."""
+    """Compiles metadata, quality indices, and AI insights to build a downloadable PDF or PPTX report."""
     # 1. Validate dataset
     dataset = db.query(models.Dataset).filter(
         models.Dataset.id == dataset_id, 
@@ -42,51 +43,57 @@ def generate_report(
 
     # 3. Formulate output path
     report_id = str(uuid.uuid4())
-    filename = f"report_{dataset.name.split('.')[0]}_{report_id[:8]}.pdf"
+    ext = "pptx" if format == "pptx" else "pdf"
+    filename = f"report_{dataset.name.split('.')[0]}_{report_id[:8]}.{ext}"
     user_report_dir = os.path.join(settings.REPORT_FOLDER, str(current_user.id))
     os.makedirs(user_report_dir, exist_ok=True)
     report_path = os.path.join(user_report_dir, filename)
 
-    # 4. Extract inputs
-    metadata = {
-        "business_domain": dataset.business_domain,
-        "file_type": dataset.file_type,
-        "row_count": dataset.row_count,
-        "column_count": dataset.column_count,
-        "file_size": dataset.file_size,
-        "summary": dataset.summary
-    }
-
-    # Generate PDF via ReportingAgent
+    # Generate PDF or PPTX via ReportingAgent
     try:
-        ReportingAgent.generate_pdf_report(
-            dataset_name=dataset.name,
-            metadata=metadata,
-            quality_report=job.quality_report or {},
-            insights=job.insights or {},
-            forecast_commentary=job.insights.get("forecast_commentary") if job.insights else None,
-            output_path=report_path
-        )
+        if format == "pptx":
+            ReportingAgent.generate_pptx_report(
+                dataset_name=dataset.name,
+                presentation_deck=job.presentation_deck or [],
+                output_path=report_path
+            )
+        else:
+            metadata = {
+                "business_domain": dataset.business_domain,
+                "file_type": dataset.file_type,
+                "row_count": dataset.row_count,
+                "column_count": dataset.column_count,
+                "file_size": dataset.file_size,
+                "summary": dataset.summary
+            }
+            ReportingAgent.generate_pdf_report(
+                dataset_name=dataset.name,
+                metadata=metadata,
+                quality_report=job.quality_report or {},
+                insights=job.insights or {},
+                forecast_commentary=job.insights.get("forecast_commentary") if job.insights else None,
+                output_path=report_path
+            )
     except Exception as e:
         logger.error(f"Report generation failed: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to compile PDF: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to compile report: {e}")
 
-    # Read compiled PDF file content
+    # Read compiled file content
     try:
         with open(report_path, "rb") as f:
             report_content = f.read()
     except Exception as e:
-        logger.error(f"Failed to read report PDF file: {e}")
-        raise HTTPException(status_code=500, detail="Failed to retrieve compiled PDF report.")
+        logger.error(f"Failed to read report file: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve compiled report.")
 
     # 5. Save Report record
     report = models.Report(
         id=report_id,
         dataset_id=dataset_id,
-        title=f"Executive Insights Report - {dataset.name}",
+        title=f"Executive Insights Report - {dataset.name} ({format.upper()})",
         file_path=report_path,
         file_content=report_content,
-        format="pdf"
+        format=format
     )
     db.add(report)
     
@@ -96,13 +103,13 @@ def generate_report(
         action="GENERATE_REPORT",
         target_type="report",
         target_id=report_id,
-        details={"filename": filename}
+        details={"filename": filename, "format": format}
     )
     db.add(audit)
     db.commit()
     db.refresh(report)
 
-    return {"report_id": report.id, "title": report.title, "created_at": report.created_at}
+    return {"report_id": report.id, "title": report.title, "created_at": report.created_at, "format": report.format}
 
 @router.get("/list", response_model=List[dict])
 def list_reports(
@@ -157,8 +164,10 @@ def download_report(
     db.add(audit)
     db.commit()
 
+    m_type = "application/vnd.openxmlformats-officedocument.presentationml.presentation" if report.format == "pptx" else "application/pdf"
+
     return FileResponse(
         path=report.file_path,
-        media_type="application/pdf",
+        media_type=m_type,
         filename=os.path.basename(report.file_path)
     )

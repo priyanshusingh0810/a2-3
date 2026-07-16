@@ -212,6 +212,17 @@ def mask_api_key(key: Optional[str]) -> Optional[str]:
         return "********"
     return f"{key[:4]}...{key[-4:]}"
 
+def mask_llm_keys(keys: Optional[dict]) -> Optional[dict]:
+    if not keys:
+        return {}
+    masked = {}
+    for prov, k in keys.items():
+        if k:
+            masked[prov] = mask_api_key(k)
+        else:
+            masked[prov] = None
+    return masked
+
 @router.get("/me", response_model=schemas.UserResponse)
 def get_me(current_user: models.User = Depends(deps.get_current_user)):
     """Returns the authenticated user details."""
@@ -223,6 +234,7 @@ def get_me(current_user: models.User = Depends(deps.get_current_user)):
         llm_provider=current_user.llm_provider,
         llm_model=current_user.llm_model,
         llm_api_key=mask_api_key(current_user.llm_api_key),
+        llm_keys=mask_llm_keys(current_user.llm_keys),
         created_at=current_user.created_at
     )
 
@@ -241,10 +253,22 @@ def update_llm_settings(
         if val == "":
             current_user.llm_api_key = None
         elif "*" in val or "..." in val:
-            # Masked key received, keep the existing one
             pass
         else:
             current_user.llm_api_key = val
+            
+    if settings_in.llm_keys is not None:
+        merged_keys = dict(current_user.llm_keys or {})
+        for prov, val in settings_in.llm_keys.items():
+            if val is not None:
+                stripped = val.strip()
+                if stripped == "":
+                    merged_keys[prov] = None
+                elif "*" in stripped or "..." in stripped:
+                    pass
+                else:
+                    merged_keys[prov] = stripped
+        current_user.llm_keys = merged_keys
             
     db.add(current_user)
     db.commit()
@@ -272,6 +296,7 @@ def update_llm_settings(
         llm_provider=current_user.llm_provider,
         llm_model=current_user.llm_model,
         llm_api_key=mask_api_key(current_user.llm_api_key),
+        llm_keys=mask_llm_keys(current_user.llm_keys),
         created_at=current_user.created_at
     )
 
