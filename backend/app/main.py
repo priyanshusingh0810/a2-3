@@ -178,6 +178,9 @@ ALLOWED_IPS = [
 
 @app.middleware("http")
 async def ip_whitelist_middleware(request: Request, call_next):
+    if not settings.ENABLE_IP_WHITELIST:
+        return await call_next(request)
+
     client_ip = request.client.host
     forwarded_for = request.headers.get("x-forwarded-for")
     if forwarded_for:

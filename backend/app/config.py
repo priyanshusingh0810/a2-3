@@ -40,6 +40,9 @@ class Settings(BaseSettings):
     GEMINI_API_KEY: Optional[str] = None
     LLM_PROVIDER: str = "default"
     
+    # Security
+    ENABLE_IP_WHITELIST: bool = False
+    
     class Config:
         case_sensitive = True
         env_file = ".env"
