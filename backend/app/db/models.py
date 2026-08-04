@@ -192,3 +192,33 @@ class Comment(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     text = Column(Text, nullable=False)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+
+class LocalSettingsRecord(Base):
+    __tablename__ = "local_settings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    workspace_name = Column(String, default="My Enterprise Analytics")
+    user_name = Column(String, default="Local User")
+    theme = Column(String, default="dark")
+    storage_location = Column(String, default="./data")
+    selected_model = Column(String, default="llama3:latest")
+    password_enabled = Column(Boolean, default=False)
+    setup_completed = Column(Boolean, default=False)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+
+class LicenseRecord(Base):
+    __tablename__ = "license_records"
+
+    id = Column(Integer, primary_key=True, index=True)
+    license_key = Column(String, nullable=True)
+    plan_type = Column(String, default="Trial") # 'Trial', 'Professional', 'Enterprise'
+    status = Column(String, default="active") # 'active', 'expired', 'unactivated'
+    is_trial = Column(Boolean, default=True)
+    trial_start_date = Column(DateTime, default=datetime.datetime.utcnow)
+    expires_at = Column(DateTime, nullable=True)
+    device_fingerprint = Column(String, nullable=True)
+    features = Column(JSON, default=list)
+    activated_at = Column(DateTime, nullable=True)
+

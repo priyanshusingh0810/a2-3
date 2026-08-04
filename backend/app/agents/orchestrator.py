@@ -24,6 +24,12 @@ from app.agents.external_research import ExternalResearchAgent
 from app.agents.presentation_generation import PresentationGenerationAgent
 from app.agents.kpi_engine import KPIEngineAgent
 
+# Enterprise AI Agents
+from app.agents.planner import PlannerAgent
+from app.agents.python_agent import PythonAgent
+from app.agents.sql_agent import SQLAgent
+from app.agents.review import ReviewAgent
+
 logger = logging.getLogger("a3.agents.orchestrator")
 
 class AgentOrchestrator:
@@ -108,6 +114,13 @@ class AgentOrchestrator:
             df = DataService.load_df(dataset.file_path, dataset.file_type)
             columns_meta = DataService.analyze_metadata(df)
             columns, rows, total_rows = DataService.get_preview(dataset.file_path, dataset.file_type, limit=20)
+
+            # --- STAGE 0: Execution Planning ---
+            plan_res = await execute_agent_with_telemetry(
+                "Planner Agent",
+                PlannerAgent.create_plan,
+                dataset_summary={"name": dataset.name, "rows": len(df), "columns": list(columns_meta.keys())}
+            )
 
             # --- STAGE 1: Data Understanding (Sequential Base) ---
             understanding = await execute_agent_with_telemetry(
@@ -263,6 +276,20 @@ class AgentOrchestrator:
                     title=f"{dataset.name} Overview Dashboard", layout=dashboard_layout
                 )
                 db.add(dashboard)
+
+            # --- STAGE 7: Quality Assurance & Review Agent Audit ---
+            review_res = await execute_agent_with_telemetry(
+                "Review Agent",
+                ReviewAgent.review_analysis_artifacts,
+                job_outputs={
+                    "quality_report": quality_report,
+                    "statistical_report": stats_res,
+                    "ml_report": ml_res,
+                    "insights": insights_res
+                }
+            )
+            if job.insights:
+                job.insights["quality_audit"] = review_res
 
             # Complete and save telemetry metrics logs
             job.status = "completed"

@@ -40,7 +40,7 @@ def get_current_user(
             )
             
         token_payload = TokenPayload(sub=user_id_str, role=payload.get("role"))
-    except JWTError:
+    except Exception:
         raise credentials_exception
         
     user = db.query(models.User).filter(models.User.id == int(token_payload.sub)).first()

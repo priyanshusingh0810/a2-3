@@ -343,10 +343,6 @@ export default function Component({
 
             <div style={{height:1,background:"#222",width:"100%",margin:"0.85rem 0"}}/>
 
-            <button onClick={onGoogleSubmitProp} disabled={isGoogleLoadingProp} style={socialBtn}>
-              {isGoogleLoadingProp ? <Loader2 size={14} className="animate-spin" /> : GoogleIcon}
-              Continue with Google
-            </button>
             <button style={socialBtn}>{GitHubIcon}Continue with GitHub</button>
             <button style={{...socialBtn,marginBottom:0}}>{AppleIcon}Continue with Apple</button>
 
@@ -386,10 +382,6 @@ export default function Component({
 
             <div style={{height:1,background:"#222",width:"100%",margin:"0.85rem 0"}}/>
 
-            <button onClick={onGoogleSubmitProp} disabled={isGoogleLoadingProp} style={socialBtn}>
-              {isGoogleLoadingProp ? <Loader2 size={14} className="animate-spin" /> : GoogleIcon}
-              Sign up with Google
-            </button>
             <button style={socialBtn}>{GitHubIcon}Sign up with GitHub</button>
             <button style={{...socialBtn,marginBottom:0}}>{AppleIcon}Sign up with Apple</button>
 

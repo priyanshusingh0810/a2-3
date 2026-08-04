@@ -17,12 +17,14 @@ import { SignUpCard } from '@/components/ui/sign-up-card';
 import { ForgotPasswordCard } from '@/components/ui/forgot-password-card';
 import { Toast } from '@/components/ui/toast';
 import { CommandPalette } from '@/components/ui/command-palette';
+import { LocalOnboardingWizard } from '@/components/ui/local-onboarding-wizard';
 
 type ActiveTab = 'dashboard' | 'datasets' | 'chat' | 'forecast' | 'reports' | 'simulations' | 'memory' | 'workspace' | 'templates' | 'settings';
 
 export default function Home() {
-  // --- AUTHENTICATION STATE ---
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  // --- AUTHENTICATION & ONBOARDING STATE ---
+  const [isAuthenticated, setIsAuthenticated] = useState(true);
+  const [showOnboardingWizard, setShowOnboardingWizard] = useState(false);
   const [authMode, setAuthMode] = useState<'landing' | 'login' | 'register' | 'forgot-password'>('landing');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -168,6 +170,18 @@ export default function Home() {
 
   // --- INITIAL CHECK ---
   useEffect(() => {
+    const checkOnboardingStatus = async () => {
+      try {
+        const res = await api.get('/onboarding/status');
+        if (!res.data.setup_completed) {
+          setShowOnboardingWizard(true);
+        }
+      } catch (err) {
+        console.warn('Failed to check onboarding status:', err);
+      }
+    };
+    checkOnboardingStatus();
+
     const token = localStorage.getItem('a3_access_token');
     if (token) {
       fetchCurrentUser();
@@ -2130,6 +2144,10 @@ export default function Home() {
           />
         )}
       </AnimatePresence>
+
+      {showOnboardingWizard && (
+        <LocalOnboardingWizard onComplete={() => setShowOnboardingWizard(false)} />
+      )}
 
     </div>
   );

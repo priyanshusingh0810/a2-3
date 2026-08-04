@@ -224,13 +224,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+from app.api import telemetry, onboarding
+
 # Mount Routers
 app.include_router(auth.router, prefix=f"{settings.API_V1_STR}/auth", tags=["Authentication"])
+app.include_router(onboarding.router, prefix=f"{settings.API_V1_STR}/onboarding", tags=["Onboarding & Licensing"])
 app.include_router(datasets.router, prefix=f"{settings.API_V1_STR}/datasets", tags=["Datasets"])
 app.include_router(chat.router, prefix=f"{settings.API_V1_STR}/chat", tags=["AI Data Chat"])
 app.include_router(dashboards.router, prefix=f"{settings.API_V1_STR}/dashboards", tags=["Dashboards"])
 app.include_router(reports.router, prefix=f"{settings.API_V1_STR}/reports", tags=["Reports"])
 app.include_router(collaboration.router, prefix=f"{settings.API_V1_STR}/collaboration", tags=["Collaboration"])
+app.include_router(telemetry.router, prefix=f"{settings.API_V1_STR}/telemetry", tags=["Telemetry & Performance"])
 
 @app.get("/health")
 async def health_check():
