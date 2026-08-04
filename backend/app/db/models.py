@@ -15,6 +15,9 @@ class User(Base):
     llm_model = Column(String, nullable=True)
     llm_api_key = Column(String, nullable=True)
     llm_keys = Column(JSON, default=dict) # dict of provider -> api_key
+    last_login_at = Column(DateTime, nullable=True)
+    failed_login_attempts = Column(Integer, default=0)
+    locked_until = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
     datasets = relationship("Dataset", back_populates="owner", cascade="all, delete-orphan")

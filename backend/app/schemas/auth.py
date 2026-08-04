@@ -1,16 +1,26 @@
 from datetime import datetime
-from pydantic import BaseModel, EmailStr, Field
-
 from typing import Optional
+from pydantic import BaseModel, EmailStr, Field, field_validator
+import re
 
 class UserBase(BaseModel):
     email: EmailStr
 
 class UserCreate(UserBase):
-    password: str = Field(..., min_length=6, description="Password must be at least 6 characters")
+    password: str = Field(..., min_length=8, description="Password must be at least 8 characters")
+
+    @field_validator("password")
+    @classmethod
+    def validate_password_complexity(cls, v: str) -> str:
+        if len(v) < 8:
+            raise ValueError("Password must be at least 8 characters long.")
+        if not re.search(r"[A-Za-z]", v) or not re.search(r"[0-9]", v):
+            raise ValueError("Password must contain at least one letter and one number.")
+        return v
 
 class UserLogin(UserBase):
     password: str
+    remember_me: bool = False
 
 class UserResponse(UserBase):
     id: int
@@ -20,6 +30,7 @@ class UserResponse(UserBase):
     llm_model: Optional[str] = None
     llm_api_key: Optional[str] = None
     llm_keys: Optional[dict] = None
+    last_login_at: Optional[datetime] = None
     created_at: datetime
 
     class Config:
@@ -45,4 +56,21 @@ class TokenRefreshRequest(BaseModel):
 
 class GoogleLoginRequest(BaseModel):
     access_token: str
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str = Field(..., min_length=8)
+
+    @field_validator("new_password")
+    @classmethod
+    def validate_new_password(cls, v: str) -> str:
+        if len(v) < 8:
+            raise ValueError("Password must be at least 8 characters long.")
+        if not re.search(r"[A-Za-z]", v) or not re.search(r"[0-9]", v):
+            raise ValueError("Password must contain at least one letter and one number.")
+        return v
+
 

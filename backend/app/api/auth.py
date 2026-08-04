@@ -48,28 +48,65 @@ def register(user_in: schemas.UserCreate, db: Session = Depends(get_db)):
 
 @router.post("/login", response_model=schemas.Token)
 def login(user_in: schemas.UserLogin, db: Session = Depends(get_db)):
-    """Authenticates user and returns JWT tokens."""
+    """Authenticates user and returns JWT tokens with brute-force protection and lockout support."""
+    now = datetime.datetime.utcnow()
     user = db.query(models.User).filter(models.User.email == user_in.email).first()
+    
+    if user and user.locked_until and user.locked_until > now:
+        remaining_minutes = int((user.locked_until - now).total_seconds() // 60) + 1
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"Account is temporarily locked due to multiple failed login attempts. Please try again in {remaining_minutes} minutes."
+        )
+
     if not user or not security.verify_password(user_in.password, user.hashed_password):
+        if user:
+            user.failed_login_attempts = (user.failed_login_attempts or 0) + 1
+            if user.failed_login_attempts >= 5:
+                user.locked_until = now + datetime.timedelta(minutes=15)
+            db.add(user)
+            
+            # Audit log for failed login
+            audit_log = models.AuditLog(
+                user_id=user.id,
+                action="USER_LOGIN_FAILED",
+                target_type="user",
+                target_id=str(user.id),
+                details={"failed_attempts": user.failed_login_attempts}
+            )
+            db.add(audit_log)
+            db.commit()
+
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Incorrect email or password."
         )
+
     if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="User account is deactivated."
         )
         
+    # Reset failed attempts and update last login timestamp
+    user.failed_login_attempts = 0
+    user.locked_until = None
+    user.last_login_at = now
+    db.add(user)
+
     access_token = security.create_access_token(data={"sub": str(user.id), "role": user.role})
-    refresh_token = security.create_refresh_token(data={"sub": str(user.id)})
+    refresh_token = security.create_refresh_token(
+        data={"sub": str(user.id)}, 
+        remember_me=user_in.remember_me
+    )
     
-    # Audit log
+    # Audit log for successful login
     audit_log = models.AuditLog(
         user_id=user.id,
         action="USER_LOGIN",
         target_type="user",
-        target_id=str(user.id)
+        target_id=str(user.id),
+        details={"remember_me": user_in.remember_me}
     )
     db.add(audit_log)
     db.commit()
@@ -82,21 +119,94 @@ def login(user_in: schemas.UserLogin, db: Session = Depends(get_db)):
 
 @router.post("/login-form", response_model=schemas.Token)
 def login_form(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    """Standard OAuth2 form-compatible login endpoint."""
+    """Standard OAuth2 form-compatible login endpoint with brute-force lockout handling."""
+    now = datetime.datetime.utcnow()
     user = db.query(models.User).filter(models.User.email == form_data.username).first()
+    
+    if user and user.locked_until and user.locked_until > now:
+        remaining_minutes = int((user.locked_until - now).total_seconds() // 60) + 1
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"Account is temporarily locked due to multiple failed login attempts. Please try again in {remaining_minutes} minutes."
+        )
+
     if not user or not security.verify_password(form_data.password, user.hashed_password):
+        if user:
+            user.failed_login_attempts = (user.failed_login_attempts or 0) + 1
+            if user.failed_login_attempts >= 5:
+                user.locked_until = now + datetime.timedelta(minutes=15)
+            db.add(user)
+            db.commit()
+
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Incorrect email or password."
         )
     
+    user.failed_login_attempts = 0
+    user.locked_until = None
+    user.last_login_at = now
+    db.add(user)
+
     access_token = security.create_access_token(data={"sub": str(user.id), "role": user.role})
     refresh_token = security.create_refresh_token(data={"sub": str(user.id)})
+    db.commit()
+
     return {
         "access_token": access_token,
         "refresh_token": refresh_token,
         "token_type": "bearer"
     }
+
+@router.post("/forgot-password")
+def forgot_password(req: schemas.ForgotPasswordRequest, db: Session = Depends(get_db)):
+    """Generates password reset instructions and token for account recovery."""
+    user = db.query(models.User).filter(models.User.email == req.email).first()
+    if not user:
+        return {"detail": "If an account with this email exists, password reset instructions have been generated."}
+    
+    reset_token = security.create_reset_token(user.email)
+    
+    audit_log = models.AuditLog(
+        user_id=user.id,
+        action="PASSWORD_RESET_REQUEST",
+        target_type="user",
+        target_id=str(user.id)
+    )
+    db.add(audit_log)
+    db.commit()
+    
+    return {
+        "detail": "If an account with this email exists, password reset instructions have been generated.",
+        "reset_token": reset_token
+    }
+
+@router.post("/reset-password")
+def reset_password(req: schemas.ResetPasswordRequest, db: Session = Depends(get_db)):
+    """Resets user password using a valid reset token."""
+    email = security.verify_reset_token(req.token)
+    if not email:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired reset token.")
+    
+    user = db.query(models.User).filter(models.User.email == email).first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User account not found.")
+    
+    user.hashed_password = security.get_password_hash(req.new_password)
+    user.failed_login_attempts = 0
+    user.locked_until = None
+    db.add(user)
+    
+    audit_log = models.AuditLog(
+        user_id=user.id,
+        action="PASSWORD_RESET_SUCCESS",
+        target_type="user",
+        target_id=str(user.id)
+    )
+    db.add(audit_log)
+    db.commit()
+    
+    return {"detail": "Password has been successfully reset. You can now log in with your new password."}
 
 @router.post("/google", response_model=schemas.Token)
 def google_auth(req: schemas.GoogleLoginRequest, db: Session = Depends(get_db)):

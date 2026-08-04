@@ -12,6 +12,9 @@ interface ModernLoginSignupProps {
   setNameProp?: (val: string) => void;
   confirmPasswordProp?: string;
   setConfirmPasswordProp?: (val: string) => void;
+  rememberMeProp?: boolean;
+  setRememberMeProp?: (val: boolean) => void;
+  onForgotPasswordProp?: () => void;
   isLoadingProp?: boolean;
   onSubmitProp?: (e: React.FormEvent) => void;
   authErrorProp?: string;
@@ -30,6 +33,9 @@ export default function Component({
   setNameProp,
   confirmPasswordProp,
   setConfirmPasswordProp,
+  rememberMeProp,
+  setRememberMeProp,
+  onForgotPasswordProp,
   isLoadingProp,
   onSubmitProp,
   authErrorProp,
@@ -46,9 +52,12 @@ export default function Component({
   const [localPassword, localSetPassword] = useState('');
   const [localName, localSetName] = useState('');
   const [localConfirmPassword, localSetConfirmPassword] = useState('');
+  const [localRememberMe, localSetRememberMe] = useState(false);
 
   const isLogin = controlledIsLogin !== undefined ? controlledIsLogin : localIsLogin;
   const setIsLogin = controlledSetIsLogin !== undefined ? controlledSetIsLogin : localSetIsLogin;
+
+  const setRememberMe = setRememberMeProp || localSetRememberMe;
 
   const email = emailProp !== undefined ? emailProp : localEmail;
   const setEmail = setEmailProp || localSetEmail;
@@ -306,6 +315,26 @@ export default function Component({
             <form onSubmit={onSubmitProp} style={{width:"100%",display:"flex",flexDirection:"column",gap:"0.65rem"}}>
               <input style={input} type="email" placeholder="name@work-email.com" value={email} onChange={e => setEmail(e.target.value)} required/>
               <input style={input} type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required/>
+              
+              <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', fontSize:'0.75rem', color:'#aaa', margin:'0.15rem 0'}}>
+                <label style={{display:'flex', alignItems:'center', gap:'0.35rem', cursor:'pointer'}}>
+                  <input 
+                    type="checkbox" 
+                    checked={rememberMeProp !== undefined ? rememberMeProp : localRememberMe} 
+                    onChange={e => setRememberMe(e.target.checked)} 
+                    style={{accentColor:'#ededed', cursor:'pointer'}}
+                  />
+                  Remember me for 30 days
+                </label>
+                {onForgotPasswordProp ? (
+                  <button type="button" onClick={onForgotPasswordProp} style={{color:'#ccc', background:'none', border:'none', cursor:'pointer', fontSize:'0.75rem', textDecoration:'underline'}}>
+                    Forgot password?
+                  </button>
+                ) : (
+                  <a href="/forgot-password" style={{color:'#ccc', textDecoration:'underline'}}>Forgot password?</a>
+                )}
+              </div>
+
               <button type="submit" disabled={isLoadingProp} style={{width:"100%",padding:"0.65rem",borderRadius:6,border:"none",background:"#ededed",color:"#000",fontWeight:500,fontSize:"0.875rem",cursor:"pointer", display:'flex', alignItems:'center', justifyContent:'center', gap:'0.5rem'}}>
                 {isLoadingProp && <Loader2 size={14} className="animate-spin" />}
                 {isLoadingProp ? 'Processing...' : 'Continue with Email'}
@@ -342,8 +371,13 @@ export default function Component({
             <form onSubmit={onSubmitProp} style={{width:"100%",display:"flex",flexDirection:"column",gap:"0.65rem"}}>
               <input style={input} type="text" placeholder="Full Name" value={name} onChange={e => setName(e.target.value)} required/>
               <input style={input} type="email" placeholder="name@work-email.com" value={email} onChange={e => setEmail(e.target.value)} required/>
-              <input style={input} type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required/>
+              <input style={input} type="password" placeholder="Password (min 8 chars, 1 letter & 1 number)" value={password} onChange={e => setPassword(e.target.value)} required/>
               <input style={input} type="password" placeholder="Confirm Password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required/>
+              
+              <div style={{fontSize:'0.7rem', color:'#888', textAlign:'left', padding:'0 0.1rem'}}>
+                Password must be at least 8 characters long and contain both letters and numbers.
+              </div>
+
               <button type="submit" disabled={isLoadingProp} style={{width:"100%",padding:"0.65rem",borderRadius:6,border:"none",background:"#ededed",color:"#000",fontWeight:500,fontSize:"0.875rem",cursor:"pointer", display:'flex', alignItems:'center', justifyContent:'center', gap:'0.5rem'}}>
                 {isLoadingProp && <Loader2 size={14} className="animate-spin" />}
                 {isLoadingProp ? 'Processing...' : 'Sign Up with Email'}

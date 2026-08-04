@@ -61,6 +61,17 @@ try:
                 logger.info("Adding llm_keys column to users table...")
                 conn.execute(text("ALTER TABLE users ADD COLUMN llm_keys JSONB;"))
 
+            # Check for users security columns
+            has_sec_col = conn.execute(text(
+                "SELECT EXISTS (SELECT 1 FROM information_schema.columns "
+                "WHERE table_name='users' AND column_name='last_login_at');"
+            )).scalar()
+            if not has_sec_col:
+                logger.info("Adding security columns to users table...")
+                conn.execute(text("ALTER TABLE users ADD COLUMN last_login_at TIMESTAMP;"))
+                conn.execute(text("ALTER TABLE users ADD COLUMN failed_login_attempts INT DEFAULT 0;"))
+                conn.execute(text("ALTER TABLE users ADD COLUMN locked_until TIMESTAMP;"))
+
             # Check for analysis_jobs new columns
             new_job_cols_pg = [
                 ("statistical_report", "JSON"),
@@ -124,6 +135,11 @@ try:
             if "llm_keys" not in cols_users:
                 logger.info("Adding llm_keys column to users table...")
                 conn.execute(text("ALTER TABLE users ADD COLUMN llm_keys TEXT DEFAULT '{}';"))
+            if "last_login_at" not in cols_users:
+                logger.info("Adding security columns to users table...")
+                conn.execute(text("ALTER TABLE users ADD COLUMN last_login_at DATETIME;"))
+                conn.execute(text("ALTER TABLE users ADD COLUMN failed_login_attempts INTEGER DEFAULT 0;"))
+                conn.execute(text("ALTER TABLE users ADD COLUMN locked_until DATETIME;"))
 
             res_chats = conn.execute(text("PRAGMA table_info(chat_conversations);")).fetchall()
             cols_chats = [r[1] for r in res_chats]
