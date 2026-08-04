@@ -55,7 +55,9 @@ class TokenRefreshRequest(BaseModel):
     refresh_token: str
 
 class GoogleLoginRequest(BaseModel):
-    access_token: str
+    access_token: Optional[str] = None
+    id_token: Optional[str] = None
+    credential: Optional[str] = None
 
 class ForgotPasswordRequest(BaseModel):
     email: EmailStr

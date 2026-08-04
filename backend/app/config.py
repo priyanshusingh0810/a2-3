@@ -40,8 +40,9 @@ class Settings(BaseSettings):
     GEMINI_API_KEY: Optional[str] = None
     LLM_PROVIDER: str = "default"
     
-    # Security
+    # Security & OAuth
     ENABLE_IP_WHITELIST: bool = False
+    GOOGLE_CLIENT_ID: Optional[str] = None
     
     class Config:
         case_sensitive = True

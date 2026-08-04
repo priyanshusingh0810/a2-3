@@ -210,24 +210,37 @@ def reset_password(req: schemas.ResetPasswordRequest, db: Session = Depends(get_
 
 @router.post("/google", response_model=schemas.Token)
 def google_auth(req: schemas.GoogleLoginRequest, db: Session = Depends(get_db)):
-    """Verifies the Google access token and logs in/registers the user."""
-    try:
-        response = httpx.get(
-            "https://www.googleapis.com/oauth2/v3/userinfo",
-            headers={"Authorization": f"Bearer {req.access_token}"},
-            timeout=10.0
+    """Verifies Google OAuth tokens (access_token, id_token, or GIS credential) and logs in/registers user."""
+    token_to_verify = req.id_token or req.credential or req.access_token
+    if not token_to_verify:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Google access_token, id_token, or credential is required."
         )
-        if response.status_code != 200:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid Google access token."
+
+    email = None
+    try:
+        if req.id_token or req.credential:
+            id_tok = req.id_token or req.credential
+            res = httpx.get(f"https://oauth2.googleapis.com/tokeninfo?id_token={id_tok}", timeout=10.0)
+            if res.status_code == 200:
+                user_info = res.json()
+                email = user_info.get("email")
+        
+        if not email and req.access_token:
+            res = httpx.get(
+                "https://www.googleapis.com/oauth2/v3/userinfo",
+                headers={"Authorization": f"Bearer {req.access_token}"},
+                timeout=10.0
             )
-        user_info = response.json()
-        email = user_info.get("email")
+            if res.status_code == 200:
+                user_info = res.json()
+                email = user_info.get("email")
+
         if not email:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Google account does not provide email."
+                detail="Invalid Google token or email missing from account."
             )
     except Exception as e:
         if isinstance(e, HTTPException):
@@ -237,22 +250,21 @@ def google_auth(req: schemas.GoogleLoginRequest, db: Session = Depends(get_db)):
             detail=f"Failed to authenticate with Google: {str(e)}"
         )
 
-    # Check if user exists
+    now = datetime.datetime.utcnow()
     user = db.query(models.User).filter(models.User.email == email).first()
     if not user:
-        # Create user
         random_password = secrets.token_urlsafe(32)
         hashed_pwd = security.get_password_hash(random_password)
         user = models.User(
             email=email,
             hashed_password=hashed_pwd,
-            role="user"
+            role="user",
+            last_login_at=now
         )
         db.add(user)
         db.commit()
         db.refresh(user)
 
-        # Audit log for register
         audit_log = models.AuditLog(
             user_id=user.id,
             action="USER_REGISTER",
@@ -262,18 +274,21 @@ def google_auth(req: schemas.GoogleLoginRequest, db: Session = Depends(get_db)):
         )
         db.add(audit_log)
         db.commit()
-    
-    if not user.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User account is deactivated."
-        )
+    else:
+        if not user.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="User account is deactivated."
+            )
+        user.failed_login_attempts = 0
+        user.locked_until = None
+        user.last_login_at = now
+        db.add(user)
+        db.commit()
 
-    # Issue JWT tokens
     access_token = security.create_access_token(data={"sub": str(user.id), "role": user.role})
     refresh_token = security.create_refresh_token(data={"sub": str(user.id)})
 
-    # Audit log for login
     audit_log = models.AuditLog(
         user_id=user.id,
         action="USER_LOGIN",
