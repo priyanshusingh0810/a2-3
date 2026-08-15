@@ -222,3 +222,63 @@ class LicenseRecord(Base):
     features = Column(JSON, default=list)
     activated_at = Column(DateTime, nullable=True)
 
+
+# --- DYNAMIC WORKFLOW MODELS ---
+
+class WorkflowDefinition(Base):
+    __tablename__ = "workflow_definitions"
+
+    id = Column(String, primary_key=True, index=True) # UUID
+    name = Column(String, nullable=False)
+    description = Column(Text, nullable=True)
+    owner_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+
+    owner = relationship("User")
+    nodes = relationship("WorkflowNode", back_populates="workflow", cascade="all, delete-orphan")
+    runs = relationship("WorkflowRun", back_populates="workflow", cascade="all, delete-orphan")
+
+
+class WorkflowNode(Base):
+    __tablename__ = "workflow_nodes"
+
+    id = Column(String, primary_key=True, index=True) # UUID
+    workflow_id = Column(String, ForeignKey("workflow_definitions.id"), nullable=False)
+    name = Column(String, nullable=False)
+    action_type = Column(String, nullable=False)
+    params = Column(JSON, default=dict)
+    depends_on = Column(JSON, default=list) # List of parent node IDs
+    
+    workflow = relationship("WorkflowDefinition", back_populates="nodes")
+
+
+class WorkflowRun(Base):
+    __tablename__ = "workflow_runs"
+
+    id = Column(String, primary_key=True, index=True) # UUID
+    workflow_id = Column(String, ForeignKey("workflow_definitions.id"), nullable=False)
+    dataset_id = Column(String, ForeignKey("datasets.id"), nullable=False)
+    status = Column(String, default="pending") # pending, running, completed, failed
+    started_at = Column(DateTime, nullable=True)
+    completed_at = Column(DateTime, nullable=True)
+    error_message = Column(Text, nullable=True)
+    
+    workflow = relationship("WorkflowDefinition", back_populates="runs")
+    node_runs = relationship("WorkflowNodeRun", back_populates="workflow_run", cascade="all, delete-orphan")
+
+
+class WorkflowNodeRun(Base):
+    __tablename__ = "workflow_node_runs"
+
+    id = Column(String, primary_key=True, index=True) # UUID
+    workflow_run_id = Column(String, ForeignKey("workflow_runs.id"), nullable=False)
+    node_id = Column(String, ForeignKey("workflow_nodes.id"), nullable=False)
+    status = Column(String, default="pending") # pending, running, completed, failed
+    result_data = Column(JSON, nullable=True)
+    started_at = Column(DateTime, nullable=True)
+    completed_at = Column(DateTime, nullable=True)
+    error_message = Column(Text, nullable=True)
+    
+    workflow_run = relationship("WorkflowRun", back_populates="node_runs")
+    node = relationship("WorkflowNode")

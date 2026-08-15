@@ -43,5 +43,5 @@ class EnterpriseWorkflowRunner:
         self.engine.register_step_handler("generate_pdf", pdf_handler)
         self.engine.register_step_handler("export_package", export_handler)
 
-    def run(self, workflow_id: str, steps: List[WorkflowStep], initial_context: Dict[str, Any]) -> WorkflowExecutionResult:
-        return self.engine.execute_workflow(workflow_id, steps, initial_context)
+    def run(self, workflow_id: str, steps: List[WorkflowStep], initial_context: Dict[str, Any], progress_callback=None) -> WorkflowExecutionResult:
+        return self.engine.execute_workflow(workflow_id, steps, initial_context, progress_callback)

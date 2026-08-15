@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>A3 Analyst Premium - Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "secondary-fixed-dim": "#4cd7f6",
+                      "surface-container-low": "#191b23",
+                      "inverse-surface": "#e1e2ed",
+                      "on-tertiary-fixed-variant": "#5516be",
+                      "on-surface-variant": "#94a3b8",
+                      "surface-container-high": "#282a32",
+                      "on-primary-container": "#eeefff",
+                      "on-secondary-fixed-variant": "#004e5c",
+                      "secondary-fixed": "#acedff",
+                      "surface-bright": "#373942",
+                      "outline-variant": "#434655",
+                      "outline-accent": "#3b82f6",
+                      "on-error": "#690005",
+                      "surface-container-highest": "#32343d",
+                      "inverse-primary": "#0053db",
+                      "secondary": "#4cd7f6",
+                      "tertiary-fixed-dim": "#d0bcff",
+                      "surface-container": "#1d1f27",
+                      "on-secondary-fixed": "#001f26",
+                      "tertiary-container": "#7d4ce7",
+                      "on-tertiary-fixed": "#23005c",
+                      "on-tertiary-container": "#f6edff",
+                      "surface": "#11131b",
+                      "on-primary": "#002a78",
+                      "on-primary-fixed": "#00174b",
+                      "primary-container": "#2563eb",
+                      "surface-variant": "#32343d",
+                      "surface-tint": "#b4c5ff",
+                      "surface-container-lowest": "#0c0e16",
+                      "surface-dim": "#11131b",
+                      "primary-fixed": "#dbe1ff",
+                      "on-error-container": "#ffdad6",
+                      "outline": "#20232a",
+                      "primary-fixed-dim": "#b4c5ff",
+                      "error-container": "#93000a",
+                      "on-background": "#e1e2ed",
+                      "on-surface": "#e1e2ed",
+                      "secondary-container": "#03b5d3",
+                      "error": "#ffb4ab",
+                      "tertiary": "#d0bcff",
+                      "on-tertiary": "#3c0091",
+                      "tertiary-fixed": "#e9ddff",
+                      "on-secondary": "#003640",
+                      "on-secondary-container": "#00424e",
+                      "background": "#09090b",
+                      "inverse-on-surface": "#2e3039",
+                      "primary": "#b4c5ff",
+                      "on-primary-fixed-variant": "#003ea8"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "unit": "8px",
+                      "md": "24px",
+                      "gutter": "24px",
+                      "xs": "8px",
+                      "container-max": "1440px",
+                      "lg": "32px",
+                      "xl": "48px",
+                      "sm": "16px"
+              },
+              "fontFamily": {
+                      "headline-md": [
+                              "Inter"
+                      ],
+                      "display-lg-mobile": [
+                              "Inter"
+                      ],
+                      "code-sm": [
+                              "JetBrains Mono"
+                      ],
+                      "label-caps": [
+                              "JetBrains Mono"
+                      ],
+                      "body-base": [
+                              "Inter"
+                      ],
+                      "display-lg": [
+                              "Inter"
+                      ],
+                      "body-sm": [
+                              "Inter"
+                      ]
+              },
+              "fontSize": {
+                      "headline-md": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "letterSpacing": "-0.01em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "display-lg-mobile": [
+                              "32px",
+                              {
+                                      "lineHeight": "40px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "code-sm": [
+                              "13px",
+                              {
+                                      "lineHeight": "18px",
+                                      "letterSpacing": "0",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "label-caps": [
+                              "12px",
+                              {
+                                      "lineHeight": "16px",
+                                      "letterSpacing": "0.05em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "body-base": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "letterSpacing": "0",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "display-lg": [
+                              "48px",
+                              {
+                                      "lineHeight": "56px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "body-sm": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "letterSpacing": "0",
+                                      "fontWeight": "400"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+    </script>
+<style>
+        .glass-panel {
+            background-color: rgba(17, 18, 20, 0.6);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .glow-border:hover {
+            box-shadow: 0 0 15px rgba(180, 197, 255, 0.15);
+            border-color: rgba(180, 197, 255, 0.3);
+        }
+        .sparkline {
+            fill: none;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+        .sparkline-fill {
+            opacity: 0.1;
+        }
+        
+        /* Custom scrollbar for CLI aesthetic */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1); 
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.2); 
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body-sm text-body-sm antialiased overflow-hidden flex h-screen w-screen">
+<!-- SideNavBar (Shared Component) -->
+<nav class="h-screen w-64 fixed left-0 top-0 bg-surface-container/60 backdrop-blur-xl border-r border-white/5 flex flex-col z-50 transition-transform duration-300 transform md:translate-x-0 -translate-x-full" id="sidebar">
+<!-- Header -->
+<div class="px-md py-lg border-b border-white/5 flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-surface-container-high border border-white/10 overflow-hidden flex-shrink-0 relative">
+<img alt="System Node" class="w-full h-full object-cover opacity-80" data-alt="A highly detailed, futuristic abstract rendering of a complex data node system. Glowing neon blue and cyan geometric lines interconnect over a deep slate space, creating a sense of intelligent network architecture, perfectly suited as a system node avatar for a high-end data analyst tool." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD81g25yUOvCfwvzPR7ncaTU8BPpESEYElzjlhymQfajdt_3CEqI6Gxj6Ve_48hGaNGd1fhXWHlXPaR8EAii2Q6Hlu_7FUyfXHRhAflzmOxg35KS7r1_nI5mw5dBqCmDZyG7fN1qXG-Cu2hSbH7yWDrpYwzr0xYCj6dnEjAAfsIiAZkX2DHpKH0FjsxphIb4HW2nMRYvJ5RKrZ-hZ6x-733MUzs47rgaDMjr7OLCBGrcXp0n0BT462QzxWV4Tu517pWrMMmrA9qFgce"/>
+</div>
+<div class="flex flex-col">
+<span class="font-headline-md text-headline-md text-secondary-fixed-dim tracking-tight text-base leading-tight">A3 Terminal</span>
+<span class="font-body-sm text-body-sm text-secondary text-[11px] flex items-center gap-1.5 opacity-80">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse"></span> Network Active
+                </span>
+</div>
+</div>
+<!-- Main Navigation -->
+<div class="flex-1 overflow-y-auto py-md flex flex-col gap-1 px-2">
+<a class="flex items-center gap-3 bg-primary-container/20 text-primary border-r-4 border-primary px-4 py-3 rounded-l-lg translate-x-1 duration-200" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">dashboard</span>
+<span class="font-body-sm text-body-sm font-medium">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 text-on-surface-variant px-4 py-3 hover:bg-white/5 rounded-lg hover:text-on-surface transition-all" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">monitoring</span>
+<span class="font-body-sm text-body-sm font-medium">Analytics</span>
+</a>
+<a class="flex items-center gap-3 text-on-surface-variant px-4 py-3 hover:bg-white/5 rounded-lg hover:text-on-surface transition-all" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">database</span>
+<span class="font-body-sm text-body-sm font-medium">Data Explorer</span>
+</a>
+<a class="flex items-center gap-3 text-on-surface-variant px-4 py-3 hover:bg-white/5 rounded-lg hover:text-on-surface transition-all" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">terminal</span>
+<span class="font-body-sm text-body-sm font-medium">Execution Logs</span>
+</a>
+<a class="flex items-center gap-3 text-on-surface-variant px-4 py-3 hover:bg-white/5 rounded-lg hover:text-on-surface transition-all" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">4k</span>
+<span class="font-body-sm text-body-sm font-medium">Models</span>
+</a>
+</div>
+<!-- Action & Footer -->
+<div class="px-md py-md border-t border-white/5 flex flex-col gap-4">
+<button class="w-full bg-primary-container text-white font-label-caps text-label-caps py-3 rounded-DEFAULT hover:bg-primary-fixed-variant transition-colors flex justify-center items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">play_arrow</span> Execute Pipeline
+            </button>
+<div class="flex flex-col gap-1">
+<a class="flex items-center gap-3 text-on-surface-variant px-2 py-2 hover:bg-white/5 rounded-lg hover:text-on-surface transition-all text-sm" href="#">
+<span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 0;">description</span>
+                    Documentation
+                </a>
+<a class="flex items-center gap-3 text-on-surface-variant px-2 py-2 hover:bg-white/5 rounded-lg hover:text-on-surface transition-all text-sm" href="#">
+<span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 0;">logout</span>
+                    Logout
+                </a>
+</div>
+</div>
+</nav>
+<!-- Main Canvas Area -->
+<div class="flex-1 flex flex-col ml-0 md:ml-64 h-screen overflow-hidden bg-background relative">
+<!-- Ambient Background Glows -->
+<div class="absolute top-0 left-1/4 w-[800px] h-[400px] bg-primary/5 rounded-full blur-[120px] pointer-events-none"></div>
+<div class="absolute bottom-0 right-1/4 w-[600px] h-[500px] bg-secondary/5 rounded-full blur-[100px] pointer-events-none"></div>
+<!-- TopNavBar (Shared Component) -->
+<header class="w-full top-0 sticky bg-surface-dim/60 backdrop-blur-xl border-b border-white/5 z-40">
+<div class="flex justify-between items-center px-md py-xs w-full max-w-container-max mx-auto h-16">
+<!-- Mobile Menu Toggle & Brand (hidden on desktop) -->
+<div class="flex items-center gap-3 md:hidden">
+<button class="text-on-surface-variant p-2 hover:bg-white/5 rounded-lg" onclick="document.getElementById('sidebar').classList.toggle('-translate-x-full')">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<span class="font-headline-md text-headline-md text-primary tracking-tight text-lg">A3 Analyst Premium</span>
+</div>
+<div class="hidden md:block">
+<!-- Brand text typically here, but it's in the sidebar. Let's put a subtle breadcrumb or empty space -->
+<span class="font-label-caps text-label-caps text-on-surface-variant flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">home</span> / Dashboard / Overview
+                    </span>
+</div>
+<!-- Search & Actions -->
+<div class="flex items-center gap-4">
+<!-- Search Bar -->
+<div class="relative hidden sm:flex items-center group">
+<span class="material-symbols-outlined absolute left-3 text-on-surface-variant text-[18px] group-focus-within:text-primary transition-colors">search</span>
+<input class="bg-surface-container/50 border border-white/5 rounded-lg pl-10 pr-4 py-1.5 w-64 text-sm font-body-sm text-on-surface placeholder-on-surface-variant focus:outline-none focus:border-outline-accent focus:ring-1 focus:ring-outline-accent/50 transition-all bg-surface-container-high/40 backdrop-blur-md" placeholder="Search pipelines, logs, or metrics..." type="text"/>
+<div class="absolute right-3 flex items-center gap-1 opacity-50">
+<span class="font-code-sm text-code-sm text-xs border border-white/10 rounded px-1">⌘</span>
+<span class="font-code-sm text-code-sm text-xs border border-white/10 rounded px-1">K</span>
+</div>
+</div>
+<!-- Icons -->
+<div class="flex items-center gap-1">
+<button class="text-on-surface-variant font-medium p-2 hover:text-primary transition-colors duration-200 rounded-lg hover:bg-white/5 relative active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-[20px]">notifications</span>
+<span class="absolute top-2 right-2 w-1.5 h-1.5 bg-primary rounded-full"></span>
+</button>
+<button class="text-on-surface-variant font-medium p-2 hover:text-primary transition-colors duration-200 rounded-lg hover:bg-white/5 active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-[20px]">settings</span>
+</button>
+<button class="text-on-surface-variant font-medium p-2 hover:text-primary transition-colors duration-200 rounded-lg hover:bg-white/5 active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-[20px]">help</span>
+</button>
+</div>
+<!-- Profile -->
+<div class="w-8 h-8 rounded-full bg-surface-container-high border border-white/10 overflow-hidden cursor-pointer hover:border-primary/50 transition-colors ml-2">
+<img alt="Analyst profile picture" class="w-full h-full object-cover" data-alt="A cinematic, high-contrast professional portrait photo of a sophisticated male data analyst in his 30s. He is standing in a dimly lit, high-tech control room with soft blue screen reflections illuminating his face. The mood is focused and intelligent, matching a futuristic UI profile picture." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC1i4bsU5yOiajhRXA1ZlEdZFpvCxCsKXMhQ8N9dpznvww1eYgE9qluHns4FYBmS2SqyJdf65NZNpjJwIDOtClBzUQ8vAWmYT5g9tw34oy2pJQ8vfg0lr-aN6bF9lRrrBpqJBgRA6g87h6GSYJvHtnkwa-BtOMANaT51nsboMgVx-4I56csN6kY8kJcZKDMaXTmS1Q9oqAy9GiJ7k2A7qxM-o8s4maO_-AeZEkhyLyju4cRfKvYfiXQwUA33CELpmEVBCSCYQtMMh5-"/>
+</div>
+</div>
+</div>
+</header>
+<!-- Dashboard Content Scrollable Area -->
+<main class="flex-1 overflow-y-auto p-md md:p-lg">
+<div class="max-w-container-max mx-auto flex flex-col gap-md">
+<!-- Page Header -->
+<div class="flex justify-between items-end mb-2">
+<div>
+<h1 class="font-display-lg text-display-lg text-on-surface mb-1 text-3xl md:text-[32px] font-bold">System Dashboard</h1>
+<p class="font-body-base text-body-base text-on-surface-variant">Real-time overview of pipeline execution and cluster health.</p>
+</div>
+<div class="hidden sm:flex gap-2">
+<button class="glass-panel text-on-surface font-label-caps text-label-caps px-4 py-2 rounded-DEFAULT hover:bg-white/5 transition-colors border-white/10 flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px]">calendar_today</span> Last 24 Hours
+                        </button>
+<button class="bg-primary text-on-primary font-label-caps text-label-caps px-4 py-2 rounded-DEFAULT hover:bg-primary-fixed-dim transition-colors flex items-center gap-2 shadow-[0_0_15px_rgba(180,197,255,0.2)]">
+<span class="material-symbols-outlined text-[16px]">download</span> Export Report
+                        </button>
+</div>
+</div>
+<!-- Bento Grid Content -->
+<!-- Top Row: Metrics Cards -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-md">
+<!-- Card 1 -->
+<div class="glass-panel rounded-xl p-md flex flex-col gap-4 glow-border transition-all duration-300 relative overflow-hidden group">
+<div class="absolute -right-4 -top-4 w-24 h-24 bg-primary/10 rounded-full blur-xl group-hover:bg-primary/20 transition-all"></div>
+<div class="flex justify-between items-start">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[20px]">account_tree</span>
+<span class="font-label-caps text-label-caps text-on-surface-variant">ACTIVE PIPELINES</span>
+</div>
+<span class="font-label-caps text-label-caps text-secondary-fixed bg-secondary-fixed/10 px-2 py-0.5 rounded text-[10px] border border-secondary-fixed/20">+12%</span>
+</div>
+<div class="flex items-baseline gap-2">
+<span class="font-display-lg text-display-lg text-on-surface text-4xl">142</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">/ 150 limit</span>
+</div>
+<div class="h-10 w-full mt-auto">
+<!-- SVG Sparkline Placeholder -->
+<svg class="w-full h-full" preserveaspectratio="none" viewbox="0 0 100 30">
+<path class="sparkline stroke-primary" d="M0,25 L10,20 L20,22 L30,15 L40,18 L50,8 L60,12 L70,5 L80,10 L90,2 L100,5"></path>
+<path class="sparkline-fill fill-primary" d="M0,30 L0,25 L10,20 L20,22 L30,15 L40,18 L50,8 L60,12 L70,5 L80,10 L90,2 L100,5 L100,30 Z"></path>
+</svg>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="glass-panel rounded-xl p-md flex flex-col gap-4 glow-border transition-all duration-300 relative overflow-hidden group">
+<div class="absolute -right-4 -top-4 w-24 h-24 bg-secondary/10 rounded-full blur-xl group-hover:bg-secondary/20 transition-all"></div>
+<div class="flex justify-between items-start">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary text-[20px]">memory</span>
+<span class="font-label-caps text-label-caps text-on-surface-variant">COMPUTE USAGE</span>
+</div>
+<span class="font-label-caps text-label-caps text-on-surface-variant bg-white/5 px-2 py-0.5 rounded text-[10px] border border-white/10">-3%</span>
+</div>
+<div class="flex items-baseline gap-2">
+<span class="font-display-lg text-display-lg text-on-surface text-4xl">78<span class="text-2xl text-on-surface-variant">%</span></span>
+</div>
+<div class="h-10 w-full mt-auto">
+<svg class="w-full h-full" preserveaspectratio="none" viewbox="0 0 100 30">
+<path class="sparkline stroke-secondary" d="M0,15 L10,18 L20,12 L30,16 L40,10 L50,15 L60,8 L70,12 L80,18 L90,14 L100,10"></path>
+<path class="sparkline-fill fill-secondary" d="M0,30 L0,15 L10,18 L20,12 L30,16 L40,10 L50,15 L60,8 L70,12 L80,18 L90,14 L100,10 L100,30 Z"></path>
+</svg>
+</div>
+</div>
+<!-- Card 3 -->
+<div class="glass-panel rounded-xl p-md flex flex-col gap-4 glow-border transition-all duration-300 relative overflow-hidden group">
+<div class="absolute -right-4 -top-4 w-24 h-24 bg-tertiary/10 rounded-full blur-xl group-hover:bg-tertiary/20 transition-all"></div>
+<div class="flex justify-between items-start">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-tertiary text-[20px]">dns</span>
+<span class="font-label-caps text-label-caps text-on-surface-variant">NODE HEALTH</span>
+</div>
+<span class="font-label-caps text-label-caps text-error bg-error/10 px-2 py-0.5 rounded text-[10px] border border-error/20">1 Warn</span>
+</div>
+<div class="flex items-baseline gap-2">
+<span class="font-display-lg text-display-lg text-on-surface text-4xl">99.8<span class="text-2xl text-on-surface-variant">%</span></span>
+</div>
+<div class="h-10 w-full mt-auto flex items-end gap-1">
+<!-- Bar chart style sparkline -->
+<div class="w-full h-[80%] bg-tertiary/30 rounded-t-sm"></div>
+<div class="w-full h-[90%] bg-tertiary/40 rounded-t-sm"></div>
+<div class="w-full h-[70%] bg-tertiary/30 rounded-t-sm"></div>
+<div class="w-full h-[85%] bg-tertiary/40 rounded-t-sm"></div>
+<div class="w-full h-[95%] bg-tertiary/50 rounded-t-sm"></div>
+<div class="w-full h-[40%] bg-error/60 rounded-t-sm"></div>
+<div class="w-full h-[80%] bg-tertiary/40 rounded-t-sm"></div>
+<div class="w-full h-[100%] bg-tertiary/60 rounded-t-sm relative">
+<div class="absolute -top-1 -left-1 -right-1 h-1 bg-tertiary rounded-full shadow-[0_0_8px_rgba(208,188,255,0.8)]"></div>
+</div>
+</div>
+</div>
+<!-- Card 4 -->
+<div class="glass-panel rounded-xl p-md flex flex-col gap-4 glow-border transition-all duration-300 relative overflow-hidden group">
+<div class="flex justify-between items-start">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary-fixed-dim text-[20px]">check_circle</span>
+<span class="font-label-caps text-label-caps text-on-surface-variant">SUCCESS RATE</span>
+</div>
+</div>
+<div class="flex items-baseline gap-2">
+<span class="font-display-lg text-display-lg text-on-surface text-4xl">94.2<span class="text-2xl text-on-surface-variant">%</span></span>
+</div>
+<!-- Mini gauge or progress -->
+<div class="mt-auto flex flex-col gap-2">
+<div class="flex justify-between text-xs font-code-sm text-on-surface-variant">
+<span>Target: 95%</span>
+<span class="text-primary-fixed-dim">Almost there</span>
+</div>
+<div class="h-2 w-full bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-gradient-to-r from-primary to-secondary w-[94.2%] rounded-full relative">
+<div class="absolute right-0 top-0 bottom-0 w-4 bg-white/30 blur-sm rounded-full"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Middle: Main Chart Area -->
+<div class="glass-panel rounded-xl p-md flex flex-col gap-4 border border-white/5 relative overflow-hidden mt-2">
+<div class="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent pointer-events-none opacity-50"></div>
+<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center z-10 gap-4">
+<div>
+<h2 class="font-headline-md text-headline-md text-on-surface text-xl">Pipeline Performance</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Throughput vs Latency over last 7 days</p>
+</div>
+<div class="flex bg-surface-container/80 rounded-lg p-1 border border-white/5">
+<button class="px-3 py-1 rounded text-xs font-label-caps text-on-surface bg-white/10 shadow-sm">1W</button>
+<button class="px-3 py-1 rounded text-xs font-label-caps text-on-surface-variant hover:text-on-surface">1M</button>
+<button class="px-3 py-1 rounded text-xs font-label-caps text-on-surface-variant hover:text-on-surface">3M</button>
+<button class="px-3 py-1 rounded text-xs font-label-caps text-on-surface-variant hover:text-on-surface">ALL</button>
+</div>
+</div>
+<!-- CSS-drawn Chart Mockup to avoid images -->
+<div class="h-72 w-full mt-4 relative z-10 flex flex-col">
+<!-- Y-Axis Labels -->
+<div class="absolute left-0 top-0 bottom-8 flex flex-col justify-between text-[10px] font-code-sm text-on-surface-variant/50 w-8">
+<span>10k</span>
+<span>7.5k</span>
+<span>5k</span>
+<span>2.5k</span>
+<span>0</span>
+</div>
+<!-- Grid Lines -->
+<div class="absolute left-8 right-0 top-0 bottom-8 flex flex-col justify-between z-0 pointer-events-none">
+<div class="w-full h-px border-b border-dashed border-white/5"></div>
+<div class="w-full h-px border-b border-dashed border-white/5"></div>
+<div class="w-full h-px border-b border-dashed border-white/5"></div>
+<div class="w-full h-px border-b border-dashed border-white/5"></div>
+<div class="w-full h-px border-b border-solid border-white/10"></div>
+</div>
+<!-- X-Axis Labels -->
+<div class="absolute left-8 right-0 bottom-0 h-8 flex justify-between items-end text-[10px] font-code-sm text-on-surface-variant/50 px-4">
+<span>Mon</span>
+<span>Tue</span>
+<span>Wed</span>
+<span>Thu</span>
+<span>Fri</span>
+<span>Sat</span>
+<span>Sun</span>
+</div>
+<!-- Data Lines (SVG for crisp curves) -->
+<div class="absolute left-8 right-0 top-0 bottom-8 z-10">
+<svg class="w-full h-full" preserveaspectratio="none" viewbox="0 0 1000 250">
+<!-- Grid Glow Effect behind line -->
+<defs>
+<filter height="140%" id="glow" width="140%" x="-20%" y="-20%">
+<fegaussianblur result="blur" stddeviation="8"></fegaussianblur>
+<fecomposite in="SourceGraphic" in2="blur" operator="over"></fecomposite>
+</filter>
+<lineargradient id="areaGradient" x1="0" x2="0" y1="0" y2="1">
+<stop offset="0%" stop-color="#b4c5ff" stop-opacity="0.3"></stop>
+<stop offset="100%" stop-color="#b4c5ff" stop-opacity="0"></stop>
+</lineargradient>
+<lineargradient id="areaGradient2" x1="0" x2="0" y1="0" y2="1">
+<stop offset="0%" stop-color="#4cd7f6" stop-opacity="0.2"></stop>
+<stop offset="100%" stop-color="#4cd7f6" stop-opacity="0"></stop>
+</lineargradient>
+</defs>
+<!-- Throughput Line (Indigo) -->
+<path d="M0,200 C100,180 200,220 300,150 C400,80 500,120 600,60 C700,0 800,90 900,40 C950,15 1000,50 1000,50 L1000,250 L0,250 Z" fill="url(#areaGradient)"></path>
+<path d="M0,200 C100,180 200,220 300,150 C400,80 500,120 600,60 C700,0 800,90 900,40 C950,15 1000,50 1000,50" fill="none" filter="url(#glow)" stroke="#b4c5ff" stroke-linecap="round" stroke-width="3"></path>
+<!-- Latency Line (Cyan) -->
+<path d="M0,150 C150,160 250,100 350,130 C450,160 550,190 650,140 C750,90 850,180 1000,120 L1000,250 L0,250 Z" fill="url(#areaGradient2)"></path>
+<path d="M0,150 C150,160 250,100 350,130 C450,160 550,190 650,140 C750,90 850,180 1000,120" fill="none" stroke="#4cd7f6" stroke-dasharray="6,4" stroke-linecap="round" stroke-width="2"></path>
+<!-- Data Points -->
+<circle cx="600" cy="60" fill="#11131b" r="4" stroke="#b4c5ff" stroke-width="2"></circle>
+<circle cx="600" cy="60" fill="none" opacity="0.5" r="12" stroke="#b4c5ff" stroke-width="1">
+<animate attributename="r" dur="2s" repeatcount="indefinite" values="4;20"></animate>
+<animate attributename="opacity" dur="2s" repeatcount="indefinite" values="0.8;0"></animate>
+</circle>
+</svg>
+<!-- Tooltip Mockup -->
+<div class="absolute left-[58%] top-[10%] glass-panel px-3 py-2 rounded shadow-lg border-primary/30 z-20 pointer-events-none transform -translate-x-1/2 -translate-y-full mb-2">
+<div class="text-[10px] font-code-sm text-on-surface-variant mb-1">Fri, 14:00</div>
+<div class="flex items-center gap-2">
+<div class="w-2 h-2 rounded-full bg-primary"></div>
+<span class="text-sm font-code-sm text-on-surface">8,420 ops/s</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Bottom: Agent Execution Logs -->
+<div class="glass-panel rounded-xl flex flex-col border border-white/5 mt-2 h-96 overflow-hidden">
+<div class="p-md border-b border-white/5 flex justify-between items-center bg-surface-container-low/50">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-on-surface-variant text-[20px]">terminal</span>
+<h2 class="font-headline-md text-headline-md text-on-surface text-lg">Agent Execution Logs</h2>
+</div>
+<div class="flex gap-2">
+<span class="bg-primary/10 text-primary font-label-caps text-label-caps px-2 py-1 rounded text-[10px] border border-primary/20 flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span> LIVE
+                            </span>
+<button class="text-on-surface-variant hover:text-on-surface p-1 rounded hover:bg-white/5">
+<span class="material-symbols-outlined text-[18px]">filter_list</span>
+</button>
+</div>
+</div>
+<!-- Log Entries (JetBrains Mono) -->
+<div class="flex-1 overflow-y-auto p-4 font-code-sm text-code-sm bg-[#050505]/80 space-y-1.5" id="log-container">
+<div class="flex gap-4 hover:bg-white/5 px-2 py-1 rounded transition-colors group">
+<span class="text-on-surface-variant/50 w-24 shrink-0">14:02:45.102</span>
+<span class="text-secondary w-16 shrink-0">[INFO]</span>
+<span class="text-on-surface break-all">Agent.Core: Pipeline <span class="text-primary-fixed-dim">ETL-Alpha-9</span> initialized successfully. Requesting compute allocation...</span>
+</div>
+<div class="flex gap-4 hover:bg-white/5 px-2 py-1 rounded transition-colors group">
+<span class="text-on-surface-variant/50 w-24 shrink-0">14:02:46.330</span>
+<span class="text-secondary w-16 shrink-0">[INFO]</span>
+<span class="text-on-surface break-all">NodeManager: Granted 4x A100 instances to <span class="text-primary-fixed-dim">ETL-Alpha-9</span>.</span>
+</div>
+<div class="flex gap-4 hover:bg-white/5 px-2 py-1 rounded transition-colors group">
+<span class="text-on-surface-variant/50 w-24 shrink-0">14:03:01.005</span>
+<span class="text-tertiary w-16 shrink-0">[WARN]</span>
+<span class="text-on-surface break-all">DataStream: Source latency spike detected on <span class="text-tertiary-fixed-dim">DB-Cluster-East</span> (450ms &gt; threshold 200ms). Applying backpressure.</span>
+</div>
+<div class="flex gap-4 hover:bg-white/5 px-2 py-1 rounded transition-colors group bg-error/10 border-l-2 border-error">
+<span class="text-on-surface-variant/50 w-24 shrink-0">14:03:15.992</span>
+<span class="text-error w-16 shrink-0">[ERROR]</span>
+<span class="text-on-surface break-all">ModelInference: Token limit exceeded for agent prompt. Context window overflow at token 128042. Retrying with chunking...</span>
+</div>
+<div class="flex gap-4 hover:bg-white/5 px-2 py-1 rounded transition-colors group">
+<span class="text-on-surface-variant/50 w-24 shrink-0">14:03:22.410</span>
+<span class="text-secondary w-16 shrink-0">[INFO]</span>
+<span class="text-on-surface break-all">ModelInference: Chunked execution successful. Output mapped to schema.</span>
+</div>
+<div class="flex gap-4 hover:bg-white/5 px-2 py-1 rounded transition-colors group">
+<span class="text-on-surface-variant/50 w-24 shrink-0">14:04:00.001</span>
+<span class="text-primary-fixed-dim w-16 shrink-0">[SYS]</span>
+<span class="text-on-surface break-all">GarbageCollector: Freed 2.4GB memory on Node-04.</span>
+</div>
+<div class="flex gap-4 hover:bg-white/5 px-2 py-1 rounded transition-colors group">
+<span class="text-on-surface-variant/50 w-24 shrink-0 animate-pulse">14:04:10.xxx</span>
+<span class="text-on-surface-variant w-16 shrink-0">...</span>
+<span class="text-on-surface-variant italic">Waiting for incoming telemetry...</span>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+<!-- Inline script for mild interactions -->
+<script>
+        // Auto-scroll logs to bottom (simulating live feed)
+        const logContainer = document.getElementById('log-container');
+        if(logContainer) {
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+    </script>
+</body></html>

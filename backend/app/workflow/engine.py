@@ -28,28 +28,38 @@ class WorkflowEngine:
     def register_step_handler(self, action_type: str, handler_func):
         self.step_handlers[action_type] = handler_func
 
-    def execute_workflow(self, workflow_id: str, steps: List[WorkflowStep], initial_context: Dict[str, Any]) -> WorkflowExecutionResult:
+    def execute_workflow(self, workflow_id: str, steps: List[WorkflowStep], initial_context: Dict[str, Any], progress_callback=None) -> WorkflowExecutionResult:
         start_time = time.time()
         context = dict(initial_context)
         results = {}
 
         for step in steps:
             logger.info(f"Executing workflow step: {step.name} ({step.action_type})")
+            if progress_callback:
+                progress_callback(step.id, "running", None, None)
+            
             handler = self.step_handlers.get(step.action_type)
             if not handler:
+                err = f"No handler registered for action type: {step.action_type}"
+                if progress_callback:
+                    progress_callback(step.id, "failed", None, err)
                 return WorkflowExecutionResult(
                     workflow_id=workflow_id,
                     success=False,
                     step_results=results,
                     execution_time_seconds=time.time() - start_time,
-                    error=f"No handler registered for action type: {step.action_type}"
+                    error=err
                 )
             try:
                 step_res = handler(context=context, params=step.params)
                 results[step.id] = step_res
                 context[step.id] = step_res
+                if progress_callback:
+                    progress_callback(step.id, "completed", step_res, None)
             except Exception as e:
                 logger.error(f"Error in step {step.name}: {e}")
+                if progress_callback:
+                    progress_callback(step.id, "failed", None, str(e))
                 return WorkflowExecutionResult(
                     workflow_id=workflow_id,
                     success=False,

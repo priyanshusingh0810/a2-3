@@ -65,7 +65,29 @@ module.exports = {
       },
       animation: {
         'slide-up-fade': 'slideUpFade 0.45s cubic-bezier(0.16, 1, 0.3, 1) both',
+        'float': 'float 6s ease-in-out infinite',
+        'pulse-glow': 'pulseGlow 4s ease-in-out infinite',
+        'mesh': 'meshAnim 15s ease infinite',
+        'shimmer': 'shimmer 1.5s infinite',
       },
+      keyframes: {
+        float: {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-10px)' },
+        },
+        pulseGlow: {
+          '0%, 100%': { opacity: 0.8, filter: 'brightness(1)' },
+          '50%': { opacity: 1, filter: 'brightness(1.2)' },
+        },
+        meshAnim: {
+          '0%': { backgroundPosition: '0% 50%' },
+          '50%': { backgroundPosition: '100% 50%' },
+          '100%': { backgroundPosition: '0% 50%' },
+        },
+        shimmer: {
+          '100%': { transform: 'translateX(100%)' }
+        }
+      }
     },
   },
   plugins: [],

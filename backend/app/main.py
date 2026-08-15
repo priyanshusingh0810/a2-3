@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.db.session import engine, Base
-from app.api import auth, datasets, chat, reports, dashboards, collaboration
+from app.api import auth, datasets, chat, reports, dashboards, collaboration, workflows
 from app.services.llm_service import LLMService
 
 # Setup logger
@@ -235,6 +235,7 @@ app.include_router(dashboards.router, prefix=f"{settings.API_V1_STR}/dashboards"
 app.include_router(reports.router, prefix=f"{settings.API_V1_STR}/reports", tags=["Reports"])
 app.include_router(collaboration.router, prefix=f"{settings.API_V1_STR}/collaboration", tags=["Collaboration"])
 app.include_router(telemetry.router, prefix=f"{settings.API_V1_STR}/telemetry", tags=["Telemetry & Performance"])
+app.include_router(workflows.router, prefix=f"{settings.API_V1_STR}/workflows", tags=["Workflows"])
 
 @app.get("/health")
 async def health_check():

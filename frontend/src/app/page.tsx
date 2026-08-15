@@ -167,6 +167,7 @@ export default function Home() {
 
   // --- POLLING TIMER ---
   const pollTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const [workflowRunId, setWorkflowRunId] = useState<string | null>(null);
 
   // --- INITIAL CHECK ---
   useEffect(() => {
@@ -236,7 +237,34 @@ export default function Home() {
   }, [chatMessages]);
 
   useEffect(() => {
-    if (analysisJob && (analysisJob.status === 'pending' || analysisJob.status === 'running')) {
+    let timer: NodeJS.Timeout | null = null;
+    
+    if (workflowRunId) {
+      timer = setInterval(async () => {
+        try {
+          const res = await api.get(`/workflows/runs/${workflowRunId}`);
+          const run = res.data;
+          
+          setAnalysisJob({
+             status: run.status,
+             agent_run_history: run.node_runs.map((nr: any, idx: number) => ({
+                 agent: `Workflow Node ${idx + 1}`,
+                 status: nr.status,
+                 message: nr.error_message || `Executing step...`
+             }))
+          });
+          
+          if (run.status === 'completed' || run.status === 'failed') {
+             if (timer) clearInterval(timer);
+             setWorkflowRunId(null);
+             showToast(run.status === 'completed' ? 'success' : 'error', `Workflow finished with status: ${run.status}`);
+             if (run.status === 'completed') fetchDatasetDetails(selectedDatasetId!);
+          }
+        } catch (err) {
+          console.error(err);
+        }
+      }, 2000);
+    } else if (analysisJob && (analysisJob.status === 'pending' || analysisJob.status === 'running')) {
       if (!pollTimerRef.current) {
         pollTimerRef.current = setInterval(() => {
           pollAnalysisJob();
@@ -248,13 +276,15 @@ export default function Home() {
         pollTimerRef.current = null;
       }
     }
+
     return () => {
+      if (timer) clearInterval(timer);
       if (pollTimerRef.current) {
         clearInterval(pollTimerRef.current);
         pollTimerRef.current = null;
       }
     };
-  }, [analysisJob]);
+  }, [workflowRunId, analysisJob?.status]);
 
   // --- API HANDLERS ---
   const fetchCurrentUser = async () => {
@@ -497,6 +527,26 @@ export default function Home() {
     }
   };
 
+  const handleApplyTemplate = async (templateTitle: string) => {
+    if (!selectedDatasetId) {
+      showToast('warning', 'Please upload or select a dataset first.');
+      return;
+    }
+    setGlobalLoading(true);
+    try {
+      const res = await api.post('/workflows/template', {
+        template_title: templateTitle,
+        dataset_id: selectedDatasetId
+      });
+      setWorkflowRunId(res.data.id);
+      showToast('info', `Initializing ${templateTitle} workflow...`);
+    } catch (err: any) {
+      showToast('error', err.response?.data?.detail || 'Failed to start template workflow.');
+    } finally {
+      setGlobalLoading(false);
+    }
+  };
+
   const handleSaveMemory = async () => {
     if (!selectedDatasetId) return;
     setMemoryLoading(true);
@@ -734,12 +784,13 @@ export default function Home() {
         {/* KPIs Row */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {kpiWidgets.map((kpi: any) => (
-            <div key={kpi.id} className="glass-panel p-5 rounded-xl flex items-center justify-between">
-              <div>
+            <div key={kpi.id} className="glass-panel glow-border p-5 rounded-xl flex items-center justify-between transition-all hover:bg-white/5 cursor-default relative overflow-hidden group">
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
+              <div className="relative z-10">
                 <p className="text-slate-500 text-[10px] uppercase font-bold tracking-wider">{kpi.title}</p>
                 <h3 className="section-heading text-2xl mt-1 text-white font-mono">{kpi.config.value}</h3>
               </div>
-              <div className="p-2.5 bg-indigo-500/10 rounded-lg text-indigo-400 border border-indigo-500/10">
+              <div className="relative z-10 p-2.5 bg-indigo-500/10 rounded-lg text-indigo-400 border border-indigo-500/10 shadow-[0_0_15px_rgba(99,102,241,0.2)]">
                 {kpi.id.includes('quality') ? <Shield size={16} /> : <Database size={16} />}
               </div>
             </div>
@@ -1116,7 +1167,7 @@ export default function Home() {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {templates.map((temp, idx) => (
-            <div key={idx} className="bg-slate-950/60 p-4 rounded-xl border border-slate-900 hover:border-slate-800 transition flex flex-col justify-between group cursor-pointer">
+            <div key={idx} onClick={() => handleApplyTemplate(temp.title)} className="bg-slate-950/60 p-4 rounded-xl border border-slate-900 hover:border-slate-800 transition flex flex-col justify-between group cursor-pointer">
               <div>
                 <span className="text-[9px] uppercase font-bold text-teal-400 bg-teal-500/10 border border-teal-500/20 px-2 py-0.5 rounded">{temp.domain}</span>
                 <h4 className="section-heading text-xs text-slate-200 mt-3 group-hover:text-white transition">{temp.title}</h4>
@@ -1709,23 +1760,25 @@ export default function Home() {
           </motion.div>
         )}
 
-        <div className="space-y-2.5">
-          <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider block">Execution logs</span>
-          <div className="space-y-2.5 overflow-y-auto max-h-[220px] pr-1 font-sans">
+        <div className="space-y-3">
+          <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block font-mono">Execution Logs</span>
+          <div className="space-y-0 bg-black/40 border border-white/5 rounded-lg overflow-y-auto max-h-[300px] p-3 font-mono text-[10px] custom-scrollbar shadow-inner">
             {analysisJob?.agent_run_history && analysisJob.agent_run_history.length > 0 ? (
               analysisJob.agent_run_history.map((log: any, idx: number) => (
-                <div key={idx} className="flex gap-2 items-start text-[10px] leading-tight">
-                  <div className={`shrink-0 w-1.5 h-1.5 rounded-full mt-1 ${
-                    log.status === 'completed' ? 'bg-teal-500' : (log.status === 'failed' ? 'bg-red-500' : 'bg-indigo-500 animate-ping')
-                  }`}></div>
-                  <div className="min-w-0">
+                <div key={idx} className="flex gap-3 items-start py-1.5 border-b border-white/5 last:border-0 hover:bg-white/5 transition-colors -mx-3 px-3">
+                  <div className={`shrink-0 text-[9px] mt-0.5 ${
+                    log.status === 'completed' ? 'text-teal-400' : (log.status === 'failed' ? 'text-red-400' : 'text-indigo-400 animate-pulse')
+                  }`}>
+                    {log.status === 'completed' ? '[OK]' : (log.status === 'failed' ? '[ERR]' : '[RUN]')}
+                  </div>
+                  <div className="min-w-0 flex flex-col gap-0.5">
                     <span className="font-semibold text-slate-300 block">{log.agent}</span>
-                    <span className="text-slate-500 mt-0.5 block">{log.message}</span>
+                    <span className="text-slate-500 block leading-tight">{log.message}</span>
                   </div>
                 </div>
               ))
             ) : (
-              <div className="text-[10px] text-slate-650 italic py-2">No logging history. Click 'CEO Mode' to trigger.</div>
+              <div className="text-[10px] text-slate-600 italic py-2">No logging history. Awaiting execution...</div>
             )}
           </div>
         </div>
@@ -1776,7 +1829,7 @@ export default function Home() {
   // --- PREMIUM SAAS LANDING PAGE REDESIGN ---
   const renderLandingPage = () => {
     return (
-      <div className="min-h-screen w-screen bg-[#09090B] text-slate-200 overflow-y-auto selection:bg-indigo-500/30 grid-bg relative">
+      <div className="min-h-screen w-screen bg-[#09090B] text-slate-200 overflow-y-auto selection:bg-indigo-500/30 grid-bg animate-mesh relative">
         {/* Sticky Header */}
         <header className="sticky top-0 bg-[#09090B]/80 backdrop-blur-md border-b border-slate-900 py-4 px-6 md:px-12 flex justify-between items-center z-55">
           <div className="flex items-center gap-2">
@@ -1912,30 +1965,35 @@ export default function Home() {
 
   // --- AUTHENTICATED SaaS FRAMEWORK SCREEN ---
   return (
-    <div className="min-h-screen flex grid-bg">
+    <div className="min-h-screen flex grid-bg animate-mesh">
       
       {/* COLLAPSIBLE SIDEBAR CONTAINER */}
       <motion.aside
-        animate={{ width: sidebarCollapsed ? 64 : 240 }}
+        animate={{ width: sidebarCollapsed ? 64 : 260 }}
         transition={{ type: 'spring', stiffness: 280, damping: 26 }}
-        className="border-r border-slate-800 bg-slate-950/80 flex flex-col justify-between shrink-0 h-screen sticky top-0 overflow-y-auto z-50 animate-fade-in"
+        className="glass-sidebar flex flex-col justify-between shrink-0 h-screen sticky top-0 overflow-y-auto z-50 animate-fade-in border-r border-white/5"
       >
-        <div className="p-4 flex flex-col gap-6 overflow-hidden">
-          <div className="flex items-center justify-between border-b border-slate-900 pb-4">
+        <div className="flex flex-col gap-6 overflow-hidden">
+          <div className="px-5 py-6 border-b border-white/5 flex items-center justify-between">
             {!sidebarCollapsed && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-2">
-                <div className="p-1.5 bg-indigo-600 rounded-lg text-white shadow">
-                  <Sparkles size={14} />
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-slate-900 border border-white/10 overflow-hidden flex-shrink-0 relative flex items-center justify-center shadow-lg">
+                  <Sparkles size={20} className="text-indigo-400 animate-pulse" />
                 </div>
-                <span className="section-heading text-sm text-white">A3 <span className="text-indigo-400 text-xs font-mono font-semibold">Analyst</span></span>
+                <div className="flex flex-col">
+                  <span className="font-sans font-semibold text-white tracking-tight text-base leading-tight">A3 Terminal</span>
+                  <span className="font-mono text-cyan-400 text-[10px] flex items-center gap-1.5 opacity-80 mt-0.5 font-bold uppercase tracking-wider">
+                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span> Network Active
+                  </span>
+                </div>
               </motion.div>
             )}
-            <button onClick={() => setSidebarCollapsed(!sidebarCollapsed)} className="p-1 rounded-md text-slate-500 hover:text-white hover:bg-slate-900 transition mx-auto">
-              <AlignLeft size={15} />
+            <button onClick={() => setSidebarCollapsed(!sidebarCollapsed)} className="p-1.5 rounded-md text-slate-500 hover:text-white hover:bg-slate-900 transition mx-auto border border-transparent hover:border-slate-800">
+              <AlignLeft size={16} />
             </button>
           </div>
 
-          <nav className="space-y-1">
+          <nav className="space-y-1.5 px-3">
             {([
               { id: 'dashboard', label: 'Insight Dashboard', icon: <LayoutDashboard size={14} /> },
               { id: 'datasets', label: 'Datasets Library', icon: <Database size={14} /> },
@@ -1957,8 +2015,8 @@ export default function Home() {
                   onClick={() => !disabled && setActiveTab(tab.id)}
                   disabled={disabled}
                   title={tab.label}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold transition relative disabled:opacity-20 disabled:cursor-not-allowed ${
-                    isActive ? 'bg-indigo-650 text-white font-semibold' : 'text-slate-400 hover:bg-slate-900 hover:text-slate-200'
+                  className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-all relative disabled:opacity-20 disabled:cursor-not-allowed ${
+                    isActive ? 'bg-indigo-600/10 text-indigo-400 border-l-2 border-indigo-500 rounded-l-none pl-4' : 'text-slate-400 hover:bg-white/5 hover:text-white'
                   }`}
                 >
                   <span className="shrink-0">{tab.icon}</span>
@@ -2016,32 +2074,32 @@ export default function Home() {
 
       {/* CENTER WORKSPACE & NAVBAR */}
       <div className="flex-grow flex flex-col min-w-0 h-screen overflow-hidden">
-        <header className="sticky top-0 z-40 bg-slate-950/80 backdrop-blur-md border-b border-slate-800 px-6 py-3.5 flex items-center justify-between gap-4 shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5 bg-slate-900/60 border border-slate-850 px-2.5 py-1.5 rounded-lg text-xs text-slate-200 select-none cursor-pointer hover:border-slate-800">
-              <span className="font-bold">Enterprise Shared Space</span>
-              <ChevronDown size={12} className="text-slate-500" />
+        <header className="sticky top-0 z-40 glass-panel border-b-0 border-slate-800/50 px-6 py-4 flex items-center justify-between gap-4 shrink-0 rounded-b-2xl mx-2 shadow-[0_4px_30px_rgba(0,0,0,0.3)]">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 bg-white/5 border border-white/10 px-3 py-1.5 rounded-xl text-xs text-white select-none cursor-pointer hover:border-white/20 transition-all">
+              <span className="font-semibold tracking-wide">Enterprise Shared Space</span>
+              <ChevronDown size={14} className="text-slate-400" />
             </div>
             
             <button 
               onClick={() => setCommandPaletteOpen(true)}
-              className="hidden sm:flex items-center gap-2 bg-slate-950 border border-slate-850 hover:border-slate-800 rounded-lg px-3 py-1.5 text-[11px] text-slate-500 text-left w-56 transition-all"
+              className="hidden sm:flex items-center gap-2 bg-slate-950/50 border border-white/5 hover:border-indigo-500/50 rounded-xl px-4 py-2 text-xs text-slate-400 text-left w-72 transition-all group"
             >
-              <Search size={12} />
+              <Search size={14} className="group-hover:text-indigo-400 transition-colors" />
               <span className="flex-grow select-none">Quick Command Search...</span>
-              <span className="text-[9px] bg-slate-900 border border-slate-850 px-1 py-0.2 rounded font-mono">Ctrl+K</span>
+              <span className="text-[10px] bg-white/10 border border-white/10 px-1.5 py-0.5 rounded font-mono text-white">Ctrl+K</span>
             </button>
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2.5 bg-slate-900/40 border border-slate-850 px-3 py-1 rounded-full text-[10px] text-slate-400 select-none">
-              <div className="w-1.5 h-1.5 bg-success rounded-full animate-ping shrink-0" />
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2.5 bg-indigo-500/10 border border-indigo-500/20 px-3.5 py-1.5 rounded-full text-[11px] text-indigo-300 select-none font-mono font-semibold uppercase tracking-wider">
+              <div className="w-2 h-2 bg-indigo-500 rounded-full animate-ping shrink-0" />
               <span>A3 Engine Online</span>
             </div>
 
-            <button className="p-2 text-slate-400 hover:text-white bg-slate-900/50 border border-slate-850 hover:border-slate-800 rounded-xl transition relative">
-              <Bell size={13} />
-              <span className="absolute top-1.5 right-1.5 w-1 h-1 bg-indigo-500 rounded-full" />
+            <button className="p-2.5 text-slate-400 hover:text-white bg-white/5 border border-white/5 hover:border-white/10 rounded-xl transition-all relative group">
+              <Bell size={16} className="group-hover:scale-110 transition-transform" />
+              <span className="absolute top-2 right-2 w-1.5 h-1.5 bg-cyan-400 rounded-full shadow-[0_0_10px_rgba(6,182,212,0.8)]" />
             </button>
 
             {selectedDatasetId && (
@@ -2071,7 +2129,7 @@ export default function Home() {
 
               {activeTab === 'dashboard' && (
                 <div className="space-y-6">
-                  <div className="glass-panel p-6 rounded-2xl bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 border border-slate-800 relative overflow-hidden shadow-2xl">
+                  <div className="glass-panel p-6 rounded-2xl bg-gradient-to-r from-slate-950/50 via-slate-900/50 to-slate-950/50 relative overflow-hidden">
                     <div className="space-y-1.5 max-w-xl">
                       <span className="text-[10px] text-indigo-400 font-bold uppercase tracking-widest font-mono select-none">Analyst Framework active</span>
                       <h1 className="section-heading text-2xl text-white">Welcome back, Data Architect</h1>
